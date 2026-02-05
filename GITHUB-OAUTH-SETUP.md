@@ -75,6 +75,16 @@ After you load the extension in Chrome:
    https://YOUR_ACTUAL_EXTENSION_ID.chromiumapp.org/
    ```
 
+**Current Development Extension ID:**
+```
+odbbnhlpfpcmmmbnbochjomjogkmnioc
+```
+
+**Current Callback URL:**
+```
+https://odbbnhlpfpcmmmbnbochjomjogkmnioc.chromiumapp.org/
+```
+
 ---
 
 ## Step 2: Environment Configuration (Optional)
