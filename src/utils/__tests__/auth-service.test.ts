@@ -174,7 +174,7 @@ describe('AuthService', () => {
       expect(url).toContain('https://github.com/login/oauth/authorize')
       expect(url).toContain('client_id=test_client_id')
       expect(url).toContain('redirect_uri=https%3A%2F%2Ftest.chromiumapp.org%2F')
-      expect(url).toContain('scope=notifications%20read:user')
+      expect(url).toContain('scope=notifications%20read%3Auser')
     })
 
     it('should URL encode redirect URI', () => {
@@ -186,7 +186,7 @@ describe('AuthService', () => {
     it('should include correct scopes', () => {
       const url = AuthService.getAuthUrl('client', 'https://test.com/')
 
-      expect(url).toContain('scope=notifications%20read:user')
+      expect(url).toContain('scope=notifications%20read%3Auser')
     })
   })
 

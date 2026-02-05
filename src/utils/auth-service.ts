@@ -118,9 +118,9 @@ export class AuthService {
    * @returns string - Complete OAuth URL
    */
   static getAuthUrl(clientId: string, redirectUri: string): string {
-    // Manually build URL to avoid + encoding for spaces
+    // Manually build URL to ensure proper encoding
     const encodedRedirectUri = encodeURIComponent(redirectUri)
-    const encodedScope = 'notifications%20read:user'
+    const encodedScope = encodeURIComponent(SCOPES)
     
     return `${GITHUB_AUTH_URL}?client_id=${clientId}&redirect_uri=${encodedRedirectUri}&scope=${encodedScope}`
   }

@@ -7,7 +7,11 @@ function App() {
     return (
       <div className="w-[400px] h-[600px] bg-github-canvas-default flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-github-accent-emphasis mx-auto mb-4"></div>
+          <div 
+            className="animate-spin rounded-full h-12 w-12 border-b-2 border-github-accent-emphasis mx-auto mb-4"
+            role="status"
+            aria-label="Loading authentication status"
+          />
           <p className="text-sm text-github-fg-muted">Loading...</p>
         </div>
       </div>
@@ -27,7 +31,11 @@ function App() {
         </header>
 
         {error && (
-          <div className="mb-4 p-4 bg-github-danger-subtle border border-github-danger-emphasis rounded-github">
+          <div 
+            className="mb-4 p-4 bg-github-danger-subtle border border-github-danger-emphasis rounded-github"
+            role="alert"
+            aria-live="assertive"
+          >
             <p className="text-sm text-github-danger-fg font-medium">
               {error}
             </p>
@@ -42,6 +50,8 @@ function App() {
                   className="mx-auto h-16 w-16 text-github-fg-muted"
                   fill="currentColor"
                   viewBox="0 0 24 24"
+                  role="img"
+                  aria-label="GitHub logo"
                 >
                   <path
                     fillRule="evenodd"
@@ -61,6 +71,7 @@ function App() {
               <button
                 onClick={login}
                 disabled={isLoading}
+                aria-busy={isLoading}
                 className="px-6 py-3 bg-github-accent-emphasis text-white rounded-github 
                          hover:bg-github-accent-fg transition-colors font-medium text-sm
                          disabled:opacity-50 disabled:cursor-not-allowed w-full"
