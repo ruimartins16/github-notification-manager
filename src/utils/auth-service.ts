@@ -36,29 +36,95 @@ interface TokenResponse {
   error?: string
 }
 
+export interface DeviceAuthInfo {
+  userCode: string
+  verificationUri: string
+  expiresIn: number
+}
+
 export class AuthService {
   /**
-   * Initiates GitHub Device Flow authentication
-   * Opens GitHub verification page and polls for authorization
+   * Initiates GitHub Device Flow authentication - Step 1: Get device code
+   * Returns device info that should be displayed to user
+   * Call completeDeviceAuth() after user sees the code
+   * 
+   * @returns Promise<DeviceAuthInfo> - Device code info to display
+   * @throws Error if request fails
+   */
+  static async initiateDeviceAuth(): Promise<DeviceAuthInfo> {
+    const clientId = await this.getClientId()
+    const deviceData = await this.requestDeviceCode(clientId)
+
+    // Store device code for later polling
+    await chrome.storage.local.set({ 
+      _deviceCode: deviceData.device_code,
+      _deviceInterval: deviceData.interval,
+    })
+
+    return {
+      userCode: deviceData.user_code,
+      verificationUri: deviceData.verification_uri,
+      expiresIn: deviceData.expires_in,
+    }
+  }
+
+  /**
+   * Completes GitHub Device Flow authentication - Step 2: Poll for token
+   * Call this after showing user the code and opening verification page
+   * 
+   * @returns Promise<string> - GitHub access token
+   * @throws Error if authorization fails
+   */
+  static async completeDeviceAuth(): Promise<string> {
+    const clientId = await this.getClientId()
+    
+    // Retrieve stored device code
+    const storage = await chrome.storage.local.get(['_deviceCode', '_deviceInterval'])
+    const deviceCode = storage._deviceCode
+    const interval = storage._deviceInterval || 5
+
+    if (!deviceCode) {
+      throw new Error('No device code found. Please start the authorization process again.')
+    }
+
+    try {
+      // Poll for token
+      const token = await this.pollForToken(clientId, deviceCode, interval)
+
+      // Store the token
+      await this.saveToken(token)
+
+      // Clean up temporary device data
+      await chrome.storage.local.remove(['_deviceCode', '_deviceInterval'])
+
+      return token
+    } catch (error) {
+      // Clean up on error
+      await chrome.storage.local.remove(['_deviceCode', '_deviceInterval'])
+      throw error
+    }
+  }
+
+  /**
+   * Legacy login method for backwards compatibility
+   * Now uses Device Flow internally
    * 
    * @returns Promise<string> - GitHub access token
    * @throws Error if user cancels or authentication fails
    */
   static async login(): Promise<string> {
     try {
-      const clientId = await this.getClientId()
+      // Step 1: Get device code
+      const deviceInfo = await this.initiateDeviceAuth()
 
-      // Step 1: Request device and user codes
-      const deviceData = await this.requestDeviceCode(clientId)
+      // Step 2: Open verification page
+      await chrome.tabs.create({
+        url: deviceInfo.verificationUri,
+        active: true,
+      })
 
-      // Step 2: Open GitHub verification page
-      await this.openVerificationPage(deviceData.verification_uri, deviceData.user_code)
-
-      // Step 3: Poll for access token
-      const token = await this.pollForToken(clientId, deviceData.device_code, deviceData.interval)
-
-      // Store the token
-      await this.saveToken(token)
+      // Step 3: Poll for token (this will take a while)
+      const token = await this.completeDeviceAuth()
 
       return token
     } catch (error) {
@@ -143,21 +209,6 @@ export class AuthService {
   }
 
   /**
-   * Opens GitHub verification page in a new tab
-   * 
-   * @param verificationUri - GitHub verification URL
-   * @param _userCode - User verification code (displayed by GitHub)
-   */
-  private static async openVerificationPage(verificationUri: string, _userCode: string): Promise<void> {
-    // Open GitHub device verification page
-    // The user will see their code and can authorize the app
-    await chrome.tabs.create({
-      url: verificationUri,
-      active: true,
-    })
-  }
-
-  /**
    * Polls GitHub for access token
    * Continues polling until user authorizes or timeout occurs
    * 
@@ -172,7 +223,7 @@ export class AuthService {
     deviceCode: string,
     interval: number
   ): Promise<string> {
-    const maxAttempts = 60 // 60 attempts * 5 seconds = 5 minutes max
+    const maxAttempts = 120 // 120 attempts * 5 seconds = 10 minutes max
     let attempts = 0
 
     while (attempts < maxAttempts) {

@@ -1,7 +1,7 @@
 import { useAuth } from '../hooks/useAuth'
 
 function App() {
-  const { isAuthenticated, isLoading, error, login, logout } = useAuth()
+  const { isAuthenticated, isLoading, error, deviceAuthInfo, login, logout } = useAuth()
 
   if (isLoading) {
     return (
@@ -42,7 +42,26 @@ function App() {
           </div>
         )}
 
-        {!isAuthenticated ? (
+        {deviceAuthInfo && (
+          <div className="mb-4 p-6 bg-github-accent-subtle border border-github-accent-emphasis rounded-github">
+            <h2 className="text-lg font-semibold text-github-fg-default mb-2">
+              Enter this code on GitHub:
+            </h2>
+            <div className="my-4 p-4 bg-github-canvas-default rounded-github border border-github-border-default">
+              <p className="text-3xl font-mono font-bold text-center text-github-accent-fg tracking-widest">
+                {deviceAuthInfo.userCode}
+              </p>
+            </div>
+            <p className="text-sm text-github-fg-muted text-center mb-2">
+              A GitHub tab has been opened. Enter the code above to authorize this extension.
+            </p>
+            <p className="text-xs text-github-fg-subtle text-center">
+              Waiting for authorization... (Code expires in {Math.floor(deviceAuthInfo.expiresIn / 60)} minutes)
+            </p>
+          </div>
+        )}
+
+        {!isAuthenticated && !deviceAuthInfo ? (
           <div className="space-y-4">
             <div className="p-6 bg-github-canvas-subtle rounded-github border border-github-border-default text-center">
               <div className="mb-4">
@@ -91,7 +110,9 @@ function App() {
               </ul>
             </div>
           </div>
-        ) : (
+        ) : null}
+
+        {isAuthenticated ? (
           <div className="space-y-4">
             <div className="p-4 bg-github-success-subtle rounded-github border border-github-success-emphasis">
               <div className="flex items-center justify-between">
@@ -126,7 +147,7 @@ function App() {
               </ul>
             </div>
           </div>
-        )}
+        ) : null}
 
         <footer className="mt-6 pt-4 border-t border-github-border-default">
           <p className="text-xs text-github-fg-subtle text-center">
