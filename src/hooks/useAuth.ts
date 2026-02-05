@@ -77,7 +77,7 @@ export function useAuth(): UseAuthReturn {
 
   /**
    * Initiates GitHub Device Flow login
-   * Shows device code to user and starts polling in background
+   * Shows device code to user and starts polling in background service worker
    */
   const login = useCallback(async () => {
     try {
@@ -90,20 +90,12 @@ export function useAuth(): UseAuthReturn {
       setDeviceAuthInfo(deviceInfo)
       setIsLoading(false)
 
-      // Step 2: Start polling for authorization in background (non-blocking)
-      // This runs asynchronously without blocking the UI
-      AuthService.completeDeviceAuth()
-        .then((newToken) => {
-          setToken(newToken)
-          setIsAuthenticated(true)
-          setDeviceAuthInfo(null)
-          setError(null)
-        })
-        .catch((err) => {
-          const errorMessage = err instanceof Error ? err.message : 'Authorization failed'
-          setError(errorMessage)
-          setDeviceAuthInfo(null)
-        })
+      // Step 2: Tell service worker to start polling in background
+      // This way polling continues even if popup closes
+      console.log('[useAuth] Sending START_DEVICE_POLLING to service worker')
+      chrome.runtime.sendMessage({ type: 'START_DEVICE_POLLING' }, (response) => {
+        console.log('[useAuth] Service worker response:', response)
+      })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed'
       setError(errorMessage)
@@ -137,6 +129,33 @@ export function useAuth(): UseAuthReturn {
   useEffect(() => {
     checkAuth()
   }, [checkAuth])
+
+  // Listen for auth completion from service worker
+  useEffect(() => {
+    const messageListener = (message: { type: string; success: boolean; token?: string; error?: string }) => {
+      console.log('[useAuth] Message from service worker:', message)
+      
+      if (message.type === 'AUTH_COMPLETE') {
+        if (message.success && message.token) {
+          console.log('[useAuth] ✅ Auth completed successfully')
+          setToken(message.token)
+          setIsAuthenticated(true)
+          setDeviceAuthInfo(null)
+          setError(null)
+        } else if (message.error) {
+          console.error('[useAuth] ❌ Auth failed:', message.error)
+          setError(message.error)
+          setDeviceAuthInfo(null)
+        }
+      }
+    }
+
+    chrome.runtime.onMessage.addListener(messageListener)
+
+    return () => {
+      chrome.runtime.onMessage.removeListener(messageListener)
+    }
+  }, [])
 
   return {
     isAuthenticated,
