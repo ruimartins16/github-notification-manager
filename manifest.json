@@ -31,7 +31,7 @@
     "https://github.com/*"
   ],
   "oauth2": {
-    "client_id": "YOUR_GITHUB_OAUTH_CLIENT_ID",
+    "client_id": "Ov23lizRYABSJ6d1qdVQ",
     "scopes": [
       "notifications",
       "read:user"
