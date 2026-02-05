@@ -77,7 +77,7 @@ export function useAuth(): UseAuthReturn {
 
   /**
    * Initiates GitHub Device Flow login
-   * Shows device code to user and starts polling
+   * Shows device code to user and starts polling in background
    */
   const login = useCallback(async () => {
     try {
@@ -90,21 +90,26 @@ export function useAuth(): UseAuthReturn {
       setDeviceAuthInfo(deviceInfo)
       setIsLoading(false)
 
-      // Step 2: Start polling for authorization in background
-      // User will manually open GitHub when they're ready
-      setIsLoading(true)
-      const newToken = await AuthService.completeDeviceAuth()
-      
-      setToken(newToken)
-      setIsAuthenticated(true)
-      setDeviceAuthInfo(null) // Clear device info after success
+      // Step 2: Start polling for authorization in background (non-blocking)
+      // This runs asynchronously without blocking the UI
+      AuthService.completeDeviceAuth()
+        .then((newToken) => {
+          setToken(newToken)
+          setIsAuthenticated(true)
+          setDeviceAuthInfo(null)
+          setError(null)
+        })
+        .catch((err) => {
+          const errorMessage = err instanceof Error ? err.message : 'Authorization failed'
+          setError(errorMessage)
+          setDeviceAuthInfo(null)
+        })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed'
       setError(errorMessage)
       setIsAuthenticated(false)
       setToken(null)
       setDeviceAuthInfo(null)
-    } finally {
       setIsLoading(false)
     }
   }, [])

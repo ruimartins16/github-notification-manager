@@ -1,9 +1,19 @@
 import { useAuth } from '../hooks/useAuth'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 function App() {
   const { isAuthenticated, isLoading, error, deviceAuthInfo, login, logout } = useAuth()
   const [copied, setCopied] = useState(false)
+  const [isPolling, setIsPolling] = useState(false)
+
+  // Start polling indicator when device auth starts
+  useEffect(() => {
+    if (deviceAuthInfo) {
+      setIsPolling(true)
+    } else {
+      setIsPolling(false)
+    }
+  }, [deviceAuthInfo])
 
   const handleCopyCode = () => {
     if (deviceAuthInfo) {
@@ -94,9 +104,10 @@ function App() {
             </button>
 
             <p className="text-xs text-github-fg-muted text-center mt-4">
-              {isLoading ? (
-                <span className="flex items-center justify-center">
-                  <span className="animate-pulse">⏳ Waiting for authorization...</span>
+              {isPolling ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="inline-block w-2 h-2 bg-github-accent-emphasis rounded-full animate-pulse"></span>
+                  <span>Waiting for authorization...</span>
                 </span>
               ) : (
                 `Code expires in ${Math.floor(deviceAuthInfo.expiresIn / 60)} minutes`
