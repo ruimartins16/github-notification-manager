@@ -92,10 +92,7 @@ export function useAuth(): UseAuthReturn {
 
       // Step 2: Tell service worker to start polling in background
       // This way polling continues even if popup closes
-      console.log('[useAuth] Sending START_DEVICE_POLLING to service worker')
-      chrome.runtime.sendMessage({ type: 'START_DEVICE_POLLING' }, (response) => {
-        console.log('[useAuth] Service worker response:', response)
-      })
+      chrome.runtime.sendMessage({ type: 'START_DEVICE_POLLING' })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed'
       setError(errorMessage)
@@ -133,17 +130,13 @@ export function useAuth(): UseAuthReturn {
   // Listen for auth completion from service worker
   useEffect(() => {
     const messageListener = (message: { type: string; success: boolean; token?: string; error?: string }) => {
-      console.log('[useAuth] Message from service worker:', message)
-      
       if (message.type === 'AUTH_COMPLETE') {
         if (message.success && message.token) {
-          console.log('[useAuth] ✅ Auth completed successfully')
           setToken(message.token)
           setIsAuthenticated(true)
           setDeviceAuthInfo(null)
           setError(null)
         } else if (message.error) {
-          console.error('[useAuth] ❌ Auth failed:', message.error)
           setError(message.error)
           setDeviceAuthInfo(null)
         }

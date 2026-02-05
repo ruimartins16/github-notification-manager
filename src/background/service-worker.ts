@@ -23,22 +23,17 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 // Handle messages from popup
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  console.log('[Service Worker] Message received:', message)
-
   if (message.type === 'START_DEVICE_POLLING') {
     // Start polling for device authorization in background
     if (isPolling) {
-      console.log('[Service Worker] Already polling, ignoring duplicate request')
       sendResponse({ success: false, error: 'Already polling' })
       return true
     }
 
     isPolling = true
-    console.log('[Service Worker] Starting device flow polling...')
 
     AuthService.completeDeviceAuth()
       .then((token) => {
-        console.log('[Service Worker] ✅ Token received:', token.substring(0, 10) + '...')
         isPolling = false
         
         // Notify popup that auth is complete
@@ -47,11 +42,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           success: true,
           token: token 
         }).catch(() => {
-          console.log('[Service Worker] Popup not open, token saved to storage')
+          // Popup not open, token already saved to storage
         })
       })
       .catch((error) => {
-        console.error('[Service Worker] ❌ Polling failed:', error)
         isPolling = false
         
         // Notify popup of error
@@ -60,7 +54,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           success: false,
           error: error.message 
         }).catch(() => {
-          console.log('[Service Worker] Popup not open, error logged')
+          // Popup not open, error logged
         })
       })
 
