@@ -1,7 +1,26 @@
 import { useAuth } from '../hooks/useAuth'
+import { useState } from 'react'
 
 function App() {
   const { isAuthenticated, isLoading, error, deviceAuthInfo, login, logout } = useAuth()
+  const [copied, setCopied] = useState(false)
+
+  const handleCopyCode = () => {
+    if (deviceAuthInfo) {
+      navigator.clipboard.writeText(deviceAuthInfo.userCode)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const handleOpenGitHub = () => {
+    if (deviceAuthInfo) {
+      chrome.tabs.create({
+        url: deviceAuthInfo.verificationUri,
+        active: true,
+      })
+    }
+  }
 
   if (isLoading) {
     return (
@@ -44,19 +63,44 @@ function App() {
 
         {deviceAuthInfo && (
           <div className="mb-4 p-6 bg-github-accent-subtle border border-github-accent-emphasis rounded-github">
-            <h2 className="text-lg font-semibold text-github-fg-default mb-2">
-              Enter this code on GitHub:
+            <h2 className="text-lg font-semibold text-github-fg-default mb-3 text-center">
+              Step 1: Copy this code
             </h2>
             <div className="my-4 p-4 bg-github-canvas-default rounded-github border border-github-border-default">
               <p className="text-3xl font-mono font-bold text-center text-github-accent-fg tracking-widest">
                 {deviceAuthInfo.userCode}
               </p>
             </div>
-            <p className="text-sm text-github-fg-muted text-center mb-2">
-              A GitHub tab has been opened. Enter the code above to authorize this extension.
-            </p>
-            <p className="text-xs text-github-fg-subtle text-center">
-              Waiting for authorization... (Code expires in {Math.floor(deviceAuthInfo.expiresIn / 60)} minutes)
+            
+            <button
+              onClick={handleCopyCode}
+              className="w-full px-4 py-2 mb-3 bg-github-canvas-default border border-github-border-default
+                       rounded-github hover:bg-github-canvas-subtle transition-colors
+                       font-medium text-sm text-github-fg-default"
+            >
+              {copied ? '✓ Copied!' : '📋 Copy Code'}
+            </button>
+
+            <h2 className="text-lg font-semibold text-github-fg-default mb-3 text-center mt-4">
+              Step 2: Authorize on GitHub
+            </h2>
+            
+            <button
+              onClick={handleOpenGitHub}
+              className="w-full px-4 py-2 bg-github-accent-emphasis text-white rounded-github 
+                       hover:bg-github-accent-fg transition-colors font-medium text-sm"
+            >
+              Open GitHub to Authorize
+            </button>
+
+            <p className="text-xs text-github-fg-muted text-center mt-4">
+              {isLoading ? (
+                <span className="flex items-center justify-center">
+                  <span className="animate-pulse">⏳ Waiting for authorization...</span>
+                </span>
+              ) : (
+                `Code expires in ${Math.floor(deviceAuthInfo.expiresIn / 60)} minutes`
+              )}
             </p>
           </div>
         )}

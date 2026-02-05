@@ -77,7 +77,7 @@ export function useAuth(): UseAuthReturn {
 
   /**
    * Initiates GitHub Device Flow login
-   * Shows device code to user, opens GitHub, and polls for authorization
+   * Shows device code to user and starts polling
    */
   const login = useCallback(async () => {
     try {
@@ -90,13 +90,8 @@ export function useAuth(): UseAuthReturn {
       setDeviceAuthInfo(deviceInfo)
       setIsLoading(false)
 
-      // Step 2: Open GitHub verification page in new tab
-      await chrome.tabs.create({
-        url: deviceInfo.verificationUri,
-        active: true,
-      })
-
-      // Step 3: Poll for authorization (this happens in background)
+      // Step 2: Start polling for authorization in background
+      // User will manually open GitHub when they're ready
       setIsLoading(true)
       const newToken = await AuthService.completeDeviceAuth()
       
