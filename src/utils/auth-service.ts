@@ -1,59 +1,67 @@
 /**
- * AuthService - Handles GitHub OAuth authentication flow
+ * AuthService - Handles GitHub OAuth authentication using Device Flow
  * 
- * This service manages:
- * - OAuth login flow using chrome.identity.launchWebAuthFlow
- * - Secure token storage in chrome.storage.local
- * - Token retrieval and authentication state
- * - Logout and credential cleanup
+ * This service implements GitHub's Device Flow (OAuth 2.0 Device Authorization Grant)
+ * which is designed for applications without direct web browser access, perfect for
+ * Chrome extensions.
+ * 
+ * Flow:
+ * 1. Request device and user codes from GitHub
+ * 2. Show user code and open GitHub verification page
+ * 3. Poll GitHub for authorization status
+ * 4. Receive access token when user authorizes
+ * 
+ * Resources:
+ * - https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#device-flow
  */
 
-const GITHUB_AUTH_URL = 'https://github.com/login/oauth/authorize'
+const GITHUB_DEVICE_CODE_URL = 'https://github.com/login/device/code'
+const GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token'
 const SCOPES = 'notifications read:user'
 const STORAGE_KEY = 'authToken'
 const USER_STORAGE_KEY = 'user'
 
+interface DeviceCodeResponse {
+  device_code: string
+  user_code: string
+  verification_uri: string
+  expires_in: number
+  interval: number
+}
+
+interface TokenResponse {
+  access_token: string
+  token_type: string
+  scope: string
+  error?: string
+}
+
 export class AuthService {
   /**
-   * Initiates GitHub OAuth login flow
-   * Opens GitHub authorization page and handles redirect
+   * Initiates GitHub Device Flow authentication
+   * Opens GitHub verification page and polls for authorization
    * 
    * @returns Promise<string> - GitHub access token
    * @throws Error if user cancels or authentication fails
    */
   static async login(): Promise<string> {
     try {
-      // Get the OAuth URL with proper redirect URI
-      const redirectUri = chrome.identity.getRedirectURL()
-      if (!redirectUri) {
-        throw new Error('Failed to get redirect URI from Chrome')
-      }
       const clientId = await this.getClientId()
-      const authUrl = this.getAuthUrl(clientId, redirectUri)
 
-      // Launch OAuth flow
-      const redirectUrl = await chrome.identity.launchWebAuthFlow({
-        url: authUrl,
-        interactive: true,
-      })
+      // Step 1: Request device and user codes
+      const deviceData = await this.requestDeviceCode(clientId)
 
-      if (!redirectUrl) {
-        throw new Error('OAuth flow failed: no redirect URL received')
-      }
+      // Step 2: Open GitHub verification page
+      await this.openVerificationPage(deviceData.verification_uri, deviceData.user_code)
 
-      // Extract token from redirect URL
-      const token = this.extractTokenFromUrl(redirectUrl)
-      
-      if (!token) {
-        throw new Error('No access token found in redirect URL')
-      }
+      // Step 3: Poll for access token
+      const token = await this.pollForToken(clientId, deviceData.device_code, deviceData.interval)
 
       // Store the token
       await this.saveToken(token)
 
       return token
     } catch (error) {
-      // Re-throw with original error message
       if (error instanceof Error) {
         throw error
       }
@@ -71,8 +79,6 @@ export class AuthService {
     try {
       await chrome.storage.local.remove([STORAGE_KEY, USER_STORAGE_KEY])
     } catch (error) {
-      // Silently handle storage errors during logout
-      // Even if storage clear fails, we want logout to succeed
       console.error('Error clearing storage during logout:', error)
     }
   }
@@ -81,7 +87,6 @@ export class AuthService {
    * Retrieves stored GitHub access token
    * 
    * @returns Promise<string | null> - Token if stored, null otherwise
-   * @throws Error if storage access fails
    */
   static async getStoredToken(): Promise<string | null> {
     const result = await chrome.storage.local.get(STORAGE_KEY)
@@ -93,7 +98,6 @@ export class AuthService {
    * 
    * @param token - GitHub access token to store
    * @returns Promise<void>
-   * @throws Error if storage write fails
    */
   static async saveToken(token: string): Promise<void> {
     await chrome.storage.local.set({ [STORAGE_KEY]: token })
@@ -111,52 +115,125 @@ export class AuthService {
   }
 
   /**
-   * Generates GitHub OAuth authorization URL
+   * Requests device and user codes from GitHub
    * 
    * @param clientId - GitHub OAuth app client ID
-   * @param redirectUri - Chrome extension redirect URI
-   * @returns string - Complete OAuth URL
+   * @returns Promise<DeviceCodeResponse> - Device code data
+   * @throws Error if request fails
    */
-  static getAuthUrl(clientId: string, redirectUri: string): string {
-    // Manually build URL to ensure proper encoding
-    const encodedRedirectUri = encodeURIComponent(redirectUri)
-    const encodedScope = encodeURIComponent(SCOPES)
-    
-    return `${GITHUB_AUTH_URL}?client_id=${clientId}&redirect_uri=${encodedRedirectUri}&scope=${encodedScope}`
+  private static async requestDeviceCode(clientId: string): Promise<DeviceCodeResponse> {
+    const response = await fetch(GITHUB_DEVICE_CODE_URL, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        scope: SCOPES,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to request device code: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    return data as DeviceCodeResponse
   }
 
   /**
-   * Extracts access token from OAuth redirect URL
-   * Handles both fragment (#) and query parameter (?) formats
+   * Opens GitHub verification page in a new tab
    * 
-   * @param url - OAuth redirect URL containing token
-   * @returns string | null - Extracted token or null if not found
+   * @param verificationUri - GitHub verification URL
+   * @param _userCode - User verification code (displayed by GitHub)
    */
-  static extractTokenFromUrl(url: string): string | null {
-    if (!url || url.length === 0) {
-      return null
-    }
+  private static async openVerificationPage(verificationUri: string, _userCode: string): Promise<void> {
+    // Open GitHub device verification page
+    // The user will see their code and can authorize the app
+    await chrome.tabs.create({
+      url: verificationUri,
+      active: true,
+    })
+  }
 
-    try {
-      // Try to parse as URL
-      const urlObj = new URL(url)
-      
-      // Check fragment (hash) first - GitHub uses this format
-      if (urlObj.hash) {
-        const hashParams = new URLSearchParams(urlObj.hash.substring(1))
-        const token = hashParams.get('access_token')
-        if (token) return token
+  /**
+   * Polls GitHub for access token
+   * Continues polling until user authorizes or timeout occurs
+   * 
+   * @param clientId - GitHub OAuth app client ID
+   * @param deviceCode - Device verification code
+   * @param interval - Minimum seconds between poll requests
+   * @returns Promise<string> - Access token
+   * @throws Error if authorization fails or times out
+   */
+  private static async pollForToken(
+    clientId: string,
+    deviceCode: string,
+    interval: number
+  ): Promise<string> {
+    const maxAttempts = 60 // 60 attempts * 5 seconds = 5 minutes max
+    let attempts = 0
+
+    while (attempts < maxAttempts) {
+      attempts++
+
+      // Wait for the interval before each request (GitHub requirement)
+      await this.sleep(interval * 1000)
+
+      try {
+        const response = await fetch(GITHUB_TOKEN_URL, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            client_id: clientId,
+            device_code: deviceCode,
+            grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+          }),
+        })
+
+        const data: TokenResponse = await response.json()
+
+        // Success! We got the token
+        if (data.access_token) {
+          return data.access_token
+        }
+
+        // Handle error responses
+        if (data.error) {
+          switch (data.error) {
+            case 'authorization_pending':
+              // User hasn't authorized yet, keep polling
+              continue
+
+            case 'slow_down':
+              // We're polling too fast, increase interval
+              interval += 5
+              continue
+
+            case 'expired_token':
+              throw new Error('Authorization expired. Please try again.')
+
+            case 'access_denied':
+              throw new Error('Authorization denied by user.')
+
+            default:
+              throw new Error(`Authorization failed: ${data.error}`)
+          }
+        }
+      } catch (error) {
+        if (error instanceof Error) {
+          throw error
+        }
+        // Network error, continue polling
+        continue
       }
-
-      // Check query parameters as fallback
-      const token = urlObj.searchParams.get('access_token')
-      if (token) return token
-
-      return null
-    } catch (error) {
-      // Invalid URL format
-      return null
     }
+
+    throw new Error('Authorization timeout. Please try again.')
   }
 
   /**
@@ -176,5 +253,15 @@ export class AuthService {
     }
 
     return clientId
+  }
+
+  /**
+   * Helper function to sleep for a specified duration
+   * 
+   * @param ms - Milliseconds to sleep
+   * @returns Promise<void>
+   */
+  private static sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms))
   }
 }

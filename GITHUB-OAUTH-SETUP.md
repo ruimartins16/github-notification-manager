@@ -1,5 +1,15 @@
 # GitHub OAuth Setup Instructions
 
+## Important: Using Device Flow
+
+This extension uses **GitHub's Device Flow** for authentication, which is designed for applications without direct web browser access (like CLI tools and browser extensions).
+
+**Benefits:**
+- ✅ No callback URL needed
+- ✅ No server-side token exchange required
+- ✅ Secure and recommended by GitHub for extensions
+- ✅ User-friendly authorization flow
+
 ## Step 1: Register GitHub OAuth App
 
 To enable GitHub authentication in the extension, you need to create a GitHub OAuth App:
@@ -33,24 +43,28 @@ Chrome extension to manage GitHub notifications with filters, snooze, and keyboa
 
 **Authorization callback URL:**
 ```
-https://YOUR_EXTENSION_ID.chromiumapp.org/
+http://localhost (placeholder - not used with Device Flow)
 ```
 
-**Note:** For development, you can use a placeholder like:
-```
-https://abcdefghijklmnopqrstuvwxyz123456.chromiumapp.org/
-```
+**Note:** The callback URL is required when creating the app, but it's not actually used with Device Flow. You can use any placeholder like `http://localhost`.
 
-You'll update this with the real extension ID after loading it in Chrome.
+### 3. Enable Device Flow
 
-### 3. Get Your Client ID
+**IMPORTANT:** You must enable Device Flow for the extension to work.
+
+1. On your OAuth App settings page, scroll down
+2. Find "Enable Device Flow" checkbox
+3. **Check the box** to enable it
+4. Click "Update application"
+
+### 4. Get Your Client ID
 
 After creating the app:
 1. You'll see your **Client ID** - copy this
 2. **DO NOT** generate a Client Secret (not needed for Chrome extensions)
 3. The Client ID is public and will be embedded in your extension
 
-### 4. Update manifest.json
+### 5. Update manifest.json
 
 Open `manifest.json` and replace the placeholder:
 
@@ -64,56 +78,44 @@ Open `manifest.json` and replace the placeholder:
 }
 ```
 
-### 5. Get Your Extension ID
+---
 
-After you load the extension in Chrome:
-1. Go to `chrome://extensions`
-2. Find "GitHub Notification Manager"
-3. Copy the Extension ID (long string like: `abcdefghijklmnopqrstuvwxyz123456`)
-4. Update the GitHub OAuth App's callback URL:
-   ```
-   https://YOUR_ACTUAL_EXTENSION_ID.chromiumapp.org/
-   ```
+## Step 2: How Device Flow Works
 
-**Current Development Extension ID:**
-```
-odbbnhlpfpcmmmbnbochjomjogkmnioc
-```
+When you click "Connect GitHub" in the extension:
 
-**Current Callback URL:**
-```
-https://odbbnhlpfpcmmmbnbochjomjogkmnioc.chromiumapp.org/
-```
+1. Extension requests a device code from GitHub
+2. Extension opens GitHub in a new tab
+3. GitHub shows you a code to verify
+4. You confirm the code and authorize the app
+5. Extension automatically receives your access token
+6. You're authenticated!
+
+**User Experience:**
+- Click "Connect GitHub" → New tab opens
+- GitHub shows: "Device Activation" page with a code
+- Click "Continue" and authorize
+- Close the tab and return to extension
+- Extension shows "✓ Connected"
 
 ---
 
-## Step 2: Environment Configuration (Optional)
-
-For local development, you can create a `.env.local` file:
-
-```bash
-VITE_GITHUB_CLIENT_ID=your_client_id_here
-```
-
-Then update `manifest.json` to use:
-```json
-"client_id": "__VITE_GITHUB_CLIENT_ID__"
-```
-
-**Note:** This is optional. For simplicity, you can hardcode the Client ID in manifest.json since it's public anyway.
+## Step 3: Build and Load Extension (Development)
 
 ---
 
-## Step 3: Test OAuth Flow
+## Step 4: Test Device Flow
 
 Once configured:
-1. Load extension in Chrome
+1. Build and load extension in Chrome (`npm run build`)
 2. Click extension icon
 3. Click "Connect GitHub" button
-4. GitHub authorization page should open
-5. Approve the app
-6. You should be redirected back to the extension
-7. Extension stores the access token
+4. New tab opens to GitHub device activation page
+5. GitHub shows a verification code
+6. Click "Continue" and authorize the scopes (notifications, read:user)
+7. Close the GitHub tab
+8. Return to extension - should show "✓ Connected"
+9. Extension polls GitHub in background and gets your token automatically
 
 ---
 
@@ -141,29 +143,48 @@ These are read-only scopes with minimal permissions.
 
 ## Troubleshooting
 
-### "Invalid callback URL" error
-- Make sure the callback URL in GitHub matches your extension ID exactly
-- Format: `https://EXTENSION_ID.chromiumapp.org/`
-- No trailing slash after the domain
+### "Device flow not enabled" error
+- Make sure you enabled Device Flow in your GitHub OAuth App settings
+- Go to https://github.com/settings/developers
+- Click your app → Check "Enable Device Flow" → Update application
 
-### OAuth popup doesn't open
-- Check that `identity` permission is in manifest.json
-- Verify Client ID is correct
+### "Authorization expired" error
+- The device code expires after 15 minutes
+- Simply click "Connect GitHub" again to get a new code
+
+### OAuth tab doesn't open
+- Check that browser has permission to open new tabs
+- Verify Client ID is correct in manifest.json
 - Check browser console for errors
+
+### "Authorization pending" for too long
+- Make sure you clicked "Continue" on the GitHub page
+- Check that you authorized the correct scopes
+- The extension polls every 5 seconds - be patient
 
 ### Token not persisting
 - Verify `storage` permission is in manifest.json
 - Check that chrome.storage.local is working
+- Try disconnecting and reconnecting
+
+---
+
+## Development Notes
+
+**Current Development Client ID:** `Ov23lizRYABSJ6d1qdVQ`  
+**Extension ID:** `odbbnhlpfpcmmmbnbochjomjogkmnioc`  
+**Callback URL:** Not used (Device Flow doesn't need it)
 
 ---
 
 ## For Production
 
 When publishing to Chrome Web Store:
-1. Create a separate GitHub OAuth App for production
-2. Use the production extension ID in the callback URL
-3. Update manifest.json with production Client ID
-4. Test the OAuth flow thoroughly
+1. Keep the same GitHub OAuth App (or create production version)
+2. Ensure Device Flow is enabled
+3. Update manifest.json with Client ID
+4. Test the Device Flow thoroughly
+5. No need to update callback URL (Device Flow doesn't use it)
 
 ---
 
