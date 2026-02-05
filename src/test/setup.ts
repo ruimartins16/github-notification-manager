@@ -17,6 +17,11 @@ global.chrome = {
       addListener: vi.fn(),
     },
     sendMessage: vi.fn(),
+    getManifest: vi.fn(() => ({
+      oauth2: {
+        client_id: 'test_client_id',
+      },
+    })),
   },
   action: {
     setBadgeText: vi.fn(),
@@ -27,16 +32,16 @@ global.chrome = {
   },
   storage: {
     local: {
-      get: vi.fn(),
-      set: vi.fn(),
-      remove: vi.fn(),
-      clear: vi.fn(),
+      get: vi.fn(() => Promise.resolve({})),
+      set: vi.fn(() => Promise.resolve()),
+      remove: vi.fn(() => Promise.resolve()),
+      clear: vi.fn(() => Promise.resolve()),
     },
     sync: {
-      get: vi.fn(),
-      set: vi.fn(),
-      remove: vi.fn(),
-      clear: vi.fn(),
+      get: vi.fn(() => Promise.resolve({})),
+      set: vi.fn(() => Promise.resolve()),
+      remove: vi.fn(() => Promise.resolve()),
+      clear: vi.fn(() => Promise.resolve()),
     },
   },
   alarms: {
@@ -45,6 +50,11 @@ global.chrome = {
     onAlarm: {
       addListener: vi.fn(),
     },
+  },
+  identity: {
+    getRedirectURL: vi.fn(() => 'https://test.chromiumapp.org/'),
+    launchWebAuthFlow: vi.fn(),
+    getAuthToken: vi.fn(),
   },
 } as any
 
