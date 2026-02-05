@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "GitHub Notification Manager",
+  "version": "1.0.0",
+  "description": "Take control of GitHub notifications with smart filters, snooze, and keyboard shortcuts.",
+  "icons": {
+    "16": "icons/icon16.svg",
+    "48": "icons/icon48.svg",
+    "128": "icons/icon128.svg"
+  },
+  "action": {
+    "default_popup": "index.html",
+    "default_icon": {
+      "16": "icons/icon16.svg",
+      "48": "icons/icon48.svg",
+      "128": "icons/icon128.svg"
+    }
+  },
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "permissions": [
+    "identity",
+    "notifications",
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://api.github.com/*",
+    "https://github.com/*"
+  ],
+  "oauth2": {
+    "client_id": "YOUR_GITHUB_OAUTH_CLIENT_ID",
+    "scopes": [
+      "notifications",
+      "read:user"
+    ]
+  }
+}
