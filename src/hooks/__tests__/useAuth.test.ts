@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { useAuth } from '../useAuth'
 import { AuthService } from '../../utils/auth-service'
@@ -6,23 +6,41 @@ import { AuthService } from '../../utils/auth-service'
 // Mock AuthService
 vi.mock('../../utils/auth-service', () => ({
   AuthService: {
-    login: vi.fn(),
+    initiateDeviceAuth: vi.fn(),
+    completeDeviceAuth: vi.fn(),
     logout: vi.fn(),
     getStoredToken: vi.fn(),
     isAuthenticated: vi.fn(),
   },
 }))
 
-const mockAuthService = AuthService as any
+// Mock chrome.runtime.sendMessage
+const mockSendMessage = vi.fn()
+
+beforeEach(() => {
+  // Setup chrome mock
+  global.chrome = {
+    ...global.chrome,
+    runtime: {
+      sendMessage: mockSendMessage,
+      onMessage: {
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+      },
+    },
+  } as any
+
+  vi.clearAllMocks()
+  // Default to not authenticated
+  ;(AuthService.isAuthenticated as any).mockResolvedValue(false)
+  ;(AuthService.getStoredToken as any).mockResolvedValue(null)
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 describe('useAuth', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    // Default to not authenticated
-    mockAuthService.isAuthenticated.mockResolvedValue(false)
-    mockAuthService.getStoredToken.mockResolvedValue(null)
-  })
-
   describe('initial state', () => {
     it('should start with loading state', () => {
       const { result } = renderHook(() => useAuth())
@@ -31,11 +49,12 @@ describe('useAuth', () => {
       expect(result.current.isAuthenticated).toBe(false)
       expect(result.current.token).toBeNull()
       expect(result.current.error).toBeNull()
+      expect(result.current.deviceAuthInfo).toBeNull()
     })
 
     it('should check authentication on mount', async () => {
-      mockAuthService.isAuthenticated.mockResolvedValue(true)
-      mockAuthService.getStoredToken.mockResolvedValue('gho_token')
+      ;(AuthService.isAuthenticated as any).mockResolvedValue(true)
+      ;(AuthService.getStoredToken as any).mockResolvedValue('gho_token')
 
       const { result } = renderHook(() => useAuth())
 
@@ -43,42 +62,49 @@ describe('useAuth', () => {
         expect(result.current.isLoading).toBe(false)
       })
 
-      expect(mockAuthService.isAuthenticated).toHaveBeenCalled()
+      expect(AuthService.isAuthenticated).toHaveBeenCalled()
       expect(result.current.isAuthenticated).toBe(true)
     })
   })
 
-  describe('login', () => {
-    it('should successfully log in user', async () => {
-      mockAuthService.login.mockResolvedValue('gho_new_token')
-      mockAuthService.isAuthenticated.mockResolvedValue(false)
+  describe('login - Device Flow', () => {
+    it('should initiate device auth and set deviceAuthInfo', async () => {
+      const mockDeviceInfo = {
+        userCode: 'WDJB-MJHT',
+        verificationUri: 'https://github.com/login/device',
+        expiresIn: 900,
+      }
+
+      ;(AuthService.initiateDeviceAuth as any).mockResolvedValue(mockDeviceInfo)
+      ;(AuthService.isAuthenticated as any).mockResolvedValue(false)
 
       const { result } = renderHook(() => useAuth())
 
-      // Wait for initial check
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false)
       })
 
-      // Perform login
       act(() => {
         result.current.login()
       })
 
-      expect(result.current.isLoading).toBe(true)
-
       await waitFor(() => {
-        expect(result.current.isLoading).toBe(false)
+        expect(result.current.deviceAuthInfo).toEqual(mockDeviceInfo)
       })
 
-      expect(mockAuthService.login).toHaveBeenCalled()
+      expect(AuthService.initiateDeviceAuth).toHaveBeenCalled()
       expect(result.current.error).toBeNull()
     })
 
-    it('should handle login errors', async () => {
-      const error = new Error('User cancelled')
-      mockAuthService.login.mockRejectedValue(error)
-      mockAuthService.isAuthenticated.mockResolvedValue(false)
+    it('should send START_DEVICE_POLLING message to service worker', async () => {
+      const mockDeviceInfo = {
+        userCode: 'WDJB-MJHT',
+        verificationUri: 'https://github.com/login/device',
+        expiresIn: 900,
+      }
+
+      ;(AuthService.initiateDeviceAuth as any).mockResolvedValue(mockDeviceInfo)
+      ;(AuthService.isAuthenticated as any).mockResolvedValue(false)
 
       const { result } = renderHook(() => useAuth())
 
@@ -91,18 +117,44 @@ describe('useAuth', () => {
       })
 
       await waitFor(() => {
+        expect(mockSendMessage).toHaveBeenCalledWith({ type: 'START_DEVICE_POLLING' })
+      })
+    })
+
+    it('should handle login errors', async () => {
+      const error = new Error('Device auth failed')
+      ;(AuthService.initiateDeviceAuth as any).mockRejectedValue(error)
+      ;(AuthService.isAuthenticated as any).mockResolvedValue(false)
+
+      const { result } = renderHook(() => useAuth())
+
+      await waitFor(() => {
         expect(result.current.isLoading).toBe(false)
       })
 
-      expect(result.current.error).toBe('User cancelled')
+      act(() => {
+        result.current.login()
+      })
+
+      await waitFor(() => {
+        expect(result.current.error).toBe('Device auth failed')
+      })
+
       expect(result.current.isAuthenticated).toBe(false)
+      expect(result.current.deviceAuthInfo).toBeNull()
     })
 
     it('should set loading state during login', async () => {
-      mockAuthService.login.mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve('token'), 100))
+      const mockDeviceInfo = {
+        userCode: 'WDJB-MJHT',
+        verificationUri: 'https://github.com/login/device',
+        expiresIn: 900,
+      }
+
+      ;(AuthService.initiateDeviceAuth as any).mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve(mockDeviceInfo), 100))
       )
-      mockAuthService.isAuthenticated.mockResolvedValue(false)
+      ;(AuthService.isAuthenticated as any).mockResolvedValue(false)
 
       const { result } = renderHook(() => useAuth())
 
@@ -115,14 +167,101 @@ describe('useAuth', () => {
       })
 
       expect(result.current.isLoading).toBe(true)
+    })
+  })
+
+  describe('AUTH_COMPLETE message handling', () => {
+    it('should update state on successful auth completion', async () => {
+      ;(AuthService.isAuthenticated as any).mockResolvedValue(false)
+
+      const { result } = renderHook(() => useAuth())
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+
+      // Get the message listener that was registered
+      const addListenerCall = (chrome.runtime.onMessage.addListener as any).mock.calls[0]
+      const messageListener = addListenerCall[0]
+
+      // Simulate receiving AUTH_COMPLETE message from service worker
+      act(() => {
+        messageListener({
+          type: 'AUTH_COMPLETE',
+          success: true,
+          token: 'gho_new_token',
+        })
+      })
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true)
+      })
+
+      expect(result.current.token).toBe('gho_new_token')
+      expect(result.current.deviceAuthInfo).toBeNull()
+      expect(result.current.error).toBeNull()
+    })
+
+    it('should handle auth completion errors', async () => {
+      ;(AuthService.isAuthenticated as any).mockResolvedValue(false)
+
+      const { result } = renderHook(() => useAuth())
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+
+      const addListenerCall = (chrome.runtime.onMessage.addListener as any).mock.calls[0]
+      const messageListener = addListenerCall[0]
+
+      act(() => {
+        messageListener({
+          type: 'AUTH_COMPLETE',
+          success: false,
+          error: 'Authorization expired',
+        })
+      })
+
+      await waitFor(() => {
+        expect(result.current.error).toBe('Authorization expired')
+      })
+
+      expect(result.current.isAuthenticated).toBe(false)
+      expect(result.current.deviceAuthInfo).toBeNull()
+    })
+
+    it('should ignore non-AUTH_COMPLETE messages', async () => {
+      ;(AuthService.isAuthenticated as any).mockResolvedValue(false)
+
+      const { result } = renderHook(() => useAuth())
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+
+      const addListenerCall = (chrome.runtime.onMessage.addListener as any).mock.calls[0]
+      const messageListener = addListenerCall[0]
+
+      const previousState = { ...result.current }
+
+      act(() => {
+        messageListener({
+          type: 'SOME_OTHER_MESSAGE',
+          data: 'test',
+        })
+      })
+
+      // State should not change
+      expect(result.current.isAuthenticated).toBe(previousState.isAuthenticated)
+      expect(result.current.error).toBe(previousState.error)
     })
   })
 
   describe('logout', () => {
     it('should successfully log out user', async () => {
-      mockAuthService.isAuthenticated.mockResolvedValue(true)
-      mockAuthService.getStoredToken.mockResolvedValue('gho_token')
-      mockAuthService.logout.mockResolvedValue(undefined)
+      ;(AuthService.isAuthenticated as any).mockResolvedValue(true)
+      ;(AuthService.getStoredToken as any).mockResolvedValue('gho_token')
+      ;(AuthService.logout as any).mockResolvedValue(undefined)
 
       const { result } = renderHook(() => useAuth())
 
@@ -138,14 +277,14 @@ describe('useAuth', () => {
         expect(result.current.isAuthenticated).toBe(false)
       })
 
-      expect(mockAuthService.logout).toHaveBeenCalled()
+      expect(AuthService.logout).toHaveBeenCalled()
       expect(result.current.token).toBeNull()
       expect(result.current.error).toBeNull()
     })
 
     it('should handle logout errors', async () => {
-      mockAuthService.isAuthenticated.mockResolvedValue(true)
-      mockAuthService.logout.mockRejectedValue(new Error('Logout failed'))
+      ;(AuthService.isAuthenticated as any).mockResolvedValue(true)
+      ;(AuthService.logout as any).mockRejectedValue(new Error('Logout failed'))
 
       const { result } = renderHook(() => useAuth())
 
@@ -161,15 +300,15 @@ describe('useAuth', () => {
         expect(result.current.error).toBe('Logout failed')
       })
 
-      expect(mockAuthService.logout).toHaveBeenCalled()
+      expect(AuthService.logout).toHaveBeenCalled()
     })
   })
 
   describe('token management', () => {
     it('should retrieve and store token', async () => {
       const mockToken = 'gho_stored_token'
-      mockAuthService.isAuthenticated.mockResolvedValue(true)
-      mockAuthService.getStoredToken.mockResolvedValue(mockToken)
+      ;(AuthService.isAuthenticated as any).mockResolvedValue(true)
+      ;(AuthService.getStoredToken as any).mockResolvedValue(mockToken)
 
       const { result } = renderHook(() => useAuth())
 
@@ -182,8 +321,8 @@ describe('useAuth', () => {
     })
 
     it('should return null token when not authenticated', async () => {
-      mockAuthService.isAuthenticated.mockResolvedValue(false)
-      mockAuthService.getStoredToken.mockResolvedValue(null)
+      ;(AuthService.isAuthenticated as any).mockResolvedValue(false)
+      ;(AuthService.getStoredToken as any).mockResolvedValue(null)
 
       const { result } = renderHook(() => useAuth())
 
@@ -198,7 +337,7 @@ describe('useAuth', () => {
 
   describe('error handling', () => {
     it('should handle authentication check errors', async () => {
-      mockAuthService.isAuthenticated.mockRejectedValue(new Error('Storage error'))
+      ;(AuthService.isAuthenticated as any).mockRejectedValue(new Error('Storage error'))
 
       const { result } = renderHook(() => useAuth())
 
@@ -211,9 +350,16 @@ describe('useAuth', () => {
     })
 
     it('should clear error on successful login', async () => {
-      mockAuthService.isAuthenticated.mockResolvedValue(false)
-      mockAuthService.login.mockRejectedValueOnce(new Error('First error'))
-      mockAuthService.login.mockResolvedValue('gho_token')
+      const mockDeviceInfo = {
+        userCode: 'WDJB-MJHT',
+        verificationUri: 'https://github.com/login/device',
+        expiresIn: 900,
+      }
+
+      ;(AuthService.isAuthenticated as any).mockResolvedValue(false)
+      ;(AuthService.initiateDeviceAuth as any)
+        .mockRejectedValueOnce(new Error('First error'))
+        .mockResolvedValue(mockDeviceInfo)
 
       const { result } = renderHook(() => useAuth())
 
@@ -231,8 +377,6 @@ describe('useAuth', () => {
       })
 
       // Second login attempt - succeeds
-      mockAuthService.isAuthenticated.mockResolvedValue(true)
-      
       act(() => {
         result.current.login()
       })
@@ -240,12 +384,14 @@ describe('useAuth', () => {
       await waitFor(() => {
         expect(result.current.error).toBeNull()
       })
+
+      expect(result.current.deviceAuthInfo).toEqual(mockDeviceInfo)
     })
   })
 
   describe('refresh authentication', () => {
     it('should provide a method to refresh auth state', async () => {
-      mockAuthService.isAuthenticated.mockResolvedValue(false)
+      ;(AuthService.isAuthenticated as any).mockResolvedValue(false)
 
       const { result } = renderHook(() => useAuth())
 
@@ -256,8 +402,8 @@ describe('useAuth', () => {
       expect(result.current.isAuthenticated).toBe(false)
 
       // Change mock to authenticated
-      mockAuthService.isAuthenticated.mockResolvedValue(true)
-      mockAuthService.getStoredToken.mockResolvedValue('gho_token')
+      ;(AuthService.isAuthenticated as any).mockResolvedValue(true)
+      ;(AuthService.getStoredToken as any).mockResolvedValue('gho_token')
 
       act(() => {
         result.current.checkAuth()
