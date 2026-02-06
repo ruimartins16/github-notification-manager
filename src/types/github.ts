@@ -61,3 +61,12 @@ export interface AuthToken {
   token_type: string
   scope: string
 }
+
+export interface SnoozedNotification {
+  notification: GitHubNotification
+  snoozedAt: number // timestamp when snoozed
+  wakeTime: number // timestamp when to wake
+  alarmName: string // chrome alarm identifier
+}
+
+export type SnoozeDuration = '1h' | '4h' | '24h' | 'custom'

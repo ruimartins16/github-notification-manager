@@ -36,6 +36,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 // Ensure alarm exists on browser startup
 chrome.runtime.onStartup.addListener(async () => {
+  // Recreate notification fetch alarm if missing
   const alarm = await chrome.alarms.get(FETCH_ALARM_NAME)
   if (!alarm) {
     console.log('Recreating notification fetch alarm on startup')
@@ -43,6 +44,34 @@ chrome.runtime.onStartup.addListener(async () => {
       delayInMinutes: 1,
       periodInMinutes: 1,
     })
+  }
+  
+  // Recover snooze alarms from persisted state
+  try {
+    const result = await chrome.storage.local.get('zustand-notifications')
+    if (result['zustand-notifications']) {
+      const parsed = JSON.parse(result['zustand-notifications'])
+      const snoozedNotifications = parsed.state?.snoozedNotifications || []
+      
+      console.log('Recovering snooze alarms:', snoozedNotifications.length)
+      
+      // Recreate alarms for snoozed notifications
+      for (const snoozed of snoozedNotifications) {
+        const { alarmName, wakeTime, notification } = snoozed
+        
+        if (wakeTime > Date.now()) {
+          // Alarm hasn't fired yet, recreate it
+          await chrome.alarms.create(alarmName, { when: wakeTime })
+          console.log('Recreated alarm:', alarmName)
+        } else {
+          // Alarm should have fired already, wake it up immediately
+          console.log('Alarm expired, queuing immediate wake-up:', notification.id)
+          await queuePendingWakeUp(notification.id)
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to recover snooze alarms:', error)
   }
 })
 
@@ -126,14 +155,17 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
 })
 
-// Handle alarms for background notification fetching
+// Handle alarms for background notification fetching and snooze wake-ups
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === FETCH_ALARM_NAME) {
     console.log('Background fetch alarm triggered')
     await fetchNotificationsInBackground()
+  } else if (alarm.name.startsWith('snooze-')) {
+    // Handle snooze wake-up
+    const notificationId = alarm.name.replace('snooze-', '')
+    console.log('Snooze alarm triggered for notification:', notificationId)
+    await handleSnoozeWakeUp(notificationId)
   }
-  
-  // TODO: Handle snooze wake-up in GNM-008
 })
 
 /**
@@ -158,6 +190,79 @@ async function fetchNotificationsInBackground() {
   } catch (error) {
     console.error('Background fetch failed:', error)
     // Don't throw - we'll retry on next alarm
+  }
+}
+
+/**
+ * Handle snooze wake-up (called when snooze alarm fires)
+ * Moves snoozed notification back to active notifications
+ */
+async function handleSnoozeWakeUp(notificationId: string) {
+  try {
+    console.log('Snooze alarm fired for notification:', notificationId)
+    
+    // Try to notify popup/store if running
+    const sent = await chrome.runtime.sendMessage({
+      type: 'SNOOZE_WAKEUP',
+      notificationId,
+    }).catch(() => {
+      // Popup not open, queue wake-up for next time it opens
+      return null
+    })
+    
+    if (!sent) {
+      // Store pending wake-up to be processed when popup opens
+      await queuePendingWakeUp(notificationId)
+    }
+  } catch (error) {
+    console.error('Failed to handle snooze wake-up:', error)
+  }
+}
+
+/**
+ * Queue a pending wake-up for when the popup next opens
+ */
+async function queuePendingWakeUp(notificationId: string) {
+  try {
+    const result = await chrome.storage.local.get('pending-wakeups')
+    const pending: string[] = result['pending-wakeups'] || []
+    
+    if (!pending.includes(notificationId)) {
+      pending.push(notificationId)
+      await chrome.storage.local.set({ 'pending-wakeups': pending })
+      console.log('Queued pending wake-up:', notificationId)
+    }
+  } catch (error) {
+    console.error('Failed to queue pending wake-up:', error)
+  }
+}
+
+/**
+ * Process any pending wake-ups (called when popup opens)
+ */
+export async function processPendingWakeUps() {
+  try {
+    const result = await chrome.storage.local.get('pending-wakeups')
+    const pending: string[] = result['pending-wakeups'] || []
+    
+    if (pending.length > 0) {
+      console.log('Processing pending wake-ups:', pending.length)
+      
+      // Send wake-up messages for all pending
+      for (const notificationId of pending) {
+        chrome.runtime.sendMessage({
+          type: 'SNOOZE_WAKEUP',
+          notificationId,
+        }).catch(() => {
+          console.warn('Failed to send wake-up for:', notificationId)
+        })
+      }
+      
+      // Clear pending wake-ups
+      await chrome.storage.local.set({ 'pending-wakeups': [] })
+    }
+  } catch (error) {
+    console.error('Failed to process pending wake-ups:', error)
   }
 }
 

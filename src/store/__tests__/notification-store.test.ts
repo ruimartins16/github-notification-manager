@@ -12,8 +12,16 @@ const mockChromeStorage = {
   },
 }
 
-global.chrome = {
+// Mock chrome.alarms
+const mockChromeAlarms = {
+  create: vi.fn(),
+  clear: vi.fn(),
+}
+
+// @ts-ignore - Mocking global chrome API
+globalThis.chrome = {
   storage: mockChromeStorage,
+  alarms: mockChromeAlarms,
 } as any
 
 const mockNotification: GitHubNotification = {
@@ -51,6 +59,7 @@ describe('useNotificationStore', () => {
       error: null,
       lastFetched: null,
       activeFilter: 'all',
+      snoozedNotifications: [],
     })
 
     // Reset mocks
@@ -58,6 +67,8 @@ describe('useNotificationStore', () => {
     mockChromeStorage.local.get.mockResolvedValue({})
     mockChromeStorage.local.set.mockResolvedValue(undefined)
     mockChromeStorage.local.remove.mockResolvedValue(undefined)
+    mockChromeAlarms.create.mockResolvedValue(undefined)
+    mockChromeAlarms.clear.mockResolvedValue(true)
   })
 
   describe('Initial State', () => {
@@ -640,6 +651,455 @@ describe('useNotificationStore', () => {
         })
 
         expect(result.current.activeFilter).toBe('reviews')
+      })
+    })
+  })
+
+  describe('Snooze Functionality', () => {
+    describe('snoozeNotification', () => {
+      it('should move notification from active to snoozed list', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+        })
+
+        expect(result.current.notifications).toHaveLength(1)
+        expect(result.current.snoozedNotifications).toHaveLength(0)
+
+        const wakeTime = Date.now() + 3600000 // 1 hour from now
+
+        act(() => {
+          result.current.snoozeNotification('1', wakeTime)
+        })
+
+        expect(result.current.notifications).toHaveLength(0)
+        expect(result.current.snoozedNotifications).toHaveLength(1)
+        expect(result.current.snoozedNotifications[0]).toEqual({
+          notification: mockNotification,
+          snoozedAt: expect.any(Number),
+          wakeTime,
+          alarmName: 'snooze-1',
+        })
+      })
+
+      it('should create chrome alarm with correct name and time', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+        })
+
+        const wakeTime = Date.now() + 3600000 // 1 hour from now
+
+        act(() => {
+          result.current.snoozeNotification('1', wakeTime)
+        })
+
+        // Check that chrome.alarms.create was called with correct parameters
+        // Note: With callback, it's called with 3 args: (name, alarmInfo, callback)
+        expect(mockChromeAlarms.create).toHaveBeenCalled()
+        const callArgs = mockChromeAlarms.create.mock.calls[0]
+        expect(callArgs[0]).toBe('snooze-1')
+        expect(callArgs[1]).toEqual({ when: wakeTime })
+        expect(typeof callArgs[2]).toBe('function') // callback
+      })
+
+      it('should handle snoozing non-existent notification gracefully', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+        })
+
+        const wakeTime = Date.now() + 3600000
+
+        act(() => {
+          result.current.snoozeNotification('non-existent', wakeTime)
+        })
+
+        // Should not add to snoozed list
+        expect(result.current.snoozedNotifications).toHaveLength(0)
+        // Should not affect active notifications
+        expect(result.current.notifications).toHaveLength(1)
+        // Should not create alarm
+        expect(mockChromeAlarms.create).not.toHaveBeenCalled()
+      })
+
+      it('should preserve all notification data when snoozed', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+        })
+
+        const wakeTime = Date.now() + 3600000
+
+        act(() => {
+          result.current.snoozeNotification('1', wakeTime)
+        })
+
+        expect(result.current.snoozedNotifications[0].notification).toEqual(mockNotification)
+      })
+    })
+
+    describe('unsnoozeNotification', () => {
+      it('should move notification from snoozed to active list', () => {
+        const { result } = renderHook(() => useNotificationStore())
+        const wakeTime = Date.now() + 3600000
+
+        // First snooze it
+        act(() => {
+          result.current.setNotifications([mockNotification])
+          result.current.snoozeNotification('1', wakeTime)
+        })
+
+        expect(result.current.notifications).toHaveLength(0)
+        expect(result.current.snoozedNotifications).toHaveLength(1)
+
+        // Then unsnooze
+        act(() => {
+          result.current.unsnoozeNotification('1')
+        })
+
+        expect(result.current.notifications).toHaveLength(1)
+        expect(result.current.snoozedNotifications).toHaveLength(0)
+        expect(result.current.notifications[0]).toEqual(mockNotification)
+      })
+
+      it('should clear chrome alarm when unsnoozing', () => {
+        const { result } = renderHook(() => useNotificationStore())
+        const wakeTime = Date.now() + 3600000
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+          result.current.snoozeNotification('1', wakeTime)
+        })
+
+        vi.clearAllMocks() // Clear previous alarm.create call
+
+        act(() => {
+          result.current.unsnoozeNotification('1')
+        })
+
+        // Check that chrome.alarms.clear was called with correct parameters
+        // Note: With callback, it's called with 2 args: (name, callback)
+        expect(mockChromeAlarms.clear).toHaveBeenCalled()
+        const callArgs = mockChromeAlarms.clear.mock.calls[0]
+        expect(callArgs[0]).toBe('snooze-1')
+        expect(typeof callArgs[1]).toBe('function') // callback
+      })
+
+      it('should handle unsnoozing non-existent notification gracefully', () => {
+        const { result } = renderHook(() => useNotificationStore())
+        const wakeTime = Date.now() + 3600000
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+          result.current.snoozeNotification('1', wakeTime)
+        })
+
+        act(() => {
+          result.current.unsnoozeNotification('non-existent')
+        })
+
+        // Should not affect snoozed list
+        expect(result.current.snoozedNotifications).toHaveLength(1)
+        // Should not affect active list
+        expect(result.current.notifications).toHaveLength(0)
+      })
+    })
+
+    describe('wakeNotification', () => {
+      it('should move notification from snoozed to active without clearing alarm', () => {
+        const { result } = renderHook(() => useNotificationStore())
+        const wakeTime = Date.now() + 3600000
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+          result.current.snoozeNotification('1', wakeTime)
+        })
+
+        vi.clearAllMocks()
+
+        act(() => {
+          result.current.wakeNotification('1')
+        })
+
+        expect(result.current.notifications).toHaveLength(1)
+        expect(result.current.snoozedNotifications).toHaveLength(0)
+        // Should NOT clear alarm (alarm already fired)
+        expect(mockChromeAlarms.clear).not.toHaveBeenCalled()
+      })
+
+      it('should handle waking non-existent notification gracefully', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        act(() => {
+          result.current.wakeNotification('non-existent')
+        })
+
+        expect(result.current.notifications).toHaveLength(0)
+        expect(result.current.snoozedNotifications).toHaveLength(0)
+      })
+    })
+
+    describe('setSnoozedNotifications', () => {
+      it('should replace entire snoozed notifications list', () => {
+        const { result } = renderHook(() => useNotificationStore())
+        const wakeTime = Date.now() + 3600000
+
+        const snoozedList = [
+          {
+            notification: mockNotification,
+            snoozedAt: Date.now(),
+            wakeTime,
+            alarmName: 'snooze-1',
+          },
+        ]
+
+        act(() => {
+          result.current.setSnoozedNotifications(snoozedList)
+        })
+
+        expect(result.current.snoozedNotifications).toEqual(snoozedList)
+      })
+    })
+
+    describe('getSnoozedCount', () => {
+      it('should return correct count of snoozed notifications', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        expect(result.current.getSnoozedCount()).toBe(0)
+
+        const notification2: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+        }
+
+        const wakeTime = Date.now() + 3600000
+
+        act(() => {
+          result.current.setNotifications([mockNotification, notification2])
+          result.current.snoozeNotification('1', wakeTime)
+        })
+
+        expect(result.current.getSnoozedCount()).toBe(1)
+
+        act(() => {
+          result.current.snoozeNotification('2', wakeTime)
+        })
+
+        expect(result.current.getSnoozedCount()).toBe(2)
+      })
+    })
+
+    describe('Snooze Persistence', () => {
+      it('should persist snoozed notifications to chrome.storage', async () => {
+        const { result } = renderHook(() => useNotificationStore())
+        const wakeTime = Date.now() + 3600000
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+          result.current.snoozeNotification('1', wakeTime)
+        })
+
+        // Wait for async storage write
+        await new Promise((resolve) => setTimeout(resolve, 100))
+
+        expect(mockChromeStorage.local.set).toHaveBeenCalled()
+        const callArgs = mockChromeStorage.local.set.mock.calls[mockChromeStorage.local.set.mock.calls.length - 1][0]
+        const storedData = JSON.parse(callArgs['zustand-notifications'])
+        expect(storedData.state.snoozedNotifications).toHaveLength(1)
+        expect(storedData.state.snoozedNotifications[0].notification).toEqual(mockNotification)
+      })
+    })
+
+    describe('Snooze Filter Integration', () => {
+      it('should remove notification from filtered list when snoozed', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const mentionNotification: GitHubNotification = {
+          ...mockNotification,
+          id: '1',
+          reason: 'mention',
+        }
+
+        act(() => {
+          result.current.setNotifications([mentionNotification])
+          result.current.setFilter('mentions')
+        })
+
+        let filtered = result.current.getFilteredNotifications()
+        expect(filtered).toHaveLength(1)
+
+        const wakeTime = Date.now() + 3600000
+
+        act(() => {
+          result.current.snoozeNotification('1', wakeTime)
+        })
+
+        filtered = result.current.getFilteredNotifications()
+        expect(filtered).toHaveLength(0)
+      })
+
+      it('should update filter counts when notification is snoozed', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const mentionNotification: GitHubNotification = {
+          ...mockNotification,
+          id: '1',
+          reason: 'mention',
+        }
+
+        act(() => {
+          result.current.setNotifications([mentionNotification])
+        })
+
+        let counts = result.current.getFilterCounts()
+        expect(counts.all).toBe(1)
+        expect(counts.mentions).toBe(1)
+
+        const wakeTime = Date.now() + 3600000
+
+        act(() => {
+          result.current.snoozeNotification('1', wakeTime)
+        })
+
+        counts = result.current.getFilterCounts()
+        expect(counts.all).toBe(0)
+        expect(counts.mentions).toBe(0)
+      })
+
+      it('should add notification back to filtered list when unsnoozed', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const reviewNotification: GitHubNotification = {
+          ...mockNotification,
+          id: '1',
+          reason: 'review_requested',
+        }
+
+        const wakeTime = Date.now() + 3600000
+
+        act(() => {
+          result.current.setNotifications([reviewNotification])
+          result.current.setFilter('reviews')
+          result.current.snoozeNotification('1', wakeTime)
+        })
+
+        let filtered = result.current.getFilteredNotifications()
+        expect(filtered).toHaveLength(0)
+
+        act(() => {
+          result.current.unsnoozeNotification('1')
+        })
+
+        filtered = result.current.getFilteredNotifications()
+        expect(filtered).toHaveLength(1)
+        expect(filtered[0].id).toBe('1')
+      })
+    })
+
+    describe('Multiple Snooze Operations', () => {
+      it('should handle snoozing multiple notifications', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const notification2: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+        }
+
+        const notification3: GitHubNotification = {
+          ...mockNotification,
+          id: '3',
+        }
+
+        const wakeTime = Date.now() + 3600000
+
+        act(() => {
+          result.current.setNotifications([mockNotification, notification2, notification3])
+          result.current.snoozeNotification('1', wakeTime)
+          result.current.snoozeNotification('2', wakeTime + 7200000)
+          result.current.snoozeNotification('3', wakeTime + 14400000)
+        })
+
+        expect(result.current.notifications).toHaveLength(0)
+        expect(result.current.snoozedNotifications).toHaveLength(3)
+        expect(mockChromeAlarms.create).toHaveBeenCalledTimes(3)
+      })
+
+      it('should handle unsnoozing specific notification from multiple snoozed', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const notification2: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+        }
+
+        const wakeTime = Date.now() + 3600000
+
+        act(() => {
+          result.current.setNotifications([mockNotification, notification2])
+          result.current.snoozeNotification('1', wakeTime)
+          result.current.snoozeNotification('2', wakeTime)
+        })
+
+        expect(result.current.snoozedNotifications).toHaveLength(2)
+
+        act(() => {
+          result.current.unsnoozeNotification('1')
+        })
+
+        expect(result.current.snoozedNotifications).toHaveLength(1)
+        expect(result.current.snoozedNotifications[0].notification.id).toBe('2')
+        expect(result.current.notifications).toHaveLength(1)
+        expect(result.current.notifications[0].id).toBe('1')
+      })
+    })
+
+    describe('Edge Cases', () => {
+      it('should handle snoozing already snoozed notification (re-snooze)', () => {
+        const { result } = renderHook(() => useNotificationStore())
+        const wakeTime1 = Date.now() + 3600000
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+          result.current.snoozeNotification('1', wakeTime1)
+        })
+
+        expect(result.current.snoozedNotifications).toHaveLength(1)
+
+        // Try to snooze again - should not find it in active list
+        const wakeTime2 = Date.now() + 7200000
+
+        act(() => {
+          result.current.snoozeNotification('1', wakeTime2)
+        })
+
+        // Should still have only one snoozed notification
+        expect(result.current.snoozedNotifications).toHaveLength(1)
+      })
+
+      it('should clear all notifications including snoozed', () => {
+        const { result } = renderHook(() => useNotificationStore())
+        const wakeTime = Date.now() + 3600000
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+          result.current.snoozeNotification('1', wakeTime)
+        })
+
+        expect(result.current.snoozedNotifications).toHaveLength(1)
+
+        act(() => {
+          result.current.clearNotifications()
+        })
+
+        // clearNotifications should NOT clear snoozed notifications
+        // (user explicitly snoozed them, they should wake up as scheduled)
+        expect(result.current.snoozedNotifications).toHaveLength(1)
+        expect(result.current.notifications).toHaveLength(0)
       })
     })
   })

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware'
-import { GitHubNotification, NotificationReason } from '../types/github'
+import { GitHubNotification, NotificationReason, SnoozedNotification } from '../types/github'
 import { NOTIFICATIONS_STORAGE_KEY } from '../utils/notification-service'
 
 // Filter types based on notification reasons
@@ -13,6 +13,7 @@ const ASSIGNED_REASONS: NotificationReason[] = ['assign']
 
 interface NotificationState {
   notifications: GitHubNotification[]
+  snoozedNotifications: SnoozedNotification[]
   isLoading: boolean
   error: string | null
   lastFetched: number | null
@@ -27,9 +28,16 @@ interface NotificationState {
   updateLastFetched: () => void
   setFilter: (filter: NotificationFilter) => void
   
+  // Snooze actions
+  snoozeNotification: (notificationId: string, wakeTime: number) => void
+  unsnoozeNotification: (notificationId: string) => void
+  wakeNotification: (notificationId: string) => void
+  setSnoozedNotifications: (snoozed: SnoozedNotification[]) => void
+  
   // Selectors
   getFilteredNotifications: () => GitHubNotification[]
   getFilterCounts: () => Record<NotificationFilter, number>
+  getSnoozedCount: () => number
 }
 
 // Chrome storage adapter for Zustand persist middleware
@@ -75,6 +83,7 @@ export const useNotificationStore = create<NotificationState>()(
     (set, get) => ({
       // Initial state
       notifications: [],
+      snoozedNotifications: [],
       isLoading: false,
       error: null,
       lastFetched: null,
@@ -106,6 +115,98 @@ export const useNotificationStore = create<NotificationState>()(
       setFilter: (filter) =>
         set({ activeFilter: filter }),
 
+      // Snooze actions
+      snoozeNotification: (notificationId, wakeTime) =>
+        set((state) => {
+          const notification = state.notifications.find(n => n.id === notificationId)
+          if (!notification) {
+            console.warn('Cannot snooze: notification not found:', notificationId)
+            return state
+          }
+
+          const alarmName = `snooze-${notificationId}`
+          const snoozed: SnoozedNotification = {
+            notification,
+            snoozedAt: Date.now(),
+            wakeTime,
+            alarmName,
+          }
+
+          // Create chrome alarm with error handling
+          if (typeof chrome !== 'undefined' && chrome.alarms) {
+            chrome.alarms.create(alarmName, { when: wakeTime }, () => {
+              if (chrome.runtime.lastError) {
+                console.error('[Snooze] Failed to create alarm:', chrome.runtime.lastError)
+              } else {
+                console.log('[Snooze] Alarm created:', alarmName)
+              }
+            })
+          }
+
+          return {
+            notifications: state.notifications.filter(n => n.id !== notificationId),
+            snoozedNotifications: [...state.snoozedNotifications, snoozed],
+          }
+        }),
+
+      unsnoozeNotification: (notificationId) =>
+        set((state) => {
+          const snoozed = state.snoozedNotifications.find(s => s.notification.id === notificationId)
+          if (!snoozed) {
+            console.warn('Cannot unsnooze: snoozed notification not found:', notificationId)
+            return state
+          }
+
+          // Clear chrome alarm with error handling
+          if (typeof chrome !== 'undefined' && chrome.alarms) {
+            chrome.alarms.clear(snoozed.alarmName, (wasCleared) => {
+              if (chrome.runtime.lastError) {
+                console.error('[Unsnooze] Failed to clear alarm:', chrome.runtime.lastError)
+              } else if (wasCleared) {
+                console.log('[Unsnooze] Alarm cleared:', snoozed.alarmName)
+              }
+            })
+          }
+
+          // Check if notification already exists (defensive)
+          const notificationExists = state.notifications.some(n => n.id === notificationId)
+          
+          return {
+            notifications: notificationExists 
+              ? state.notifications
+              : [...state.notifications, snoozed.notification],
+            snoozedNotifications: state.snoozedNotifications.filter(
+              s => s.notification.id !== notificationId
+            ),
+          }
+        }),
+
+      wakeNotification: (notificationId) =>
+        set((state) => {
+          const snoozed = state.snoozedNotifications.find(s => s.notification.id === notificationId)
+          if (!snoozed) {
+            console.warn('Cannot wake: snoozed notification not found:', notificationId)
+            return state
+          }
+
+          console.log('[Wake] Moving notification back to active:', notificationId)
+
+          // Check if notification already exists (defensive)
+          const notificationExists = state.notifications.some(n => n.id === notificationId)
+
+          return {
+            notifications: notificationExists
+              ? state.notifications
+              : [...state.notifications, snoozed.notification],
+            snoozedNotifications: state.snoozedNotifications.filter(
+              s => s.notification.id !== notificationId
+            ),
+          }
+        }),
+
+      setSnoozedNotifications: (snoozed) =>
+        set({ snoozedNotifications: snoozed }),
+
       // Selectors
       getFilteredNotifications: () => {
         const state = get()
@@ -134,13 +235,19 @@ export const useNotificationStore = create<NotificationState>()(
           assigned: notifications.filter(n => ASSIGNED_REASONS.includes(n.reason)).length,
         }
       },
+
+      getSnoozedCount: () => {
+        const { snoozedNotifications } = get()
+        return snoozedNotifications.length
+      },
     }),
     {
       name: 'zustand-notifications', // Use different key from NotificationService
       storage: createJSONStorage(() => chromeStorage),
-      // Persist notifications and selected filter
+      // Persist notifications, snoozed notifications, and selected filter
       partialize: (state) => ({
         notifications: state.notifications,
+        snoozedNotifications: state.snoozedNotifications,
         lastFetched: state.lastFetched,
         activeFilter: state.activeFilter,
       }),
@@ -160,9 +267,36 @@ if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged)
         console.log('[Zustand] Syncing notifications from background worker:', change.newValue.length)
         
         // Update Zustand store with background worker's data
+        // Only touch notifications array, leave snoozedNotifications alone
         useNotificationStore.getState().setNotifications(change.newValue)
         useNotificationStore.getState().updateLastFetched()
       }
+    }
+  })
+}
+
+// Listen for snooze wake-up messages from background worker
+if (typeof chrome !== 'undefined' && chrome.runtime) {
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message.type === 'SNOOZE_WAKEUP') {
+      console.log('[Zustand] Received wake-up message for:', message.notificationId)
+      useNotificationStore.getState().wakeNotification(message.notificationId)
+    }
+  })
+}
+
+// Process any pending wake-ups when store initializes
+if (typeof chrome !== 'undefined' && chrome.storage) {
+  chrome.storage.local.get('pending-wakeups').then((result) => {
+    const pending: string[] = result['pending-wakeups'] || []
+    if (pending.length > 0) {
+      console.log('[Zustand] Processing pending wake-ups:', pending.length)
+      const store = useNotificationStore.getState()
+      pending.forEach((notificationId) => {
+        store.wakeNotification(notificationId)
+      })
+      // Clear pending wake-ups
+      chrome.storage.local.set({ 'pending-wakeups': [] })
     }
   })
 }
