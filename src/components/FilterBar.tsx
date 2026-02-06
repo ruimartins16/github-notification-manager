@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect } from 'react'
+import { memo, useCallback } from 'react'
 import { useNotificationStore, type NotificationFilter } from '../store/notification-store'
 
 interface FilterTab {
@@ -24,31 +24,7 @@ export const FilterBar = memo(() => {
     setFilter(filter)
   }, [setFilter])
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts if user is typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return
-      }
-
-      const shortcutMap: Record<string, NotificationFilter> = {
-        '1': 'all',
-        '2': 'mentions',
-        '3': 'reviews',
-        '4': 'assigned',
-      }
-
-      const filter = shortcutMap[e.key]
-      if (filter) {
-        e.preventDefault()
-        setFilter(filter)
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [setFilter])
+  // Note: Keyboard shortcuts (1-4) are handled by useKeyboardShortcuts hook in App.tsx
 
   return (
     <div 

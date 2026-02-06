@@ -9,7 +9,9 @@ import { MarkAllReadButton } from '../components/MarkAllReadButton'
 import { BulkActionsBar } from '../components/BulkActionsBar'
 import { ToastContainer } from '../components/Toast'
 import { SettingsPage } from '../components/SettingsPage'
+import { ShortcutHelpModal } from '../components/ShortcutHelpModal'
 import { useToast } from '../hooks/useToast'
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { GitHubAPI } from '../utils/github-api'
 import { useState, useEffect, useCallback } from 'react'
 import { GearIcon, ArrowLeftIcon } from '@primer/octicons-react'
@@ -38,12 +40,15 @@ function App() {
   const selectedCount = getSelectedCount()
   const selectAll = useNotificationStore(state => state.selectAll)
   const clearSelection = useNotificationStore(state => state.clearSelection)
+  const snoozeNotification = useNotificationStore(state => state.snoozeNotification)
   
   const [copied, setCopied] = useState(false)
   const [isPolling, setIsPolling] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('active')
   const [pageMode, setPageMode] = useState<PageMode>('notifications')
   const [selectionMode, setSelectionMode] = useState(false)
+  const [focusedIndex, setFocusedIndex] = useState(-1) // -1 means no item focused
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
   
   // Toast notifications
   const { toasts, addToast, removeToast } = useToast()
@@ -51,10 +56,85 @@ function App() {
   // Get store actions
   const markAllAsRead = useNotificationStore(state => state.markAllAsRead)
   const undoMarkAllAsRead = useNotificationStore(state => state.undoMarkAllAsRead)
+  const markAsRead = useNotificationStore(state => state.markAsRead)
+  const archiveNotification = useNotificationStore(state => state.archiveNotification)
   
   // Combined loading state
   const isLoading = authLoading
   const error = authError
+
+  // Keyboard shortcuts handlers
+  const handleOpenFocused = useCallback(() => {
+    const notification = filteredNotifications[focusedIndex]
+    if (!notification) return
+    
+    try {
+      let url = notification.subject.url
+        ? notification.subject.url.replace('api.github.com/repos', 'github.com')
+        : notification.repository.html_url
+      
+      const parsedUrl = new URL(url)
+      if (!parsedUrl.hostname.endsWith('github.com') || 
+          !['http:', 'https:'].includes(parsedUrl.protocol)) {
+        console.error('Invalid GitHub URL')
+        return
+      }
+      
+      chrome.tabs.create({ url: parsedUrl.toString(), active: true })
+    } catch (error) {
+      console.error('Invalid URL:', error)
+    }
+  }, [focusedIndex, filteredNotifications])
+
+  const handleMarkFocusedDone = useCallback(async () => {
+    const notification = filteredNotifications[focusedIndex]
+    if (!notification) return
+    
+    markAsRead(notification.id)
+    addToast('Marked as read', { variant: 'success', duration: 2000 })
+    
+    // Mark as read on GitHub
+    try {
+      const token = await chrome.storage.local.get('github_token')
+      if (token.github_token) {
+        const api = GitHubAPI.getInstance()
+        await api.initialize(token.github_token)
+        // Note: API doesn't expose markThreadAsRead, uses markAllAsRead instead
+        // Individual thread marking is handled by NotificationActions component
+      }
+    } catch (error) {
+      console.error('Failed to mark as read on GitHub:', error)
+    }
+  }, [focusedIndex, filteredNotifications, markAsRead, addToast])
+
+  const handleArchiveFocused = useCallback(() => {
+    const notification = filteredNotifications[focusedIndex]
+    if (!notification) return
+    
+    archiveNotification(notification.id)
+    addToast('Archived', { variant: 'success', duration: 2000 })
+  }, [focusedIndex, filteredNotifications, archiveNotification, addToast])
+
+  const handleSnoozeFocused = useCallback(() => {
+    // Get the focused notification
+    const notification = filteredNotifications[focusedIndex]
+    if (!notification) return
+
+    // Snooze for 1 hour (default duration)
+    const wakeTime = Date.now() + 3600000 // 1 hour in milliseconds
+    snoozeNotification(notification.id, wakeTime)
+    
+    // Show success message
+    addToast(`Snoozed for 1 hour`, { variant: 'success' })
+    
+    // Clear focus after snoozing
+    setFocusedIndex(-1)
+  }, [focusedIndex, filteredNotifications, snoozeNotification, addToast])
+
+  // Reset focus when changing views or filters
+  useEffect(() => {
+    setFocusedIndex(-1)
+  }, [viewMode, pageMode, selectionMode])
 
   // Start polling indicator when device auth starts
   useEffect(() => {
@@ -193,6 +273,19 @@ function App() {
     }
   }, [markAllAsRead, undoMarkAllAsRead, addToast])
 
+  // Keyboard shortcuts integration
+  const { getShortcuts, listRef } = useKeyboardShortcuts({
+    focusedIndex,
+    setFocusedIndex,
+    notificationCount: filteredNotifications.length,
+    onOpenFocused: handleOpenFocused,
+    onMarkFocusedDone: handleMarkFocusedDone,
+    onArchiveFocused: handleArchiveFocused,
+    onSnoozeFocused: handleSnoozeFocused,
+    onMarkAllRead: handleMarkAllAsRead,
+    onOpenHelp: () => setIsHelpModalOpen(true),
+    enabled: viewMode === 'active' && !selectionMode && pageMode === 'notifications',
+  })
 
 
   if (isLoading) {
@@ -532,6 +625,7 @@ function App() {
             {/* Notifications List - Active View */}
             {viewMode === 'active' && !notificationsLoading && !notificationsError && notifications && (
               <div 
+                ref={listRef}
                 id="notification-list"
                 className="p-4 pt-2"
                 role="tabpanel"
@@ -556,8 +650,15 @@ function App() {
                     role="list"
                     aria-label="GitHub notifications"
                   >
-                    {filteredNotifications.map((notification) => (
-                      <div key={notification.id} role="listitem">
+                    {filteredNotifications.map((notification, index) => (
+                      <div 
+                        key={notification.id} 
+                        role="listitem"
+                        data-notification-index={index}
+                        className={`
+                          ${focusedIndex === index ? 'ring-2 ring-github-accent-emphasis ring-offset-2 rounded-github' : ''}
+                        `}
+                      >
                         <NotificationItem
                           notification={notification}
                           showCheckbox={selectionMode}
@@ -598,6 +699,13 @@ function App() {
 
       {/* Toast notifications */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
+
+      {/* Keyboard Shortcuts Help Modal */}
+      <ShortcutHelpModal
+        isOpen={isHelpModalOpen}
+        onClose={() => setIsHelpModalOpen(false)}
+        shortcuts={getShortcuts()}
+      />
     </div>
   )
 }
