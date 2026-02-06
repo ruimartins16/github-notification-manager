@@ -1354,4 +1354,384 @@ describe('useNotificationStore', () => {
       })
     })
   })
+
+  describe('Archive Functionality', () => {
+    beforeEach(() => {
+      useNotificationStore.setState({
+        notifications: [],
+        isLoading: false,
+        error: null,
+        lastFetched: null,
+        activeFilter: 'all',
+        snoozedNotifications: [],
+        archivedNotifications: [],
+      })
+    })
+
+    describe('archiveNotification', () => {
+      it('should move notification from active to archived list', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+        })
+
+        expect(result.current.notifications).toHaveLength(1)
+        expect(result.current.archivedNotifications).toHaveLength(0)
+
+        act(() => {
+          result.current.archiveNotification('1')
+        })
+
+        expect(result.current.notifications).toHaveLength(0)
+        expect(result.current.archivedNotifications).toHaveLength(1)
+        expect(result.current.archivedNotifications[0]).toEqual(mockNotification)
+      })
+
+      it('should handle archiving non-existent notification gracefully', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+        })
+
+        act(() => {
+          result.current.archiveNotification('non-existent')
+        })
+
+        // Should not add to archived list
+        expect(result.current.archivedNotifications).toHaveLength(0)
+        // Should not affect active notifications
+        expect(result.current.notifications).toHaveLength(1)
+      })
+
+      it('should preserve all notification data when archived', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+        })
+
+        act(() => {
+          result.current.archiveNotification('1')
+        })
+
+        expect(result.current.archivedNotifications[0]).toEqual(mockNotification)
+      })
+
+      it('should handle archiving multiple notifications', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const notification2: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+        }
+
+        const notification3: GitHubNotification = {
+          ...mockNotification,
+          id: '3',
+        }
+
+        act(() => {
+          result.current.setNotifications([mockNotification, notification2, notification3])
+          result.current.archiveNotification('1')
+          result.current.archiveNotification('2')
+        })
+
+        expect(result.current.notifications).toHaveLength(1)
+        expect(result.current.archivedNotifications).toHaveLength(2)
+        expect(result.current.archivedNotifications.map(n => n.id)).toEqual(['1', '2'])
+      })
+    })
+
+    describe('unarchiveNotification', () => {
+      it('should move notification from archived to active list', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        // First archive it
+        act(() => {
+          result.current.setNotifications([mockNotification])
+          result.current.archiveNotification('1')
+        })
+
+        expect(result.current.notifications).toHaveLength(0)
+        expect(result.current.archivedNotifications).toHaveLength(1)
+
+        // Then unarchive
+        act(() => {
+          result.current.unarchiveNotification('1')
+        })
+
+        expect(result.current.notifications).toHaveLength(1)
+        expect(result.current.archivedNotifications).toHaveLength(0)
+        expect(result.current.notifications[0]).toEqual(mockNotification)
+      })
+
+      it('should handle unarchiving non-existent notification gracefully', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+          result.current.archiveNotification('1')
+        })
+
+        act(() => {
+          result.current.unarchiveNotification('non-existent')
+        })
+
+        // Should not affect archived list
+        expect(result.current.archivedNotifications).toHaveLength(1)
+        // Should not affect active list
+        expect(result.current.notifications).toHaveLength(0)
+      })
+
+      it('should handle unarchiving specific notification from multiple archived', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const notification2: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+        }
+
+        act(() => {
+          result.current.setNotifications([mockNotification, notification2])
+          result.current.archiveNotification('1')
+          result.current.archiveNotification('2')
+        })
+
+        expect(result.current.archivedNotifications).toHaveLength(2)
+
+        act(() => {
+          result.current.unarchiveNotification('1')
+        })
+
+        expect(result.current.archivedNotifications).toHaveLength(1)
+        expect(result.current.archivedNotifications[0].id).toBe('2')
+        expect(result.current.notifications).toHaveLength(1)
+        expect(result.current.notifications[0].id).toBe('1')
+      })
+    })
+
+    describe('getArchivedCount', () => {
+      it('should return correct count of archived notifications', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        expect(result.current.getArchivedCount()).toBe(0)
+
+        const notification2: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+        }
+
+        act(() => {
+          result.current.setNotifications([mockNotification, notification2])
+          result.current.archiveNotification('1')
+        })
+
+        expect(result.current.getArchivedCount()).toBe(1)
+
+        act(() => {
+          result.current.archiveNotification('2')
+        })
+
+        expect(result.current.getArchivedCount()).toBe(2)
+      })
+    })
+
+    describe('Archive Persistence', () => {
+      it('should persist archived notifications to chrome.storage', async () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+          result.current.archiveNotification('1')
+        })
+
+        // Wait for async storage write
+        await new Promise((resolve) => setTimeout(resolve, 100))
+
+        expect(mockChromeStorage.local.set).toHaveBeenCalled()
+        const callArgs = mockChromeStorage.local.set.mock.calls[mockChromeStorage.local.set.mock.calls.length - 1][0]
+        const storedData = JSON.parse(callArgs['zustand-notifications'])
+        expect(storedData.state.archivedNotifications).toHaveLength(1)
+        expect(storedData.state.archivedNotifications[0]).toEqual(mockNotification)
+      })
+    })
+
+    describe('Archive Filter Integration', () => {
+      it('should remove notification from filtered list when archived', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const mentionNotification: GitHubNotification = {
+          ...mockNotification,
+          id: '1',
+          reason: 'mention',
+        }
+
+        act(() => {
+          result.current.setNotifications([mentionNotification])
+          result.current.setFilter('mentions')
+        })
+
+        let filtered = result.current.getFilteredNotifications()
+        expect(filtered).toHaveLength(1)
+
+        act(() => {
+          result.current.archiveNotification('1')
+        })
+
+        filtered = result.current.getFilteredNotifications()
+        expect(filtered).toHaveLength(0)
+      })
+
+      it('should update filter counts when notification is archived', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const mentionNotification: GitHubNotification = {
+          ...mockNotification,
+          id: '1',
+          reason: 'mention',
+        }
+
+        act(() => {
+          result.current.setNotifications([mentionNotification])
+        })
+
+        let counts = result.current.getFilterCounts()
+        expect(counts.all).toBe(1)
+        expect(counts.mentions).toBe(1)
+
+        act(() => {
+          result.current.archiveNotification('1')
+        })
+
+        counts = result.current.getFilterCounts()
+        expect(counts.all).toBe(0)
+        expect(counts.mentions).toBe(0)
+      })
+
+      it('should add notification back to filtered list when unarchived', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const reviewNotification: GitHubNotification = {
+          ...mockNotification,
+          id: '1',
+          reason: 'review_requested',
+        }
+
+        act(() => {
+          result.current.setNotifications([reviewNotification])
+          result.current.setFilter('reviews')
+          result.current.archiveNotification('1')
+        })
+
+        let filtered = result.current.getFilteredNotifications()
+        expect(filtered).toHaveLength(0)
+
+        act(() => {
+          result.current.unarchiveNotification('1')
+        })
+
+        filtered = result.current.getFilteredNotifications()
+        expect(filtered).toHaveLength(1)
+        expect(filtered[0].id).toBe('1')
+      })
+    })
+
+    describe('Archive Edge Cases', () => {
+      it('should handle archiving already archived notification', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+          result.current.archiveNotification('1')
+        })
+
+        expect(result.current.archivedNotifications).toHaveLength(1)
+
+        // Try to archive again - should not find it in active list
+        act(() => {
+          result.current.archiveNotification('1')
+        })
+
+        // Should still have only one archived notification
+        expect(result.current.archivedNotifications).toHaveLength(1)
+      })
+
+      it('should keep archived notifications when clearing active notifications', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const notification2: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+        }
+
+        act(() => {
+          result.current.setNotifications([mockNotification, notification2])
+          result.current.archiveNotification('1')
+        })
+
+        expect(result.current.archivedNotifications).toHaveLength(1)
+        expect(result.current.notifications).toHaveLength(1)
+
+        act(() => {
+          result.current.clearNotifications()
+        })
+
+        // clearNotifications should NOT clear archived notifications
+        expect(result.current.archivedNotifications).toHaveLength(1)
+        expect(result.current.notifications).toHaveLength(0)
+      })
+    })
+
+    describe('Archive and Snooze Interaction', () => {
+      it('should allow archiving a snoozed notification after it wakes', () => {
+        const { result } = renderHook(() => useNotificationStore())
+        const wakeTime = Date.now() + 3600000
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+          result.current.snoozeNotification('1', wakeTime)
+        })
+
+        expect(result.current.snoozedNotifications).toHaveLength(1)
+        expect(result.current.notifications).toHaveLength(0)
+
+        // Wake the notification
+        act(() => {
+          result.current.wakeNotification('1')
+        })
+
+        expect(result.current.notifications).toHaveLength(1)
+        expect(result.current.snoozedNotifications).toHaveLength(0)
+
+        // Now archive it
+        act(() => {
+          result.current.archiveNotification('1')
+        })
+
+        expect(result.current.archivedNotifications).toHaveLength(1)
+        expect(result.current.notifications).toHaveLength(0)
+      })
+
+      it('should not archive notification that is currently snoozed', () => {
+        const { result } = renderHook(() => useNotificationStore())
+        const wakeTime = Date.now() + 3600000
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+          result.current.snoozeNotification('1', wakeTime)
+        })
+
+        // Try to archive while snoozed (notification is not in active list)
+        act(() => {
+          result.current.archiveNotification('1')
+        })
+
+        // Should not be archived (not found in active list)
+        expect(result.current.archivedNotifications).toHaveLength(0)
+        expect(result.current.snoozedNotifications).toHaveLength(1)
+      })
+    })
+  })
 })

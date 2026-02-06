@@ -14,6 +14,7 @@ const ASSIGNED_REASONS: NotificationReason[] = ['assign']
 interface NotificationState {
   notifications: GitHubNotification[]
   snoozedNotifications: SnoozedNotification[]
+  archivedNotifications: GitHubNotification[]
   isLoading: boolean
   error: string | null
   lastFetched: number | null
@@ -31,6 +32,10 @@ interface NotificationState {
   updateLastFetched: () => void
   setFilter: (filter: NotificationFilter) => void
   
+  // Archive actions
+  archiveNotification: (notificationId: string) => void
+  unarchiveNotification: (notificationId: string) => void
+  
   // Snooze actions
   snoozeNotification: (notificationId: string, wakeTime: number) => void
   unsnoozeNotification: (notificationId: string) => void
@@ -41,6 +46,7 @@ interface NotificationState {
   getFilteredNotifications: () => GitHubNotification[]
   getFilterCounts: () => Record<NotificationFilter, number>
   getSnoozedCount: () => number
+  getArchivedCount: () => number
 }
 
 // Chrome storage adapter for Zustand persist middleware
@@ -87,6 +93,7 @@ export const useNotificationStore = create<NotificationState>()(
       // Initial state
       notifications: [],
       snoozedNotifications: [],
+      archivedNotifications: [],
       isLoading: false,
       error: null,
       lastFetched: null,
@@ -156,6 +163,46 @@ export const useNotificationStore = create<NotificationState>()(
 
       setFilter: (filter) =>
         set({ activeFilter: filter }),
+
+      // Archive actions
+      archiveNotification: (notificationId) =>
+        set((state) => {
+          const notification = state.notifications.find(n => n.id === notificationId)
+          if (!notification) {
+            console.warn('Cannot archive: notification not found:', notificationId)
+            return state
+          }
+
+          console.log('[Archive] Moving notification to archived:', notificationId)
+
+          return {
+            notifications: state.notifications.filter(n => n.id !== notificationId),
+            archivedNotifications: [...state.archivedNotifications, notification],
+          }
+        }),
+
+      unarchiveNotification: (notificationId) =>
+        set((state) => {
+          const archived = state.archivedNotifications.find(n => n.id === notificationId)
+          if (!archived) {
+            console.warn('Cannot unarchive: archived notification not found:', notificationId)
+            return state
+          }
+
+          console.log('[Unarchive] Moving notification back to active:', notificationId)
+
+          // Check if notification already exists in active list (defensive)
+          const notificationExists = state.notifications.some(n => n.id === notificationId)
+
+          return {
+            notifications: notificationExists
+              ? state.notifications
+              : [...state.notifications, archived],
+            archivedNotifications: state.archivedNotifications.filter(
+              n => n.id !== notificationId
+            ),
+          }
+        }),
 
       // Snooze actions
       snoozeNotification: (notificationId, wakeTime) =>
@@ -282,14 +329,20 @@ export const useNotificationStore = create<NotificationState>()(
         const { snoozedNotifications } = get()
         return snoozedNotifications.length
       },
+
+      getArchivedCount: () => {
+        const { archivedNotifications } = get()
+        return archivedNotifications.length
+      },
     }),
     {
       name: 'zustand-notifications', // Use different key from NotificationService
       storage: createJSONStorage(() => chromeStorage),
-      // Persist notifications, snoozed notifications, and selected filter
+      // Persist notifications, snoozed notifications, archived notifications, and selected filter
       partialize: (state) => ({
         notifications: state.notifications,
         snoozedNotifications: state.snoozedNotifications,
+        archivedNotifications: state.archivedNotifications,
         lastFetched: state.lastFetched,
         activeFilter: state.activeFilter,
       }),

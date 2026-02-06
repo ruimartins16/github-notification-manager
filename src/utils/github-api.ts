@@ -119,6 +119,23 @@ export class GitHubAPI {
   }
 
   /**
+   * Unsubscribe from a notification thread (ignore future notifications)
+   * 
+   * @param threadId - The notification thread ID
+   * @throws Error if not initialized or request fails
+   */
+  async unsubscribe(threadId: string): Promise<void> {
+    if (!this.octokit) {
+      throw new Error('GitHubAPI not initialized. Call initialize() first.')
+    }
+
+    await this.octokit.rest.activity.setThreadSubscription({
+      thread_id: parseInt(threadId, 10),
+      ignored: true,
+    })
+  }
+
+  /**
    * Check if the API client is initialized
    * 
    * @returns boolean - True if initialized

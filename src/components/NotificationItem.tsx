@@ -10,6 +10,7 @@ import {
 } from '@primer/octicons-react'
 import { SnoozeButton } from './SnoozeButton'
 import { SnoozeDialog } from './SnoozeDialog'
+import { NotificationActions } from './NotificationActions'
 
 // Helper function to get fallback avatar with initial
 function getFallbackAvatar(login: string): string {
@@ -95,10 +96,24 @@ function getReasonBadgeClass(reason: string): string {
 interface NotificationItemProps {
   notification: GitHubNotification
   showSnoozeButton?: boolean
+  showActions?: boolean
+  onActionComplete?: (action: 'read' | 'archive' | 'unsubscribe' | 'snooze') => void
 }
 
-export const NotificationItem = memo(({ notification, showSnoozeButton = true }: NotificationItemProps) => {
+export const NotificationItem = memo(({ 
+  notification, 
+  showSnoozeButton = true,
+  showActions = true,
+  onActionComplete
+}: NotificationItemProps) => {
   const [isSnoozeDialogOpen, setIsSnoozeDialogOpen] = useState(false)
+
+  const handleActionComplete = useCallback(
+    (action: 'read' | 'archive' | 'unsubscribe') => {
+      onActionComplete?.(action)
+    },
+    [onActionComplete]
+  )
 
   const handleClick = useCallback(() => {
     try {
@@ -107,9 +122,10 @@ export const NotificationItem = memo(({ notification, showSnoozeButton = true }:
         ? notification.subject.url.replace('api.github.com/repos', 'github.com')
         : notification.repository.html_url
       
-      // Validate it's a GitHub URL (XSS protection)
+      // Validate it's a GitHub URL with correct protocol (XSS protection)
       const parsedUrl = new URL(url)
-      if (!parsedUrl.hostname.endsWith('github.com')) {
+      if (!parsedUrl.hostname.endsWith('github.com') || 
+          !['http:', 'https:'].includes(parsedUrl.protocol)) {
         console.error('Invalid GitHub URL - security check failed')
         return
       }
@@ -178,8 +194,20 @@ export const NotificationItem = memo(({ notification, showSnoozeButton = true }:
             </div>
           </div>
 
-          {/* Right side - Unread indicator & Snooze button */}
+          {/* Right side - Actions, Snooze button & Unread indicator */}
           <div className="flex items-center gap-2">
+            {/* Action buttons (visible on hover) */}
+            {showActions && (
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <NotificationActions
+                  notificationId={notification.id}
+                  notificationTitle={notification.subject.title}
+                  onActionComplete={handleActionComplete}
+                />
+              </div>
+            )}
+
+            {/* Snooze button (visible on hover) */}
             {showSnoozeButton && (
               <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                 <SnoozeButton

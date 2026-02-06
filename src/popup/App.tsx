@@ -4,13 +4,14 @@ import { useNotificationStore } from '../store/notification-store'
 import { FilterBar } from '../components/FilterBar'
 import { NotificationItem } from '../components/NotificationItem'
 import { SnoozedTab } from '../components/SnoozedTab'
+import { ArchivedTab } from '../components/ArchivedTab'
 import { MarkAllReadButton } from '../components/MarkAllReadButton'
 import { ToastContainer } from '../components/Toast'
 import { useToast } from '../hooks/useToast'
 import { GitHubAPI } from '../utils/github-api'
 import { useState, useEffect, useCallback } from 'react'
 
-type ViewMode = 'active' | 'snoozed'
+type ViewMode = 'active' | 'snoozed' | 'archived'
 
 function App() {
   const { isAuthenticated, isLoading: authLoading, error: authError, deviceAuthInfo, login, logout } = useAuth()
@@ -27,6 +28,8 @@ function App() {
   const filteredNotifications = getFilteredNotifications()
   const getSnoozedCount = useNotificationStore(state => state.getSnoozedCount)
   const snoozedCount = getSnoozedCount()
+  const getArchivedCount = useNotificationStore(state => state.getArchivedCount)
+  const archivedCount = getArchivedCount()
   
   const [copied, setCopied] = useState(false)
   const [isPolling, setIsPolling] = useState(false)
@@ -68,6 +71,24 @@ function App() {
       })
     }
   }
+
+  // Handle individual notification actions
+  const handleActionComplete = useCallback(
+    (action: 'read' | 'archive' | 'unsubscribe' | 'snooze') => {
+      const messages = {
+        read: 'Marked as read',
+        archive: 'Archived',
+        unsubscribe: 'Unsubscribed from thread',
+        snooze: 'Snoozed',
+      }
+
+      addToast(messages[action], {
+        variant: 'success',
+        duration: 3000,
+      })
+    },
+    [addToast]
+  )
 
   // Handle mark all as read
   const handleMarkAllAsRead = useCallback(async () => {
@@ -265,6 +286,17 @@ function App() {
 
         {isAuthenticated ? (
           <div className="space-y-0">
+            {/* ARIA Live Regions for Screen Readers */}
+            <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+              {unreadCount} unread notification{unreadCount === 1 ? '' : 's'}
+            </div>
+            <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+              {snoozedCount} snoozed notification{snoozedCount === 1 ? '' : 's'}
+            </div>
+            <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+              {archivedCount} archived notification{archivedCount === 1 ? '' : 's'}
+            </div>
+
             {/* Header with unread count, actions, and logout */}
             <div className="flex items-center justify-between p-4 pb-3">
               <div>
@@ -296,11 +328,11 @@ function App() {
             </div>
 
             {/* View Mode Toggle */}
-            <div className="flex items-center gap-2 px-4 pb-2">
+            <div className="flex items-center gap-1.5 px-4 pb-2">
               <button
                 onClick={() => setViewMode('active')}
                 className={`
-                  flex-1 px-4 py-2 rounded-github text-sm font-medium transition-colors
+                  flex-1 px-3 py-2 rounded-github text-xs font-medium transition-colors
                   ${viewMode === 'active'
                     ? 'bg-github-accent-emphasis text-white'
                     : 'bg-github-canvas-default border border-github-border-default text-github-fg-default hover:bg-github-canvas-subtle'
@@ -309,7 +341,7 @@ function App() {
               >
                 Active
                 {unreadCount > 0 && (
-                  <span className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-white bg-opacity-20">
+                  <span className="ml-1.5 px-1.5 py-0.5 text-[10px] rounded-full bg-white bg-opacity-20">
                     {unreadCount}
                   </span>
                 )}
@@ -317,7 +349,7 @@ function App() {
               <button
                 onClick={() => setViewMode('snoozed')}
                 className={`
-                  flex-1 px-4 py-2 rounded-github text-sm font-medium transition-colors
+                  flex-1 px-3 py-2 rounded-github text-xs font-medium transition-colors
                   ${viewMode === 'snoozed'
                     ? 'bg-github-accent-emphasis text-white'
                     : 'bg-github-canvas-default border border-github-border-default text-github-fg-default hover:bg-github-canvas-subtle'
@@ -326,8 +358,25 @@ function App() {
               >
                 Snoozed
                 {snoozedCount > 0 && (
-                  <span className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-white bg-opacity-20">
+                  <span className="ml-1.5 px-1.5 py-0.5 text-[10px] rounded-full bg-white bg-opacity-20">
                     {snoozedCount}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setViewMode('archived')}
+                className={`
+                  flex-1 px-3 py-2 rounded-github text-xs font-medium transition-colors
+                  ${viewMode === 'archived'
+                    ? 'bg-github-accent-emphasis text-white'
+                    : 'bg-github-canvas-default border border-github-border-default text-github-fg-default hover:bg-github-canvas-subtle'
+                  }
+                `}
+              >
+                Archived
+                {archivedCount > 0 && (
+                  <span className="ml-1.5 px-1.5 py-0.5 text-[10px] rounded-full bg-white bg-opacity-20">
+                    {archivedCount}
                   </span>
                 )}
               </button>
@@ -402,6 +451,7 @@ function App() {
                       <div key={notification.id} role="listitem">
                         <NotificationItem
                           notification={notification}
+                          onActionComplete={handleActionComplete}
                         />
                       </div>
                     ))}
@@ -414,6 +464,13 @@ function App() {
             {viewMode === 'snoozed' && (
               <div className="p-4 pt-2">
                 <SnoozedTab />
+              </div>
+            )}
+
+            {/* Archived View */}
+            {viewMode === 'archived' && (
+              <div className="p-4 pt-2">
+                <ArchivedTab />
               </div>
             )}
           </div>
