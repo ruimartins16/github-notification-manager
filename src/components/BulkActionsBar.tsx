@@ -11,7 +11,8 @@ interface BulkActionsBarProps {
 export function BulkActionsBar({ onActionComplete }: BulkActionsBarProps) {
   const [isProcessing, setIsProcessing] = useState(false)
   
-  const selectedCount = useNotificationStore(state => state.getSelectedCount())
+  const getSelectedCount = useNotificationStore(state => state.getSelectedCount)
+  const selectedCount = getSelectedCount()
   const clearSelection = useNotificationStore(state => state.clearSelection)
   const bulkMarkAsRead = useNotificationStore(state => state.bulkMarkAsRead)
   const bulkArchive = useNotificationStore(state => state.bulkArchive)

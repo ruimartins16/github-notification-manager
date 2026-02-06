@@ -12,8 +12,9 @@ export function MarkAllReadButton({ onMarkAll, disabled = false }: MarkAllReadBu
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   
-  // Memoized selector to prevent unnecessary re-renders
-  const filteredNotifications = useNotificationStore(state => state.getFilteredNotifications())
+  // Get the function first, then call it
+  const getFilteredNotifications = useNotificationStore(state => state.getFilteredNotifications)
+  const filteredNotifications = getFilteredNotifications()
   const activeFilter = useNotificationStore(state => state.activeFilter)
   
   // Memoize unread count calculation
