@@ -1,24 +1,27 @@
 /**
- * useNotifications - React Query hook for GitHub notifications
+ * useNotifications - Hook for accessing GitHub notifications from Zustand store
  * 
  * This hook provides:
- * - Automatic polling every 60 seconds
- * - Smart caching with 30s stale time
- * - Auto refetch on window focus and reconnect
- * - Loading, error, and data states
- * - Retry logic with exponential backoff
- * - Stores notifications in chrome.storage to trigger badge updates
+ * - Real-time access to notifications state (synced with background worker)
+ * - Loading, error, and data states from Zustand
+ * - Automatic syncing with chrome.storage via persist middleware
+ * - Manual refresh capability via React Query
+ * 
+ * Background worker handles:
+ * - Periodic fetching every 60 seconds
+ * - Badge updates
+ * - Storing data in chrome.storage (which syncs to Zustand)
  * 
  * Usage:
  * ```typescript
- * const { data: notifications, isLoading, error } = useNotifications()
+ * const { notifications, isLoading, error, refresh } = useNotifications()
  * ```
  */
 
 import { useQuery } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useCallback } from 'react'
 import { GitHubAPI } from '../utils/github-api'
-import { NOTIFICATIONS_STORAGE_KEY } from '../utils/notification-service'
+import { useNotificationStore } from '../store/notification-store'
 import { useAuth } from './useAuth'
 import type { GitHubNotification } from '../types/github'
 
@@ -36,20 +39,36 @@ export interface UseNotificationsOptions {
    */
   participating?: boolean
   /**
-   * Polling interval in milliseconds
-   * @default 60000 (60 seconds)
-   */
-  refetchInterval?: number
-  /**
    * Enable/disable the query
    * @default true (auto-enabled when authenticated)
    */
   enabled?: boolean
 }
 
-export function useNotifications(options?: UseNotificationsOptions) {
-  const { token, isAuthenticated } = useAuth()
+export interface UseNotificationsResult {
+  notifications: GitHubNotification[]
+  isLoading: boolean
+  error: string | null
+  refresh: () => Promise<void>
+  markAsRead: (notificationId: string) => void
+}
 
+export function useNotifications(options?: UseNotificationsOptions): UseNotificationsResult {
+  const { token, isAuthenticated } = useAuth()
+  
+  // Get state and actions from Zustand store
+  const { 
+    notifications, 
+    isLoading: storeLoading, 
+    error: storeError,
+    setNotifications,
+    setLoading,
+    setError,
+    markAsRead,
+    updateLastFetched,
+  } = useNotificationStore()
+
+  // React Query for manual refresh capability
   const query = useQuery<GitHubNotification[], Error>({
     queryKey: ['notifications', { all: options?.all, participating: options?.participating }],
     queryFn: async () => {
@@ -57,49 +76,55 @@ export function useNotifications(options?: UseNotificationsOptions) {
         throw new Error('Token is required but not available')
       }
 
-      // Use singleton to prevent memory leaks from polling
-      const api = GitHubAPI.getInstance()
-      await api.initialize(token)
-      
-      const notifications = await api.fetchNotifications({
-        all: options?.all,
-        participating: options?.participating,
-      })
+      setLoading(true)
 
-      // Octokit returns the data in the correct format, cast to our type
-      return notifications as unknown as GitHubNotification[]
+      try {
+        const api = GitHubAPI.getInstance()
+        await api.initialize(token)
+        
+        const fetchedNotifications = await api.fetchNotifications({
+          all: options?.all,
+          participating: options?.participating,
+        })
+
+        const typedNotifications = fetchedNotifications as unknown as GitHubNotification[]
+        
+        // Update Zustand store (which persists to chrome.storage)
+        setNotifications(typedNotifications)
+        updateLastFetched()
+        
+        return typedNotifications
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch notifications'
+        setError(errorMessage)
+        throw err
+      } finally {
+        setLoading(false)
+      }
     },
     // Only fetch if authenticated AND token exists (prevents race condition)
     enabled: (options?.enabled ?? true) && isAuthenticated && !!token,
-    // Don't poll in popup - background service worker handles periodic fetching
-    // This prevents duplicate API calls
+    // Don't poll - background service worker handles periodic fetching
     refetchInterval: false,
     staleTime: STALE_TIME,
-    // Fetch when popup opens/refocuses
+    // Manual refresh on window focus
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     retry: 3,
   })
 
-  // Listen for background updates and sync with React Query cache
-  // This keeps the popup in sync when background worker fetches new data
-  useEffect(() => {
-    const handleStorageChange = (changes: Record<string, chrome.storage.StorageChange>, areaName: string) => {
-      if (areaName === 'local' && changes[NOTIFICATIONS_STORAGE_KEY]) {
-        const newNotifications = changes[NOTIFICATIONS_STORAGE_KEY].newValue as GitHubNotification[] | undefined
-        
-        if (newNotifications) {
-          // Update React Query cache with new data from background fetch
-          query.refetch()
-        }
-      }
-    }
-
-    chrome.storage.onChanged.addListener(handleStorageChange)
-    return () => chrome.storage.onChanged.removeListener(handleStorageChange)
+  // Manual refresh function
+  const refresh = useCallback(async () => {
+    await query.refetch()
   }, [query])
 
-  return query
+  return {
+    notifications,
+    isLoading: storeLoading || query.isFetching,
+    error: storeError || (query.error?.message ?? null),
+    refresh,
+    markAsRead,
+  }
 }
 
 /**
@@ -111,9 +136,9 @@ export function useNotifications(options?: UseNotificationsOptions) {
  * ```
  */
 export function useUnreadCount(): number {
-  const { data: notifications } = useNotifications({ all: false })
+  const { notifications } = useNotifications({ all: false })
   
   if (!notifications) return 0
   
-  return notifications.filter(n => n.unread).length
+  return notifications.filter((n: GitHubNotification) => n.unread).length
 }

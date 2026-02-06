@@ -43,10 +43,11 @@ describe('App Component', () => {
     
     // Default mock for useNotifications
     mockUseNotifications.mockReturnValue({
-      data: null,
+      notifications: [],
       isLoading: false,
       error: null,
-      refetch: vi.fn(),
+      refresh: vi.fn(),
+      markAsRead: vi.fn(),
     })
     
     // Default mock for useUnreadCount
@@ -171,10 +172,11 @@ describe('App Component', () => {
 
     it('should display notifications header', () => {
       mockUseNotifications.mockReturnValue({
-        data: [],
+        notifications: [],
         isLoading: false,
         error: null,
-        refetch: vi.fn(),
+        refresh: vi.fn(),
+        markAsRead: vi.fn(),
       })
       
       renderWithQueryClient(<App />)
@@ -212,10 +214,11 @@ describe('App Component', () => {
 
     it('should display empty state when no notifications', () => {
       mockUseNotifications.mockReturnValue({
-        data: [],
+        notifications: [],
         isLoading: false,
         error: null,
-        refetch: vi.fn(),
+        refresh: vi.fn(),
+        markAsRead: vi.fn(),
       })
       mockUseUnreadCount.mockReturnValue(0)
       

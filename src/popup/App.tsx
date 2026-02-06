@@ -190,10 +190,10 @@ NotificationItem.displayName = 'NotificationItem'
 function App() {
   const { isAuthenticated, isLoading: authLoading, error: authError, deviceAuthInfo, login, logout } = useAuth()
   const { 
-    data: notifications, 
+    notifications, 
     isLoading: notificationsLoading, 
     error: notificationsError,
-    refetch: refetchNotifications 
+    refresh: refreshNotifications 
   } = useNotifications()
   const unreadCount = useUnreadCount()
   
@@ -411,10 +411,10 @@ function App() {
                   Failed to load notifications
                 </p>
                 <p className="text-xs text-github-fg-muted mb-3">
-                  {notificationsError.message}
+                  {notificationsError}
                 </p>
                 <button
-                  onClick={() => refetchNotifications()}
+                  onClick={() => refreshNotifications()}
                   className="px-3 py-1.5 bg-github-canvas-default border border-github-border-default
                            rounded-github hover:bg-github-canvas-subtle transition-colors
                            font-medium text-xs text-github-fg-default"

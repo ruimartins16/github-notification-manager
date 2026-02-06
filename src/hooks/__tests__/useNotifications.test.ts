@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useNotifications, useUnreadCount } from '../useNotifications'
+import { useNotificationStore } from '../../store/notification-store'
 import React from 'react'
 
 // Create a shared mock instance that we can access in tests
@@ -35,8 +36,9 @@ const mockStorage = {
     removeListener: vi.fn(),
   },
   local: {
-    set: vi.fn(),
-    get: vi.fn(),
+    set: vi.fn().mockResolvedValue(undefined),
+    get: vi.fn().mockResolvedValue({}),
+    remove: vi.fn().mockResolvedValue(undefined),
   },
 }
 
@@ -48,6 +50,14 @@ describe('useNotifications', () => {
   let queryClient: QueryClient
 
   beforeEach(() => {
+    // Reset Zustand store
+    useNotificationStore.setState({
+      notifications: [],
+      isLoading: false,
+      error: null,
+      lastFetched: null,
+    })
+
     // Create a new QueryClient for each test
     queryClient = new QueryClient({
       defaultOptions: {
@@ -61,6 +71,9 @@ describe('useNotifications', () => {
     mockAPIInstance.initialize.mockClear()
     mockAPIInstance.fetchNotifications.mockClear()
     mockAPIInstance.isInitialized.mockReturnValue(true)
+    
+    mockStorage.local.set.mockResolvedValue(undefined)
+    mockStorage.local.get.mockResolvedValue({})
   })
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -102,10 +115,10 @@ describe('useNotifications', () => {
     const { result } = renderHook(() => useNotifications(), { wrapper })
 
     await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true)
+      expect(result.current.notifications.length).toBeGreaterThan(0)
     })
 
-    expect(result.current.data).toEqual(mockNotifications)
+    expect(result.current.notifications).toEqual(mockNotifications)
     expect(mockAPIInstance.initialize).toHaveBeenCalledWith('gho_test_token')
     expect(mockAPIInstance.fetchNotifications).toHaveBeenCalled()
   })
@@ -117,17 +130,17 @@ describe('useNotifications', () => {
     const testError = new Error('API Error')
     mockAPIInstance.fetchNotifications.mockRejectedValue(testError)
 
-    renderHook(() => useNotifications(), { wrapper })
+    const { result } = renderHook(() => useNotifications(), { wrapper })
 
-    // Since hook has retry: 3, we need to wait for all retries to complete
-    // OR we can verify that fetchNotifications was called (showing the query did attempt to run)
+    // Wait for error to be set
     await waitFor(() => {
       expect(mockAPIInstance.fetchNotifications).toHaveBeenCalled()
     })
 
-    // Even if error state doesn't propagate as expected due to React Query internals,
-    // the fact that fetchNotifications was called and rejected means error handling is working
-    expect(mockAPIInstance.fetchNotifications).toHaveBeenCalled()
+    // Error should be propagated to the hook
+    await waitFor(() => {
+      expect(result.current.error).toBeTruthy()
+    })
   })
 
   it('should not fetch if not authenticated', async () => {
@@ -140,7 +153,7 @@ describe('useNotifications', () => {
     const { result } = renderHook(() => useNotifications(), { wrapper })
 
     await waitFor(() => {
-      expect(result.current.isFetching).toBe(false)
+      expect(result.current.isLoading).toBe(false)
     })
 
     expect(mockAPIInstance.fetchNotifications).not.toHaveBeenCalled()
@@ -173,8 +186,25 @@ describe('useNotifications', () => {
       { wrapper }
     )
 
-    expect(result.current.isFetching).toBe(false)
+    expect(result.current.isLoading).toBe(false)
     expect(mockAPIInstance.fetchNotifications).not.toHaveBeenCalled()
+  })
+
+  it('should provide refresh function', async () => {
+    mockAPIInstance.initialize.mockResolvedValue(undefined)
+    mockAPIInstance.fetchNotifications.mockResolvedValue([])
+
+    const { result } = renderHook(() => useNotifications(), { wrapper })
+
+    expect(result.current.refresh).toBeDefined()
+    expect(typeof result.current.refresh).toBe('function')
+  })
+
+  it('should provide markAsRead function', () => {
+    const { result } = renderHook(() => useNotifications(), { wrapper })
+
+    expect(result.current.markAsRead).toBeDefined()
+    expect(typeof result.current.markAsRead).toBe('function')
   })
 })
 
@@ -182,6 +212,14 @@ describe('useUnreadCount', () => {
   let queryClient: QueryClient
 
   beforeEach(() => {
+    // Reset Zustand store
+    useNotificationStore.setState({
+      notifications: [],
+      isLoading: false,
+      error: null,
+      lastFetched: null,
+    })
+
     queryClient = new QueryClient({
       defaultOptions: {
         queries: {
@@ -194,42 +232,40 @@ describe('useUnreadCount', () => {
     mockAPIInstance.initialize.mockClear()
     mockAPIInstance.fetchNotifications.mockClear()
     mockAPIInstance.isInitialized.mockReturnValue(true)
+    
+    mockStorage.local.set.mockResolvedValue(undefined)
+    mockStorage.local.get.mockResolvedValue({})
   })
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     React.createElement(QueryClientProvider, { client: queryClient }, children)
   )
 
-  it('should return 0 when no notifications', async () => {
-    mockAPIInstance.initialize.mockResolvedValueOnce(undefined)
-    mockAPIInstance.fetchNotifications.mockResolvedValueOnce([])
-
+  it('should return 0 when no notifications', () => {
     const { result } = renderHook(() => useUnreadCount(), { wrapper })
 
-    await waitFor(() => {
-      expect(result.current).toBe(0)
-    })
+    expect(result.current).toBe(0)
   })
 
-  it('should count unread notifications', async () => {
-    const mockNotifications = [
-      { id: '1', unread: true },
-      { id: '2', unread: false },
-      { id: '3', unread: true },
-    ]
-
-    mockAPIInstance.initialize.mockResolvedValueOnce(undefined)
-    mockAPIInstance.fetchNotifications.mockResolvedValueOnce(mockNotifications)
+  it('should count unread notifications', () => {
+    // Set up store with notifications
+    act(() => {
+      useNotificationStore.setState({
+        notifications: [
+          { id: '1', unread: true } as any,
+          { id: '2', unread: false } as any,
+          { id: '3', unread: true } as any,
+        ],
+      })
+    })
 
     const { result } = renderHook(() => useUnreadCount(), { wrapper })
 
-    await waitFor(() => {
-      expect(result.current).toBe(2)
-    })
+    expect(result.current).toBe(2)
   })
 
   it('should return 0 when notifications data is undefined', () => {
-    const { result } = renderHook(() => useUnreadCount(), { wrapper })
+    const { result} = renderHook(() => useUnreadCount(), { wrapper })
 
     expect(result.current).toBe(0)
   })
