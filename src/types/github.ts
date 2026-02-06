@@ -45,6 +45,8 @@ export type NotificationType =
   | 'Commit'
   | 'Release'
   | 'Discussion'
+  | 'CheckSuite'
+  | 'CheckRun'
 
 export interface GitHubUser {
   login: string

@@ -1,7 +1,7 @@
 import { useAuth } from '../hooks/useAuth'
 import { useNotifications, useUnreadCount } from '../hooks/useNotifications'
 import { useState, useEffect, useCallback, memo } from 'react'
-import type { GitHubNotification } from '../types/github'
+import type { GitHubNotification, NotificationType } from '../types/github'
 import { 
   GitPullRequestIcon, 
   IssueOpenedIcon, 
@@ -31,26 +31,29 @@ function formatReason(reason: string): string {
     .join(' ')
 }
 
+// Icon props constant for consistency and performance
+const ICON_PROPS = {
+  size: 16,
+  className: 'text-github-fg-muted flex-shrink-0',
+  'aria-hidden': true, // Decorative - type is shown in badge below
+} as const
+
 // Helper function to get notification type icon
-function getNotificationIcon(type: string) {
-  const iconProps = { size: 16, className: 'text-github-fg-muted flex-shrink-0' }
-  
+function getNotificationIcon(type: NotificationType): JSX.Element {
   switch (type) {
     case 'PullRequest':
-      return <GitPullRequestIcon {...iconProps} />
+      return <GitPullRequestIcon {...ICON_PROPS} />
     case 'Issue':
-      return <IssueOpenedIcon {...iconProps} />
+      return <IssueOpenedIcon {...ICON_PROPS} />
     case 'Discussion':
-      return <CommentDiscussionIcon {...iconProps} />
+      return <CommentDiscussionIcon {...ICON_PROPS} />
     case 'Release':
-      return <TagIcon {...iconProps} />
+      return <TagIcon {...ICON_PROPS} />
     case 'Commit':
-      return <GitCommitIcon {...iconProps} />
+      return <GitCommitIcon {...ICON_PROPS} />
     case 'CheckSuite':
     case 'CheckRun':
-      return <CheckCircleIcon {...iconProps} />
-    default:
-      return <IssueOpenedIcon {...iconProps} />
+      return <CheckCircleIcon {...ICON_PROPS} />
   }
 }
 
