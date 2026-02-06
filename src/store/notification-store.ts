@@ -544,34 +544,37 @@ if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged)
   })
 }
 
-// Listen for snooze wake-up messages from background worker
+// Setup message listeners after a short delay to ensure store is ready
 if (typeof chrome !== 'undefined' && chrome.runtime) {
-  chrome.runtime.onMessage.addListener((message) => {
-    if (message.type === 'SNOOZE_WAKEUP') {
-      console.log('[Zustand] Received wake-up message for:', message.notificationId)
-      useNotificationStore.getState().wakeNotification(message.notificationId)
+  // Use setTimeout to defer listener setup until after module initialization
+  setTimeout(() => {
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message.type === 'SNOOZE_WAKEUP') {
+        console.log('[Zustand] Received wake-up message for:', message.notificationId)
+        useNotificationStore.getState().wakeNotification(message.notificationId)
+        return false
+      } else if (message.type === 'APPLY_AUTO_ARCHIVE_RULES') {
+        console.log('[Zustand] Received request to apply auto-archive rules')
+        useNotificationStore.getState().applyAutoArchiveRules()
+        return true // Indicates message was handled successfully
+      }
       return false
-    } else if (message.type === 'APPLY_AUTO_ARCHIVE_RULES') {
-      console.log('[Zustand] Received request to apply auto-archive rules')
-      useNotificationStore.getState().applyAutoArchiveRules()
-      return true // Indicates message was handled successfully
-    }
-    return false
-  })
-}
-
-// Process any pending wake-ups when store initializes
-if (typeof chrome !== 'undefined' && chrome.storage) {
-  chrome.storage.local.get('pending-wakeups').then((result) => {
-    const pending: string[] = result['pending-wakeups'] || []
-    if (pending.length > 0) {
-      console.log('[Zustand] Processing pending wake-ups:', pending.length)
-      const store = useNotificationStore.getState()
-      pending.forEach((notificationId) => {
-        store.wakeNotification(notificationId)
+    })
+    
+    // Process any pending wake-ups after listener is set up
+    if (chrome.storage) {
+      chrome.storage.local.get('pending-wakeups').then((result) => {
+        const pending: string[] = result['pending-wakeups'] || []
+        if (pending.length > 0) {
+          console.log('[Zustand] Processing pending wake-ups:', pending.length)
+          const store = useNotificationStore.getState()
+          pending.forEach((notificationId) => {
+            store.wakeNotification(notificationId)
+          })
+          // Clear pending wake-ups
+          chrome.storage.local.set({ 'pending-wakeups': [] })
+        }
       })
-      // Clear pending wake-ups
-      chrome.storage.local.set({ 'pending-wakeups': [] })
     }
-  })
+  }, 0)
 }
