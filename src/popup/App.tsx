@@ -8,11 +8,14 @@ import { ArchivedTab } from '../components/ArchivedTab'
 import { MarkAllReadButton } from '../components/MarkAllReadButton'
 import { BulkActionsBar } from '../components/BulkActionsBar'
 import { ToastContainer } from '../components/Toast'
+import { SettingsPage } from '../components/SettingsPage'
 import { useToast } from '../hooks/useToast'
 import { GitHubAPI } from '../utils/github-api'
 import { useState, useEffect, useCallback } from 'react'
+import { GearIcon, ArrowLeftIcon } from '@primer/octicons-react'
 
 type ViewMode = 'active' | 'snoozed' | 'archived'
+type PageMode = 'notifications' | 'settings'
 
 function App() {
   const { isAuthenticated, isLoading: authLoading, error: authError, deviceAuthInfo, login, logout } = useAuth()
@@ -39,6 +42,7 @@ function App() {
   const [copied, setCopied] = useState(false)
   const [isPolling, setIsPolling] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('active')
+  const [pageMode, setPageMode] = useState<PageMode>('notifications')
   const [selectionMode, setSelectionMode] = useState(false)
   
   // Toast notifications
@@ -327,19 +331,39 @@ function App() {
         ) : null}
 
         {isAuthenticated ? (
-          <div className="space-y-0">
-            {/* ARIA Live Regions for Screen Readers */}
-            <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
-              {unreadCount} unread notification{unreadCount === 1 ? '' : 's'}
+          pageMode === 'settings' ? (
+            /* Settings Page */
+            <div className="h-full">
+              <div className="flex items-center justify-between p-4 pb-3 border-b border-github-border-default">
+                <button
+                  onClick={() => setPageMode('notifications')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-github-canvas-default border border-github-border-default
+                           rounded-github hover:bg-github-canvas-subtle transition-colors
+                           font-medium text-xs text-github-fg-default"
+                >
+                  <ArrowLeftIcon size={14} />
+                  Back
+                </button>
+                <h2 className="text-lg font-semibold text-github-fg-default">Settings</h2>
+                <div className="w-16" /> {/* Spacer for centering */}
+              </div>
+              <SettingsPage />
             </div>
-            <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
-              {snoozedCount} snoozed notification{snoozedCount === 1 ? '' : 's'}
-            </div>
-            <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
-              {archivedCount} archived notification{archivedCount === 1 ? '' : 's'}
-            </div>
+          ) : (
+            /* Notifications Page */
+            <div className="space-y-0">
+              {/* ARIA Live Regions for Screen Readers */}
+              <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+                {unreadCount} unread notification{unreadCount === 1 ? '' : 's'}
+              </div>
+              <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+                {snoozedCount} snoozed notification{snoozedCount === 1 ? '' : 's'}
+              </div>
+              <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+                {archivedCount} archived notification{archivedCount === 1 ? '' : 's'}
+              </div>
 
-            {/* Header with unread count, actions, and logout */}
+              {/* Header with unread count, actions, and logout */}
             <div className="flex items-center justify-between p-4 pb-3">
               <div>
                 <h2 className="text-lg font-semibold text-github-fg-default">
@@ -370,6 +394,16 @@ function App() {
                     {selectionMode ? 'Done' : 'Select'}
                   </button>
                 )}
+                <button
+                  onClick={() => setPageMode('settings')}
+                  className="px-3 py-1.5 bg-github-canvas-default border border-github-border-default
+                           rounded-github hover:bg-github-canvas-subtle transition-colors
+                           font-medium text-xs text-github-fg-default flex items-center gap-1.5"
+                  aria-label="Settings"
+                  title="Settings"
+                >
+                  <GearIcon size={14} />
+                </button>
                 <button
                   onClick={logout}
                   className="px-3 py-1.5 bg-github-canvas-default border border-github-border-default
@@ -551,7 +585,8 @@ function App() {
                 <ArchivedTab />
               </div>
             )}
-          </div>
+            </div>
+          )
         ) : null}
 
         <footer className="mt-6 pt-4 border-t border-github-border-default">
