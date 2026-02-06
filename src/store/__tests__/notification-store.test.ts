@@ -1734,4 +1734,292 @@ describe('useNotificationStore', () => {
       })
     })
   })
+
+  describe('Bulk Selection Functionality', () => {
+    beforeEach(() => {
+      useNotificationStore.setState({
+        notifications: [],
+        isLoading: false,
+        error: null,
+        lastFetched: null,
+        activeFilter: 'all',
+        snoozedNotifications: [],
+        archivedNotifications: [],
+        selectedNotificationIds: new Set<string>(),
+      })
+    })
+
+    describe('toggleSelection', () => {
+      it('should add notification to selection', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+          result.current.toggleSelection('1')
+        })
+
+        expect(result.current.selectedNotificationIds.has('1')).toBe(true)
+        expect(result.current.getSelectedCount()).toBe(1)
+      })
+
+      it('should remove notification from selection when already selected', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+          result.current.toggleSelection('1')
+        })
+
+        expect(result.current.selectedNotificationIds.has('1')).toBe(true)
+
+        act(() => {
+          result.current.toggleSelection('1')
+        })
+
+        expect(result.current.selectedNotificationIds.has('1')).toBe(false)
+        expect(result.current.getSelectedCount()).toBe(0)
+      })
+    })
+
+    describe('selectAll', () => {
+      it('should select all filtered notifications', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const notification2: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+        }
+
+        act(() => {
+          result.current.setNotifications([mockNotification, notification2])
+          result.current.selectAll()
+        })
+
+        expect(result.current.selectedNotificationIds.has('1')).toBe(true)
+        expect(result.current.selectedNotificationIds.has('2')).toBe(true)
+        expect(result.current.getSelectedCount()).toBe(2)
+      })
+
+      it('should only select filtered notifications when filter is active', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const mentionNotification: GitHubNotification = {
+          ...mockNotification,
+          id: '1',
+          reason: 'mention',
+        }
+
+        const reviewNotification: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+          reason: 'review_requested',
+        }
+
+        act(() => {
+          result.current.setNotifications([mentionNotification, reviewNotification])
+          result.current.setFilter('mentions')
+          result.current.selectAll()
+        })
+
+        expect(result.current.selectedNotificationIds.has('1')).toBe(true)
+        expect(result.current.selectedNotificationIds.has('2')).toBe(false)
+        expect(result.current.getSelectedCount()).toBe(1)
+      })
+    })
+
+    describe('clearSelection', () => {
+      it('should clear all selected notifications', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+          result.current.toggleSelection('1')
+        })
+
+        expect(result.current.getSelectedCount()).toBe(1)
+
+        act(() => {
+          result.current.clearSelection()
+        })
+
+        expect(result.current.getSelectedCount()).toBe(0)
+        expect(result.current.selectedNotificationIds.size).toBe(0)
+      })
+    })
+
+    describe('bulkMarkAsRead', () => {
+      it('should mark all selected notifications as read and return their IDs', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const notification2: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+        }
+
+        act(() => {
+          result.current.setNotifications([mockNotification, notification2])
+          result.current.toggleSelection('1')
+          result.current.toggleSelection('2')
+        })
+
+        expect(result.current.notifications.length).toBe(2)
+        expect(result.current.getSelectedCount()).toBe(2)
+
+        let markedIds: string[] = []
+        act(() => {
+          markedIds = result.current.bulkMarkAsRead()
+        })
+
+        expect(markedIds).toEqual(['1', '2'])
+        expect(result.current.notifications.length).toBe(0)
+        expect(result.current.getSelectedCount()).toBe(0)
+      })
+
+      it('should only mark selected notifications, not all', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const notification2: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+        }
+
+        const notification3: GitHubNotification = {
+          ...mockNotification,
+          id: '3',
+        }
+
+        act(() => {
+          result.current.setNotifications([mockNotification, notification2, notification3])
+          result.current.toggleSelection('1')
+          result.current.toggleSelection('2')
+        })
+
+        let markedIds: string[] = []
+        act(() => {
+          markedIds = result.current.bulkMarkAsRead()
+        })
+
+        expect(markedIds).toEqual(['1', '2'])
+        expect(result.current.notifications.length).toBe(1)
+        expect(result.current.notifications[0].id).toBe('3')
+      })
+    })
+
+    describe('bulkArchive', () => {
+      it('should archive all selected notifications', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const notification2: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+        }
+
+        act(() => {
+          result.current.setNotifications([mockNotification, notification2])
+          result.current.toggleSelection('1')
+          result.current.toggleSelection('2')
+        })
+
+        let archivedNotifications: GitHubNotification[] = []
+        act(() => {
+          archivedNotifications = result.current.bulkArchive()
+        })
+
+        expect(archivedNotifications.length).toBe(2)
+        expect(result.current.notifications.length).toBe(0)
+        expect(result.current.archivedNotifications.length).toBe(2)
+        expect(result.current.getSelectedCount()).toBe(0)
+      })
+
+      it('should only archive selected notifications', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const notification2: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+        }
+
+        const notification3: GitHubNotification = {
+          ...mockNotification,
+          id: '3',
+        }
+
+        act(() => {
+          result.current.setNotifications([mockNotification, notification2, notification3])
+          result.current.toggleSelection('1')
+        })
+
+        act(() => {
+          result.current.bulkArchive()
+        })
+
+        expect(result.current.notifications.length).toBe(2)
+        expect(result.current.archivedNotifications.length).toBe(1)
+        expect(result.current.archivedNotifications[0].id).toBe('1')
+      })
+    })
+
+    describe('getSelectedCount', () => {
+      it('should return correct count of selected notifications', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        expect(result.current.getSelectedCount()).toBe(0)
+
+        const notification2: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+        }
+
+        act(() => {
+          result.current.setNotifications([mockNotification, notification2])
+          result.current.toggleSelection('1')
+        })
+
+        expect(result.current.getSelectedCount()).toBe(1)
+
+        act(() => {
+          result.current.toggleSelection('2')
+        })
+
+        expect(result.current.getSelectedCount()).toBe(2)
+      })
+    })
+
+    describe('getSelectedNotifications', () => {
+      it('should return array of selected notification objects', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const notification2: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+          subject: {
+            ...mockNotification.subject,
+            title: 'Test Notification 2',
+          },
+        }
+
+        act(() => {
+          result.current.setNotifications([mockNotification, notification2])
+          result.current.toggleSelection('1')
+          result.current.toggleSelection('2')
+        })
+
+        const selected = result.current.getSelectedNotifications()
+        expect(selected.length).toBe(2)
+        expect(selected[0].id).toBe('1')
+        expect(selected[1].id).toBe('2')
+      })
+
+      it('should return empty array when no notifications selected', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+        })
+
+        const selected = result.current.getSelectedNotifications()
+        expect(selected).toEqual([])
+      })
+    })
+  })
 })

@@ -6,6 +6,7 @@ import { NotificationItem } from '../components/NotificationItem'
 import { SnoozedTab } from '../components/SnoozedTab'
 import { ArchivedTab } from '../components/ArchivedTab'
 import { MarkAllReadButton } from '../components/MarkAllReadButton'
+import { BulkActionsBar } from '../components/BulkActionsBar'
 import { ToastContainer } from '../components/Toast'
 import { useToast } from '../hooks/useToast'
 import { GitHubAPI } from '../utils/github-api'
@@ -30,10 +31,15 @@ function App() {
   const snoozedCount = getSnoozedCount()
   const getArchivedCount = useNotificationStore(state => state.getArchivedCount)
   const archivedCount = getArchivedCount()
+  const getSelectedCount = useNotificationStore(state => state.getSelectedCount)
+  const selectedCount = getSelectedCount()
+  const selectAll = useNotificationStore(state => state.selectAll)
+  const clearSelection = useNotificationStore(state => state.clearSelection)
   
   const [copied, setCopied] = useState(false)
   const [isPolling, setIsPolling] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('active')
+  const [selectionMode, setSelectionMode] = useState(false)
   
   // Toast notifications
   const { toasts, addToast, removeToast } = useToast()
@@ -89,6 +95,42 @@ function App() {
     },
     [addToast]
   )
+
+  // Handle bulk actions
+  const handleBulkActionComplete = useCallback(
+    (action: 'read' | 'archive', count: number) => {
+      const messages = {
+        read: `Marked ${count} notification${count === 1 ? '' : 's'} as read`,
+        archive: `Archived ${count} notification${count === 1 ? '' : 's'}`,
+      }
+
+      addToast(messages[action], {
+        variant: 'success',
+        duration: 3000,
+      })
+    },
+    [addToast]
+  )
+
+  // Toggle selection mode
+  const handleToggleSelectionMode = useCallback(() => {
+    if (selectionMode) {
+      // Exiting selection mode - clear selection
+      clearSelection()
+    }
+    setSelectionMode(!selectionMode)
+  }, [selectionMode, clearSelection])
+
+  // Handle select all
+  const handleSelectAll = useCallback(() => {
+    if (selectedCount === filteredNotifications.length && selectedCount > 0) {
+      // All are selected, deselect all
+      clearSelection()
+    } else {
+      // Select all filtered notifications
+      selectAll()
+    }
+  }, [selectedCount, filteredNotifications.length, clearSelection, selectAll])
 
   // Handle mark all as read
   const handleMarkAllAsRead = useCallback(async () => {
@@ -310,11 +352,23 @@ function App() {
                 </h2>
               </div>
               <div className="flex items-center gap-2">
-                {viewMode === 'active' && (
+                {viewMode === 'active' && !selectionMode && (
                   <MarkAllReadButton
                     onMarkAll={handleMarkAllAsRead}
                     disabled={notificationsLoading}
                   />
+                )}
+                {viewMode === 'active' && (
+                  <button
+                    onClick={handleToggleSelectionMode}
+                    className={`px-3 py-1.5 rounded-github font-medium text-xs transition-colors
+                             ${selectionMode 
+                               ? 'bg-github-accent-emphasis text-white hover:bg-github-accent-fg' 
+                               : 'bg-github-canvas-default border border-github-border-default text-github-fg-default hover:bg-github-canvas-subtle'
+                             }`}
+                  >
+                    {selectionMode ? 'Done' : 'Select'}
+                  </button>
                 )}
                 <button
                   onClick={logout}
@@ -383,7 +437,28 @@ function App() {
             </div>
 
             {/* Filter Bar - only show for active notifications */}
-            {viewMode === 'active' && <FilterBar />}
+            {viewMode === 'active' && !selectionMode && <FilterBar />}
+
+            {/* Select All - only show in selection mode */}
+            {viewMode === 'active' && selectionMode && filteredNotifications.length > 0 && (
+              <div className="px-4 pb-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedCount === filteredNotifications.length && selectedCount > 0}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4 rounded border-github-border-default text-github-accent-emphasis 
+                             focus:ring-2 focus:ring-github-accent-emphasis cursor-pointer"
+                  />
+                  <span className="text-sm font-medium text-github-fg-default">
+                    Select All ({filteredNotifications.length})
+                  </span>
+                </label>
+              </div>
+            )}
+
+            {/* Bulk Actions Bar */}
+            {viewMode === 'active' && selectionMode && <BulkActionsBar onActionComplete={handleBulkActionComplete} />}
 
             {/* Notifications Loading State */}
             {notificationsLoading && (
@@ -451,6 +526,9 @@ function App() {
                       <div key={notification.id} role="listitem">
                         <NotificationItem
                           notification={notification}
+                          showCheckbox={selectionMode}
+                          showActions={!selectionMode}
+                          showSnoozeButton={!selectionMode}
                           onActionComplete={handleActionComplete}
                         />
                       </div>

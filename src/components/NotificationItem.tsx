@@ -11,6 +11,7 @@ import {
 import { SnoozeButton } from './SnoozeButton'
 import { SnoozeDialog } from './SnoozeDialog'
 import { NotificationActions } from './NotificationActions'
+import { useNotificationStore } from '../store/notification-store'
 
 // Helper function to get fallback avatar with initial
 function getFallbackAvatar(login: string): string {
@@ -97,6 +98,7 @@ interface NotificationItemProps {
   notification: GitHubNotification
   showSnoozeButton?: boolean
   showActions?: boolean
+  showCheckbox?: boolean
   onActionComplete?: (action: 'read' | 'archive' | 'unsubscribe' | 'snooze') => void
 }
 
@@ -104,9 +106,15 @@ export const NotificationItem = memo(({
   notification, 
   showSnoozeButton = true,
   showActions = true,
+  showCheckbox = false,
   onActionComplete
 }: NotificationItemProps) => {
   const [isSnoozeDialogOpen, setIsSnoozeDialogOpen] = useState(false)
+  
+  const selectedNotificationIds = useNotificationStore(state => state.selectedNotificationIds)
+  const toggleSelection = useNotificationStore(state => state.toggleSelection)
+  
+  const isSelected = selectedNotificationIds.has(notification.id)
 
   const handleActionComplete = useCallback(
     (action: 'read' | 'archive' | 'unsubscribe') => {
@@ -141,13 +149,34 @@ export const NotificationItem = memo(({
     e.currentTarget.src = getFallbackAvatar(notification.repository.owner.login)
   }, [notification.repository.owner.login])
 
+  const handleCheckboxChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation()
+    toggleSelection(notification.id)
+  }, [toggleSelection, notification.id])
+
   return (
     <>
       <div
-        className="relative w-full text-left p-4 bg-github-canvas-default border border-github-border-default rounded-github 
-                   hover:bg-github-canvas-subtle transition-colors group"
+        className={`relative w-full text-left p-4 bg-github-canvas-default border rounded-github 
+                   hover:bg-github-canvas-subtle transition-colors group
+                   ${isSelected ? 'border-github-accent-emphasis bg-github-accent-subtle' : 'border-github-border-default'}`}
       >
         <div className="flex gap-3">
+          {/* Selection Checkbox */}
+          {showCheckbox && (
+            <div className="flex items-start pt-1">
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={handleCheckboxChange}
+                className="w-4 h-4 rounded border-github-border-default text-github-accent-emphasis 
+                         focus:ring-2 focus:ring-github-accent-emphasis cursor-pointer"
+                aria-label={`Select ${notification.subject.title}`}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
+
           {/* Repository Avatar */}
           <img
             src={notification.repository.owner.avatar_url}

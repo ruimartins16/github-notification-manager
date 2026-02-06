@@ -3,6 +3,7 @@ import { CheckIcon, ArchiveIcon, BellSlashIcon } from '@primer/octicons-react'
 import { useNotificationStore } from '../store/notification-store'
 import { ConfirmationDialog } from './ConfirmationDialog'
 import { GitHubAPI } from '../utils/github-api'
+import { Spinner } from './Spinner'
 
 interface NotificationActionsProps {
   notificationId: string
@@ -111,7 +112,7 @@ export function NotificationActions({
           title="Mark as read"
           aria-label="Mark as read"
         >
-          <CheckIcon size={14} />
+          {isProcessing ? <Spinner size={14} /> : <CheckIcon size={14} />}
         </button>
 
         {/* Archive */}
@@ -122,7 +123,7 @@ export function NotificationActions({
           title="Archive"
           aria-label="Archive notification"
         >
-          <ArchiveIcon size={14} />
+          {isProcessing ? <Spinner size={14} /> : <ArchiveIcon size={14} />}
         </button>
 
         {/* Unsubscribe */}
@@ -133,7 +134,7 @@ export function NotificationActions({
           title="Unsubscribe"
           aria-label="Unsubscribe from thread"
         >
-          <BellSlashIcon size={14} />
+          {isProcessing ? <Spinner size={14} /> : <BellSlashIcon size={14} />}
         </button>
       </div>
 

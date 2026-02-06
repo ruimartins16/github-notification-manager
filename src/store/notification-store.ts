@@ -20,6 +20,7 @@ interface NotificationState {
   lastFetched: number | null
   activeFilter: NotificationFilter
   markAllBackup: GitHubNotification[] | null
+  selectedNotificationIds: Set<string>
   
   // Actions
   setNotifications: (notifications: GitHubNotification[]) => void
@@ -42,11 +43,20 @@ interface NotificationState {
   wakeNotification: (notificationId: string) => void
   setSnoozedNotifications: (snoozed: SnoozedNotification[]) => void
   
+  // Selection actions
+  toggleSelection: (notificationId: string) => void
+  selectAll: () => void
+  clearSelection: () => void
+  bulkMarkAsRead: () => string[]
+  bulkArchive: () => GitHubNotification[]
+  
   // Selectors
   getFilteredNotifications: () => GitHubNotification[]
   getFilterCounts: () => Record<NotificationFilter, number>
   getSnoozedCount: () => number
   getArchivedCount: () => number
+  getSelectedCount: () => number
+  getSelectedNotifications: () => GitHubNotification[]
 }
 
 // Chrome storage adapter for Zustand persist middleware
@@ -99,6 +109,7 @@ export const useNotificationStore = create<NotificationState>()(
       lastFetched: null,
       activeFilter: 'all',
       markAllBackup: null,
+      selectedNotificationIds: new Set<string>(),
 
       // Actions
       setNotifications: (notifications) =>
@@ -296,6 +307,67 @@ export const useNotificationStore = create<NotificationState>()(
       setSnoozedNotifications: (snoozed) =>
         set({ snoozedNotifications: snoozed }),
 
+      // Selection actions
+      toggleSelection: (notificationId) =>
+        set((state) => {
+          const newSelection = new Set(state.selectedNotificationIds)
+          if (newSelection.has(notificationId)) {
+            newSelection.delete(notificationId)
+          } else {
+            newSelection.add(notificationId)
+          }
+          return { selectedNotificationIds: newSelection }
+        }),
+
+      selectAll: () =>
+        set((state) => {
+          const filteredNotifications = state.getFilteredNotifications()
+          const allIds = new Set(filteredNotifications.map(n => n.id))
+          return { selectedNotificationIds: allIds }
+        }),
+
+      clearSelection: () =>
+        set({ selectedNotificationIds: new Set<string>() }),
+
+      bulkMarkAsRead: () => {
+        const state = get()
+        const selectedIds = Array.from(state.selectedNotificationIds)
+        
+        // Remove selected notifications from active list
+        set((state) => ({
+          notifications: state.notifications.filter(
+            n => !selectedIds.includes(n.id)
+          ),
+          selectedNotificationIds: new Set<string>(),
+        }))
+        
+        // Return selected IDs for API calls
+        return selectedIds
+      },
+
+      bulkArchive: () => {
+        const state = get()
+        const selectedIds = Array.from(state.selectedNotificationIds)
+        const notificationsToArchive = state.notifications.filter(
+          n => selectedIds.includes(n.id)
+        )
+        
+        // Move selected notifications to archive
+        set((state) => ({
+          notifications: state.notifications.filter(
+            n => !selectedIds.includes(n.id)
+          ),
+          archivedNotifications: [
+            ...state.archivedNotifications,
+            ...notificationsToArchive,
+          ],
+          selectedNotificationIds: new Set<string>(),
+        }))
+        
+        // Return archived notifications
+        return notificationsToArchive
+      },
+
       // Selectors
       getFilteredNotifications: () => {
         const state = get()
@@ -333,6 +405,17 @@ export const useNotificationStore = create<NotificationState>()(
       getArchivedCount: () => {
         const { archivedNotifications } = get()
         return archivedNotifications.length
+      },
+
+      getSelectedCount: () => {
+        const { selectedNotificationIds } = get()
+        return selectedNotificationIds.size
+      },
+
+      getSelectedNotifications: () => {
+        const state = get()
+        const { notifications, selectedNotificationIds } = state
+        return notifications.filter(n => selectedNotificationIds.has(n.id))
       },
     }),
     {
