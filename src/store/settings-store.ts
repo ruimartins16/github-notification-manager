@@ -29,6 +29,28 @@ const chromeSyncStorage: StateStorage = {
   },
   setItem: async (name: string, value: string): Promise<void> => {
     try {
+      // Check storage quota before writing (if available)
+      if (chrome.storage.sync.getBytesInUse) {
+        const bytesInUse = await chrome.storage.sync.getBytesInUse()
+        const QUOTA_BYTES = chrome.storage.sync.QUOTA_BYTES || 102400 // 100KB default
+        const QUOTA_BYTES_PER_ITEM = chrome.storage.sync.QUOTA_BYTES_PER_ITEM || 8192 // 8KB default
+        const valueBytes = new Blob([value]).size
+        
+        // Check per-item quota
+        if (valueBytes > QUOTA_BYTES_PER_ITEM) {
+          throw new Error(
+            `Settings data too large (${valueBytes} bytes). Maximum ${QUOTA_BYTES_PER_ITEM} bytes per item allowed.`
+          )
+        }
+        
+        // Check total quota (approximate)
+        if (bytesInUse + valueBytes > QUOTA_BYTES) {
+          throw new Error(
+            `Storage quota exceeded. Using ${bytesInUse + valueBytes} of ${QUOTA_BYTES} bytes available.`
+          )
+        }
+      }
+      
       await chrome.storage.sync.set({ [name]: value })
     } catch (error) {
       console.error('Error writing to chrome.storage.sync:', error)
@@ -88,6 +110,14 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'gnm-settings',
       storage: createJSONStorage(() => chromeSyncStorage),
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('Failed to rehydrate settings from chrome.storage.sync:', error)
+          // Optionally notify user or fallback to defaults
+        } else if (state) {
+          console.log('Settings successfully loaded from chrome.storage.sync')
+        }
+      },
     }
   )
 )

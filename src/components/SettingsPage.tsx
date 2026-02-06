@@ -3,15 +3,38 @@ import { useAuth } from '../hooks/useAuth'
 import { useSettingsStore } from '../store/settings-store'
 import { useNotificationStore } from '../store/notification-store'
 import { AutoArchiveRules } from '../components/AutoArchiveRules'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { FilterType } from '../types/storage'
 
 type SettingsSection = 'account' | 'notifications' | 'behavior' | 'advanced' | 'rules'
+
+type ToastVariant = 'success' | 'error' | 'warning' | 'info'
+
+interface Toast {
+  id: string
+  message: string
+  variant: ToastVariant
+}
 
 export function SettingsPage() {
   const { logout } = useAuth()
   const [activeSection, setActiveSection] = useState<SettingsSection>('account')
   const [userInfo, setUserInfo] = useState<{ login: string; avatar_url: string } | null>(null)
   const [rateLimit, setRateLimit] = useState<{ limit: number; remaining: number; reset: number } | null>(null)
+  const [toasts, setToasts] = useState<Toast[]>([])
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    variant: 'danger' | 'warning' | 'default'
+    onConfirm: () => void
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    variant: 'default',
+    onConfirm: () => {},
+  })
   
   // Settings store
   const refreshInterval = useSettingsStore(state => state.refreshInterval)
@@ -29,6 +52,15 @@ export function SettingsPage() {
   
   // Notification store actions
   const clearNotifications = useNotificationStore(state => state.clearNotifications)
+
+  // Toast helper
+  const addToast = (message: string, variant: ToastVariant = 'success') => {
+    const id = `toast-${Date.now()}`
+    setToasts(prev => [...prev, { id, message, variant }])
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id))
+    }, 3000)
+  }
 
   // Load user info
   useEffect(() => {
@@ -49,12 +81,17 @@ export function SettingsPage() {
   }, [])
 
   const handleClearCache = async () => {
-    if (confirm('Are you sure you want to clear all cached notifications? This action cannot be undone.')) {
-      clearNotifications()
-      // Also clear from chrome.storage
-      await chrome.storage.local.remove(['notifications', 'lastFetch'])
-      alert('Cache cleared successfully!')
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Clear Cache',
+      message: 'Are you sure you want to clear all cached notifications? This action cannot be undone.',
+      variant: 'danger',
+      onConfirm: async () => {
+        clearNotifications()
+        await chrome.storage.local.remove(['notifications', 'lastFetch'])
+        addToast('Cache cleared successfully!', 'success')
+      },
+    })
   }
 
   const handleExportSettings = () => {
@@ -67,36 +104,80 @@ export function SettingsPage() {
     }
     const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `gnm-settings-${Date.now()}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+    
+    try {
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `gnm-settings-${Date.now()}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      addToast('Settings exported successfully!', 'success')
+    } finally {
+      URL.revokeObjectURL(url)
+    }
   }
 
   const handleImportSettings = () => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'application/json'
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0]
+    input.onchange = async (e: Event) => {
+      const target = e.target as HTMLInputElement
+      const file = target.files?.[0]
       if (!file) return
+      
+      // Clear input so same file can be re-imported
+      target.value = ''
+      
+      // Validate file size (max 100KB)
+      if (file.size > 100 * 1024) {
+        addToast('File too large. Maximum 100KB allowed.', 'error')
+        return
+      }
       
       try {
         const text = await file.text()
         const settings = JSON.parse(text)
         
-        // Validate and apply settings
-        if (typeof settings.refreshInterval === 'number') setRefreshInterval(settings.refreshInterval)
-        if (typeof settings.badgeEnabled === 'boolean') setBadgeEnabled(settings.badgeEnabled)
-        if (typeof settings.soundEnabled === 'boolean') setSoundEnabled(settings.soundEnabled)
-        if (typeof settings.defaultFilter === 'string') setDefaultFilter(settings.defaultFilter as FilterType)
-        if (typeof settings.openLinksInNewTab === 'boolean') setOpenLinksInNewTab(settings.openLinksInNewTab)
+        // Validate structure
+        if (!settings || typeof settings !== 'object') {
+          throw new Error('Invalid settings format')
+        }
         
-        alert('Settings imported successfully!')
+        // Validate and apply each setting with allowed values
+        let appliedCount = 0
+        
+        if (typeof settings.refreshInterval === 'number' && settings.refreshInterval >= 10 && settings.refreshInterval <= 600) {
+          setRefreshInterval(settings.refreshInterval)
+          appliedCount++
+        }
+        if (typeof settings.badgeEnabled === 'boolean') {
+          setBadgeEnabled(settings.badgeEnabled)
+          appliedCount++
+        }
+        if (typeof settings.soundEnabled === 'boolean') {
+          setSoundEnabled(settings.soundEnabled)
+          appliedCount++
+        }
+        if (typeof settings.defaultFilter === 'string' && 
+            ['all', 'mentions', 'reviews', 'assigned'].includes(settings.defaultFilter)) {
+          setDefaultFilter(settings.defaultFilter as FilterType)
+          appliedCount++
+        }
+        if (typeof settings.openLinksInNewTab === 'boolean') {
+          setOpenLinksInNewTab(settings.openLinksInNewTab)
+          appliedCount++
+        }
+        
+        if (appliedCount > 0) {
+          addToast(`Settings imported successfully! (${appliedCount} settings applied)`, 'success')
+        } else {
+          addToast('No valid settings found in file.', 'warning')
+        }
       } catch (error) {
-        alert('Failed to import settings. Please check the file format.')
         console.error('Import error:', error)
+        addToast('Failed to import settings. Please check the file format.', 'error')
       }
     }
     input.click()
@@ -451,10 +532,16 @@ export function SettingsPage() {
                     </p>
                     <button
                       onClick={() => {
-                        if (confirm('Are you sure you want to reset all settings to default?')) {
-                          resetSettings()
-                          alert('Settings reset to default!')
-                        }
+                        setConfirmDialog({
+                          isOpen: true,
+                          title: 'Reset Settings',
+                          message: 'Are you sure you want to reset all settings to default? This action cannot be undone.',
+                          variant: 'danger',
+                          onConfirm: () => {
+                            resetSettings()
+                            addToast('Settings reset to default!', 'success')
+                          },
+                        })
                       }}
                       disabled={isDefaultSettings}
                       className="px-4 py-2 text-sm font-medium text-white bg-github-danger-emphasis 
@@ -469,6 +556,39 @@ export function SettingsPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        variant={confirmDialog.variant}
+        onConfirm={() => {
+          confirmDialog.onConfirm()
+          setConfirmDialog({ ...confirmDialog, isOpen: false })
+        }}
+        onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+      />
+
+      {/* Toast Notifications */}
+      <div className="fixed bottom-4 right-4 z-50 space-y-2">
+        {toasts.map(toast => (
+          <div
+            key={toast.id}
+            className={`px-4 py-3 rounded-github shadow-lg text-sm font-medium animate-slide-up ${
+              toast.variant === 'success'
+                ? 'bg-github-success-emphasis text-white'
+                : toast.variant === 'error'
+                ? 'bg-github-danger-emphasis text-white'
+                : toast.variant === 'warning'
+                ? 'bg-github-attention-emphasis text-white'
+                : 'bg-github-accent-emphasis text-white'
+            }`}
+          >
+            {toast.message}
+          </div>
+        ))}
       </div>
     </div>
   )
