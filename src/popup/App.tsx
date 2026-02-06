@@ -1,6 +1,6 @@
 import { useAuth } from '../hooks/useAuth'
 import { useNotifications, useUnreadCount } from '../hooks/useNotifications'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import type { GitHubNotification } from '../types/github'
 
 // Helper function to get relative time (e.g., "2 hours ago")
@@ -39,22 +39,36 @@ function getReasonBadgeClass(reason: string): string {
   }
 }
 
-// Notification item component
-function NotificationItem({ notification }: { notification: GitHubNotification }) {
-  const handleClick = () => {
-    // Open notification on GitHub
-    const url = notification.subject.url
-      ? notification.subject.url.replace('api.github.com/repos', 'github.com')
-      : notification.repository.html_url
-    
-    chrome.tabs.create({ url, active: true })
-  }
+// Notification item component (memoized for performance during polling)
+const NotificationItem = memo(({ notification }: { notification: GitHubNotification }) => {
+  const handleClick = useCallback(() => {
+    try {
+      // Construct GitHub URL safely
+      let url = notification.subject.url
+        ? notification.subject.url.replace('api.github.com/repos', 'github.com')
+        : notification.repository.html_url
+      
+      // Validate it's a GitHub URL (XSS protection)
+      const parsedUrl = new URL(url)
+      if (!parsedUrl.hostname.endsWith('github.com')) {
+        console.error('Invalid GitHub URL - security check failed')
+        return
+      }
+      
+      // Open in new tab with validated URL
+      chrome.tabs.create({ url: parsedUrl.toString(), active: true })
+    } catch (error) {
+      console.error('Invalid URL:', error)
+    }
+  }, [notification.subject.url, notification.repository.html_url])
 
   return (
-    <div
+    <button
       onClick={handleClick}
-      className="p-4 bg-github-canvas-default border border-github-border-default rounded-github 
-                 hover:bg-github-canvas-subtle transition-colors cursor-pointer"
+      className="w-full text-left p-4 bg-github-canvas-default border border-github-border-default rounded-github 
+                 hover:bg-github-canvas-subtle focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis
+                 transition-colors cursor-pointer"
+      aria-label={`Open notification: ${notification.subject.title} from ${notification.repository.full_name}`}
     >
       <div className="flex gap-3">
         {/* Repository Avatar */}
@@ -105,9 +119,11 @@ function NotificationItem({ notification }: { notification: GitHubNotification }
           </div>
         )}
       </div>
-    </div>
+    </button>
   )
-}
+})
+
+NotificationItem.displayName = 'NotificationItem'
 
 function App() {
   const { isAuthenticated, isLoading: authLoading, error: authError, deviceAuthInfo, login, logout } = useAuth()

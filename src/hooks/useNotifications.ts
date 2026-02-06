@@ -51,12 +51,9 @@ export function useNotifications(options?: UseNotificationsOptions) {
   return useQuery<GitHubNotification[], Error>({
     queryKey: ['notifications', { all: options?.all, participating: options?.participating }],
     queryFn: async () => {
-      if (!token) {
-        throw new Error('No authentication token available')
-      }
-
-      const api = new GitHubAPI()
-      await api.initialize(token)
+      // Use singleton to prevent memory leaks from polling
+      const api = GitHubAPI.getInstance()
+      await api.initialize(token!) // Non-null assertion safe due to enabled check
       
       const notifications = await api.fetchNotifications({
         all: options?.all,
@@ -66,8 +63,8 @@ export function useNotifications(options?: UseNotificationsOptions) {
       // Octokit returns the data in the correct format, cast to our type
       return notifications as unknown as GitHubNotification[]
     },
-    // Only fetch if authenticated and not explicitly disabled
-    enabled: (options?.enabled ?? true) && isAuthenticated,
+    // Only fetch if authenticated AND token exists (prevents race condition)
+    enabled: (options?.enabled ?? true) && isAuthenticated && !!token,
     // Polling configuration
     refetchInterval: options?.refetchInterval ?? POLL_INTERVAL,
     staleTime: STALE_TIME,

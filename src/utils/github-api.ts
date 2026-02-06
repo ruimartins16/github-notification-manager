@@ -20,19 +20,41 @@
 import { Octokit } from '@octokit/rest'
 
 export class GitHubAPI {
+  private static instance: GitHubAPI | null = null
   private octokit: Octokit | null = null
+  private currentToken: string | null = null
+
+  /**
+   * Get singleton instance of GitHubAPI
+   * Prevents memory leaks from creating multiple instances during polling
+   * 
+   * @returns GitHubAPI singleton instance
+   */
+  static getInstance(): GitHubAPI {
+    if (!GitHubAPI.instance) {
+      GitHubAPI.instance = new GitHubAPI()
+    }
+    return GitHubAPI.instance
+  }
 
   /**
    * Initialize the GitHub API client with an auth token
+   * Only reinitializes if the token has changed
    * 
    * @param token - GitHub personal access token
    * @throws Error if token is invalid
    */
   async initialize(token: string): Promise<void> {
+    // Only reinitialize if token changed (prevents unnecessary Octokit instances)
+    if (this.currentToken === token && this.octokit) {
+      return
+    }
+
     if (!token) {
       throw new Error('GitHub token is required')
     }
 
+    this.currentToken = token
     this.octokit = new Octokit({ 
       auth: token,
       userAgent: 'GitHub Notification Manager v1.0.0',
