@@ -1,19 +1,56 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import React from 'react'
 import App from '../App'
 import { useAuth } from '../../hooks/useAuth'
+import { useNotifications, useUnreadCount } from '../../hooks/useNotifications'
 
 // Mock the useAuth hook
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: vi.fn(),
 }))
 
+// Mock the useNotifications hooks
+vi.mock('../../hooks/useNotifications', () => ({
+  useNotifications: vi.fn(),
+  useUnreadCount: vi.fn(),
+}))
+
 const mockUseAuth = useAuth as any
+const mockUseNotifications = useNotifications as any
+const mockUseUnreadCount = useUnreadCount as any
+
+// Helper function to render with QueryClient
+function renderWithQueryClient(ui: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  })
+
+  return render(
+    React.createElement(QueryClientProvider, { client: queryClient }, ui)
+  )
+}
 
 describe('App Component', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    
+    // Default mock for useNotifications
+    mockUseNotifications.mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    })
+    
+    // Default mock for useUnreadCount
+    mockUseUnreadCount.mockReturnValue(0)
   })
 
   describe('Loading State', () => {
@@ -27,7 +64,7 @@ describe('App Component', () => {
         checkAuth: vi.fn(),
       })
 
-      render(<App />)
+      renderWithQueryClient(<App />)
       
       expect(screen.getByText('Loading...')).toBeInTheDocument()
     })
@@ -42,7 +79,7 @@ describe('App Component', () => {
         checkAuth: vi.fn(),
       })
 
-      const { container } = render(<App />)
+      const { container } = renderWithQueryClient(<App />)
       const mainDiv = container.firstChild as HTMLElement
       expect(mainDiv).toHaveClass('w-[400px]')
       expect(mainDiv).toHaveClass('h-[600px]')
@@ -62,14 +99,14 @@ describe('App Component', () => {
     })
 
     it('should render the app title and subtitle', () => {
-      render(<App />)
+      renderWithQueryClient(<App />)
       
       expect(screen.getByText('GitHub Notification Manager')).toBeInTheDocument()
       expect(screen.getByText('Take control of your GitHub notifications')).toBeInTheDocument()
     })
 
     it('should display GitHub icon', () => {
-      const { container } = render(<App />)
+      const { container } = renderWithQueryClient(<App />)
       
       const svgElement = container.querySelector('svg')
       expect(svgElement).toBeInTheDocument()
@@ -77,13 +114,13 @@ describe('App Component', () => {
     })
 
     it('should show "Connect to GitHub" heading', () => {
-      render(<App />)
+      renderWithQueryClient(<App />)
       
       expect(screen.getByText('Connect to GitHub')).toBeInTheDocument()
     })
 
     it('should display authorization information', () => {
-      render(<App />)
+      renderWithQueryClient(<App />)
       
       expect(screen.getByText("What you'll authorize:")).toBeInTheDocument()
       expect(screen.getByText('✓ Read your notifications')).toBeInTheDocument()
@@ -92,7 +129,7 @@ describe('App Component', () => {
     })
 
     it('should render "Connect GitHub" button', () => {
-      render(<App />)
+      renderWithQueryClient(<App />)
       
       const button = screen.getByRole('button', { name: /Connect GitHub/i })
       expect(button).toBeInTheDocument()
@@ -111,7 +148,7 @@ describe('App Component', () => {
       })
 
       const user = userEvent.setup()
-      render(<App />)
+      renderWithQueryClient(<App />)
       
       const button = screen.getByRole('button', { name: /Connect GitHub/i })
       await user.click(button)
@@ -133,14 +170,14 @@ describe('App Component', () => {
     })
 
     it('should display connected status', () => {
-      render(<App />)
+      renderWithQueryClient(<App />)
       
       expect(screen.getByText('✓ Connected')).toBeInTheDocument()
       expect(screen.getByText("You're authenticated with GitHub")).toBeInTheDocument()
     })
 
     it('should render logout button', () => {
-      render(<App />)
+      renderWithQueryClient(<App />)
       
       const button = screen.getByRole('button', { name: /Logout/i })
       expect(button).toBeInTheDocument()
@@ -159,7 +196,7 @@ describe('App Component', () => {
       })
 
       const user = userEvent.setup()
-      render(<App />)
+      renderWithQueryClient(<App />)
       
       const button = screen.getByRole('button', { name: /Logout/i })
       await user.click(button)
@@ -168,7 +205,7 @@ describe('App Component', () => {
     })
 
     it('should display coming soon features', () => {
-      render(<App />)
+      renderWithQueryClient(<App />)
       
       expect(screen.getByText('Coming Soon:')).toBeInTheDocument()
       expect(screen.getByText(/View your GitHub notifications/i)).toBeInTheDocument()
@@ -187,7 +224,7 @@ describe('App Component', () => {
         checkAuth: vi.fn(),
       })
 
-      render(<App />)
+      renderWithQueryClient(<App />)
       
       expect(screen.getByText('Authentication failed')).toBeInTheDocument()
     })
@@ -202,7 +239,7 @@ describe('App Component', () => {
         checkAuth: vi.fn(),
       })
 
-      const { container } = render(<App />)
+      const { container } = renderWithQueryClient(<App />)
       const errorDiv = container.querySelector('.bg-github-danger-subtle')
       expect(errorDiv).toBeInTheDocument()
     })
@@ -221,7 +258,7 @@ describe('App Component', () => {
     })
 
     it('should have correct dimensions', () => {
-      const { container } = render(<App />)
+      const { container } = renderWithQueryClient(<App />)
       const mainDiv = container.firstChild as HTMLElement
       expect(mainDiv).toHaveClass('w-[400px]')
       expect(mainDiv).toHaveClass('h-[600px]')
@@ -229,19 +266,19 @@ describe('App Component', () => {
     })
 
     it('should have header section', () => {
-      const { container } = render(<App />)
+      const { container } = renderWithQueryClient(<App />)
       const header = container.querySelector('header')
       expect(header).toBeInTheDocument()
     })
 
     it('should have footer section', () => {
-      const { container } = render(<App />)
+      const { container } = renderWithQueryClient(<App />)
       const footer = container.querySelector('footer')
       expect(footer).toBeInTheDocument()
     })
 
     it('should display tech stack in footer', () => {
-      render(<App />)
+      renderWithQueryClient(<App />)
       expect(screen.getByText(/Built with React \+ TypeScript \+ Tailwind CSS/i)).toBeInTheDocument()
     })
   })

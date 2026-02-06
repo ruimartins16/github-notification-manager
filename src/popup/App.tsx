@@ -1,10 +1,130 @@
 import { useAuth } from '../hooks/useAuth'
+import { useNotifications, useUnreadCount } from '../hooks/useNotifications'
 import { useState, useEffect } from 'react'
+import type { GitHubNotification } from '../types/github'
+
+// Helper function to get relative time (e.g., "2 hours ago")
+function getRelativeTime(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+
+  if (seconds < 60) return 'just now'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  const weeks = Math.floor(days / 7)
+  if (weeks < 4) return `${weeks}w ago`
+  const months = Math.floor(days / 30)
+  return `${months}mo ago`
+}
+
+// Helper function to get reason badge color
+function getReasonBadgeClass(reason: string): string {
+  switch (reason) {
+    case 'mention':
+    case 'team_mention':
+      return 'bg-github-attention-subtle text-github-attention-fg border-github-attention-emphasis'
+    case 'review_requested':
+      return 'bg-github-accent-subtle text-github-accent-fg border-github-accent-emphasis'
+    case 'assign':
+      return 'bg-github-success-subtle text-github-success-fg border-github-success-emphasis'
+    case 'security_alert':
+      return 'bg-github-danger-subtle text-github-danger-fg border-github-danger-emphasis'
+    default:
+      return 'bg-github-canvas-subtle text-github-fg-muted border-github-border-default'
+  }
+}
+
+// Notification item component
+function NotificationItem({ notification }: { notification: GitHubNotification }) {
+  const handleClick = () => {
+    // Open notification on GitHub
+    const url = notification.subject.url
+      ? notification.subject.url.replace('api.github.com/repos', 'github.com')
+      : notification.repository.html_url
+    
+    chrome.tabs.create({ url, active: true })
+  }
+
+  return (
+    <div
+      onClick={handleClick}
+      className="p-4 bg-github-canvas-default border border-github-border-default rounded-github 
+                 hover:bg-github-canvas-subtle transition-colors cursor-pointer"
+    >
+      <div className="flex gap-3">
+        {/* Repository Avatar */}
+        <img
+          src={notification.repository.owner.avatar_url}
+          alt={notification.repository.owner.login}
+          className="w-8 h-8 rounded-full flex-shrink-0"
+        />
+
+        <div className="flex-1 min-w-0">
+          {/* Repository Name */}
+          <div className="text-xs text-github-fg-muted mb-1">
+            {notification.repository.full_name}
+          </div>
+
+          {/* Notification Title */}
+          <div className="text-sm font-medium text-github-fg-default mb-2 line-clamp-2">
+            {notification.subject.title}
+          </div>
+
+          {/* Metadata */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Reason Badge */}
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full border ${getReasonBadgeClass(
+                notification.reason
+              )}`}
+            >
+              {notification.reason.replace('_', ' ')}
+            </span>
+
+            {/* Type Badge */}
+            <span className="text-xs px-2 py-0.5 rounded-full bg-github-canvas-subtle text-github-fg-muted border border-github-border-default">
+              {notification.subject.type}
+            </span>
+
+            {/* Time */}
+            <span className="text-xs text-github-fg-muted">
+              {getRelativeTime(notification.updated_at)}
+            </span>
+          </div>
+        </div>
+
+        {/* Unread indicator */}
+        {notification.unread && (
+          <div className="flex-shrink-0">
+            <div className="w-2 h-2 bg-github-accent-emphasis rounded-full" />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function App() {
-  const { isAuthenticated, isLoading, error, deviceAuthInfo, login, logout } = useAuth()
+  const { isAuthenticated, isLoading: authLoading, error: authError, deviceAuthInfo, login, logout } = useAuth()
+  const { 
+    data: notifications, 
+    isLoading: notificationsLoading, 
+    error: notificationsError,
+    refetch: refetchNotifications 
+  } = useNotifications()
+  const unreadCount = useUnreadCount()
+  
   const [copied, setCopied] = useState(false)
   const [isPolling, setIsPolling] = useState(false)
+  
+  // Combined loading state
+  const isLoading = authLoading
+  const error = authError
 
   // Start polling indicator when device auth starts
   useEffect(() => {
@@ -169,38 +289,90 @@ function App() {
 
         {isAuthenticated ? (
           <div className="space-y-4">
-            <div className="p-4 bg-github-success-subtle rounded-github border border-github-success-emphasis">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-github-fg-default mb-1">
-                    ✓ Connected
-                  </h2>
-                  <p className="text-sm text-github-fg-muted">
-                    You're authenticated with GitHub
-                  </p>
-                </div>
-                <button
-                  onClick={logout}
-                  className="px-4 py-2 bg-github-canvas-default border border-github-border-default
-                           rounded-github hover:bg-github-canvas-subtle transition-colors
-                           font-medium text-sm text-github-fg-default"
-                >
-                  Logout
-                </button>
+            {/* Header with unread count and logout */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-github-fg-default">
+                  Notifications
+                  {unreadCount > 0 && (
+                    <span className="ml-2 px-2 py-0.5 text-xs bg-github-accent-emphasis text-white rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
+                </h2>
               </div>
+              <button
+                onClick={logout}
+                className="px-3 py-1.5 bg-github-canvas-default border border-github-border-default
+                         rounded-github hover:bg-github-canvas-subtle transition-colors
+                         font-medium text-xs text-github-fg-default"
+              >
+                Logout
+              </button>
             </div>
 
-            <div className="p-4 bg-github-canvas-subtle rounded-github border border-github-border-default">
-              <h3 className="text-sm font-semibold text-github-fg-default mb-2">
-                Coming Soon:
-              </h3>
-              <ul className="text-xs text-github-fg-muted space-y-1 list-disc list-inside">
-                <li>View your GitHub notifications</li>
-                <li>Filter by repository and type</li>
-                <li>Mark as read with one click</li>
-                <li>Snooze notifications</li>
-              </ul>
-            </div>
+            {/* Notifications Loading State */}
+            {notificationsLoading && (
+              <div className="p-8 text-center">
+                <div 
+                  className="animate-spin rounded-full h-8 w-8 border-b-2 border-github-accent-emphasis mx-auto mb-3"
+                  role="status"
+                  aria-label="Loading notifications"
+                />
+                <p className="text-sm text-github-fg-muted">Loading notifications...</p>
+              </div>
+            )}
+
+            {/* Notifications Error State */}
+            {notificationsError && (
+              <div 
+                className="p-4 bg-github-danger-subtle border border-github-danger-emphasis rounded-github"
+                role="alert"
+              >
+                <p className="text-sm text-github-danger-fg font-medium mb-2">
+                  Failed to load notifications
+                </p>
+                <p className="text-xs text-github-fg-muted mb-3">
+                  {notificationsError.message}
+                </p>
+                <button
+                  onClick={() => refetchNotifications()}
+                  className="px-3 py-1.5 bg-github-canvas-default border border-github-border-default
+                           rounded-github hover:bg-github-canvas-subtle transition-colors
+                           font-medium text-xs text-github-fg-default"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {/* Notifications List */}
+            {!notificationsLoading && !notificationsError && notifications && (
+              <div className="space-y-2">
+                {notifications.length === 0 ? (
+                  // Empty State
+                  <div className="p-8 text-center bg-github-canvas-subtle rounded-github border border-github-border-default">
+                    <div className="text-4xl mb-3">🎉</div>
+                    <h3 className="text-sm font-semibold text-github-fg-default mb-1">
+                      All caught up!
+                    </h3>
+                    <p className="text-xs text-github-fg-muted">
+                      You have no unread notifications
+                    </p>
+                  </div>
+                ) : (
+                  // Notification Items
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                    {notifications.map((notification) => (
+                      <NotificationItem
+                        key={notification.id}
+                        notification={notification}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ) : null}
 
