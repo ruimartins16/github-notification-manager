@@ -110,9 +110,21 @@ export function useKeyboardShortcuts({
         return
       }
 
-      // Filter shortcuts (1-4) - already handled by FilterBar, but we can prevent default
-      if (['1', '2', '3', '4'].includes(e.key) && !e.shiftKey) {
-        return // Let FilterBar handle these
+      // Filter shortcuts (1-4)
+      if (!e.shiftKey) {
+        const filterMap: Record<string, 'all' | 'mentions' | 'reviews' | 'assigned'> = {
+          '1': 'all',
+          '2': 'mentions',
+          '3': 'reviews',
+          '4': 'assigned',
+        }
+        
+        const filter = filterMap[e.key]
+        if (filter) {
+          e.preventDefault()
+          setFilter(filter)
+          return
+        }
       }
 
       // Navigation shortcuts (lowercase only, Shift+J/K should not trigger)

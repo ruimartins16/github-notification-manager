@@ -461,11 +461,6 @@ function App() {
               <div>
                 <h2 className="text-lg font-semibold text-github-fg-default">
                   Notifications
-                  {unreadCount > 0 && (
-                    <span className="ml-2 px-2 py-0.5 text-xs bg-github-accent-emphasis text-white rounded-full">
-                      {unreadCount}
-                    </span>
-                  )}
                 </h2>
               </div>
               <div className="flex items-center gap-2">
@@ -507,15 +502,16 @@ function App() {
                 onClick={() => setViewMode('active')}
                 className={`
                   flex-1 px-3 py-2 rounded-github text-xs font-medium transition-colors
+                  flex items-center justify-center gap-1.5
                   ${viewMode === 'active'
                     ? 'bg-github-accent-emphasis text-white'
                     : 'bg-github-canvas-default border border-github-border-default text-github-fg-default hover:bg-github-canvas-subtle'
                   }
                 `}
               >
-                Active
+                <span>Active</span>
                 {unreadCount > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 text-[10px] rounded-full bg-white bg-opacity-20">
+                  <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-white bg-opacity-20">
                     {unreadCount}
                   </span>
                 )}
@@ -524,15 +520,16 @@ function App() {
                 onClick={() => setViewMode('snoozed')}
                 className={`
                   flex-1 px-3 py-2 rounded-github text-xs font-medium transition-colors
+                  flex items-center justify-center gap-1.5
                   ${viewMode === 'snoozed'
                     ? 'bg-github-accent-emphasis text-white'
                     : 'bg-github-canvas-default border border-github-border-default text-github-fg-default hover:bg-github-canvas-subtle'
                   }
                 `}
               >
-                Snoozed
+                <span>Snoozed</span>
                 {snoozedCount > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 text-[10px] rounded-full bg-white bg-opacity-20">
+                  <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-white bg-opacity-20">
                     {snoozedCount}
                   </span>
                 )}
@@ -541,13 +538,14 @@ function App() {
                 onClick={() => setViewMode('archived')}
                 className={`
                   flex-1 px-3 py-2 rounded-github text-xs font-medium transition-colors
+                  flex items-center justify-center gap-1.5
                   ${viewMode === 'archived'
                     ? 'bg-github-accent-emphasis text-white'
                     : 'bg-github-canvas-default border border-github-border-default text-github-fg-default hover:bg-github-canvas-subtle'
                   }
                 `}
               >
-                Archived
+                <span>Archived</span>
                 {archivedCount > 0 && (
                   <span className="ml-1.5 px-1.5 py-0.5 text-[10px] rounded-full bg-white bg-opacity-20">
                     {archivedCount}
