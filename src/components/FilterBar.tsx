@@ -18,7 +18,7 @@ export const FilterBar = memo(() => {
   const activeFilter = useNotificationStore(state => state.activeFilter)
   const setFilter = useNotificationStore(state => state.setFilter)
   const getFilterCounts = useNotificationStore(state => state.getFilterCounts)
-  const filterCounts = getFilterCounts()
+  const filterCounts = getFilterCounts() || { all: 0, mentions: 0, reviews: 0, assigned: 0 }
 
   const handleFilterClick = useCallback((filter: NotificationFilter) => {
     setFilter(filter)
@@ -57,7 +57,7 @@ export const FilterBar = memo(() => {
       aria-label="Notification filters"
     >
       {FILTER_TABS.map((tab) => {
-        const count = filterCounts[tab.id]
+        const count = filterCounts[tab.id] ?? 0
         const isActive = activeFilter === tab.id
 
         return (
@@ -92,7 +92,7 @@ export const FilterBar = memo(() => {
                   `}
                   aria-label={`${count} notifications`}
                 >
-                  {count}
+                  {Number(count) || 0}
                 </span>
               )}
             </span>
