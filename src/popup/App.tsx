@@ -3,6 +3,26 @@ import { useNotifications, useUnreadCount } from '../hooks/useNotifications'
 import { useState, useEffect, useCallback, memo } from 'react'
 import type { GitHubNotification } from '../types/github'
 
+// Helper function to get fallback avatar with initial
+function getFallbackAvatar(login: string): string {
+  const initial = login.charAt(0).toUpperCase()
+  // Create a simple SVG with the user's initial
+  return `data:image/svg+xml,${encodeURIComponent(
+    `<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+      <rect width="32" height="32" fill="#6e7681"/>
+      <text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="white" font-family="system-ui" font-size="16" font-weight="600">${initial}</text>
+    </svg>`
+  )}`
+}
+
+// Helper function to format reason text (e.g., "team_mention" -> "Team Mention")
+function formatReason(reason: string): string {
+  return reason
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
 // Helper function to get relative time (e.g., "2 hours ago")
 function getRelativeTime(dateString: string): string {
   const date = new Date(dateString)
@@ -62,6 +82,10 @@ const NotificationItem = memo(({ notification }: { notification: GitHubNotificat
     }
   }, [notification.subject.url, notification.repository.html_url])
 
+  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    e.currentTarget.src = getFallbackAvatar(notification.repository.owner.login)
+  }, [notification.repository.owner.login])
+
   return (
     <button
       onClick={handleClick}
@@ -76,6 +100,7 @@ const NotificationItem = memo(({ notification }: { notification: GitHubNotificat
           src={notification.repository.owner.avatar_url}
           alt={notification.repository.owner.login}
           className="w-8 h-8 rounded-full flex-shrink-0"
+          onError={handleImageError}
         />
 
         <div className="flex-1 min-w-0">
@@ -97,7 +122,7 @@ const NotificationItem = memo(({ notification }: { notification: GitHubNotificat
                 notification.reason
               )}`}
             >
-              {notification.reason.replace('_', ' ')}
+              {formatReason(notification.reason)}
             </span>
 
             {/* Type Badge */}
@@ -378,12 +403,17 @@ function App() {
                   </div>
                 ) : (
                   // Notification Items
-                  <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  <div 
+                    className="space-y-2 max-h-[400px] overflow-y-auto"
+                    role="list"
+                    aria-label="GitHub notifications"
+                  >
                     {notifications.map((notification) => (
-                      <NotificationItem
-                        key={notification.id}
-                        notification={notification}
-                      />
+                      <div key={notification.id} role="listitem">
+                        <NotificationItem
+                          notification={notification}
+                        />
+                      </div>
                     ))}
                   </div>
                 )}

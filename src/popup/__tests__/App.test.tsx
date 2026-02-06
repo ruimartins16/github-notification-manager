@@ -169,11 +169,17 @@ describe('App Component', () => {
       })
     })
 
-    it('should display connected status', () => {
+    it('should display notifications header', () => {
+      mockUseNotifications.mockReturnValue({
+        data: [],
+        isLoading: false,
+        error: null,
+        refetch: vi.fn(),
+      })
+      
       renderWithQueryClient(<App />)
       
-      expect(screen.getByText('✓ Connected')).toBeInTheDocument()
-      expect(screen.getByText("You're authenticated with GitHub")).toBeInTheDocument()
+      expect(screen.getByText('Notifications')).toBeInTheDocument()
     })
 
     it('should render logout button', () => {
@@ -204,12 +210,19 @@ describe('App Component', () => {
       expect(logoutMock).toHaveBeenCalledTimes(1)
     })
 
-    it('should display coming soon features', () => {
+    it('should display empty state when no notifications', () => {
+      mockUseNotifications.mockReturnValue({
+        data: [],
+        isLoading: false,
+        error: null,
+        refetch: vi.fn(),
+      })
+      mockUseUnreadCount.mockReturnValue(0)
+      
       renderWithQueryClient(<App />)
       
-      expect(screen.getByText('Coming Soon:')).toBeInTheDocument()
-      expect(screen.getByText(/View your GitHub notifications/i)).toBeInTheDocument()
-      expect(screen.getByText(/Filter by repository and type/i)).toBeInTheDocument()
+      expect(screen.getByText('All caught up!')).toBeInTheDocument()
+      expect(screen.getByText('You have no unread notifications')).toBeInTheDocument()
     })
   })
 

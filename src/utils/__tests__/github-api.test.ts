@@ -1,14 +1,19 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { GitHubAPI } from '../github-api'
 
-// Mock Octokit
+// Create shared mock functions that will be used across all tests
+const mockListNotifications = vi.fn()
+const mockMarkThreadAsRead = vi.fn()
+const mockMarkNotificationsAsRead = vi.fn()
+
+// Mock Octokit to return the same mock instance
 vi.mock('@octokit/rest', () => ({
   Octokit: vi.fn().mockImplementation(() => ({
     rest: {
       activity: {
-        listNotificationsForAuthenticatedUser: vi.fn(),
-        markThreadAsRead: vi.fn(),
-        markNotificationsAsRead: vi.fn(),
+        listNotificationsForAuthenticatedUser: mockListNotifications,
+        markThreadAsRead: mockMarkThreadAsRead,
+        markNotificationsAsRead: mockMarkNotificationsAsRead,
       },
     },
   })),
@@ -18,8 +23,14 @@ describe('GitHubAPI', () => {
   let api: GitHubAPI
   
   beforeEach(() => {
-    api = new GitHubAPI()
+    // Use getInstance to get singleton instance
+    api = GitHubAPI.getInstance()
     vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    // Reset singleton instance after each test
+    ;(GitHubAPI as any).instance = null
   })
 
   describe('initialize', () => {
@@ -54,18 +65,13 @@ describe('GitHubAPI', () => {
         },
       ]
 
-      const { Octokit } = await import('@octokit/rest')
-      const mockOctokit = new Octokit()
-      ;(mockOctokit.rest.activity.listNotificationsForAuthenticatedUser as any)
-        .mockResolvedValueOnce({ data: mockNotifications })
+      mockListNotifications.mockResolvedValueOnce({ data: mockNotifications })
 
       await api.initialize('gho_test_token')
       const result = await api.fetchNotifications()
 
       expect(result).toEqual(mockNotifications)
-      expect(
-        mockOctokit.rest.activity.listNotificationsForAuthenticatedUser
-      ).toHaveBeenCalledWith({
+      expect(mockListNotifications).toHaveBeenCalledWith({
         all: false,
         participating: false,
         per_page: 50,
@@ -73,10 +79,7 @@ describe('GitHubAPI', () => {
     })
 
     it('should fetch notifications with custom options', async () => {
-      const { Octokit } = await import('@octokit/rest')
-      const mockOctokit = new Octokit()
-      ;(mockOctokit.rest.activity.listNotificationsForAuthenticatedUser as any)
-        .mockResolvedValueOnce({ data: [] })
+      mockListNotifications.mockResolvedValueOnce({ data: [] })
 
       await api.initialize('gho_test_token')
       await api.fetchNotifications({
@@ -85,9 +88,7 @@ describe('GitHubAPI', () => {
         perPage: 100,
       })
 
-      expect(
-        mockOctokit.rest.activity.listNotificationsForAuthenticatedUser
-      ).toHaveBeenCalledWith({
+      expect(mockListNotifications).toHaveBeenCalledWith({
         all: true,
         participating: true,
         per_page: 100,
@@ -95,10 +96,7 @@ describe('GitHubAPI', () => {
     })
 
     it('should handle API errors', async () => {
-      const { Octokit } = await import('@octokit/rest')
-      const mockOctokit = new Octokit()
-      ;(mockOctokit.rest.activity.listNotificationsForAuthenticatedUser as any)
-        .mockRejectedValueOnce(new Error('API Error'))
+      mockListNotifications.mockRejectedValueOnce(new Error('API Error'))
 
       await api.initialize('gho_test_token')
       
@@ -114,29 +112,23 @@ describe('GitHubAPI', () => {
     })
 
     it('should mark a notification as read', async () => {
-      const { Octokit } = await import('@octokit/rest')
-      const mockOctokit = new Octokit()
-      ;(mockOctokit.rest.activity.markThreadAsRead as any)
-        .mockResolvedValueOnce({})
+      mockMarkThreadAsRead.mockResolvedValueOnce({})
 
       await api.initialize('gho_test_token')
       await api.markAsRead('123')
 
-      expect(mockOctokit.rest.activity.markThreadAsRead).toHaveBeenCalledWith({
+      expect(mockMarkThreadAsRead).toHaveBeenCalledWith({
         thread_id: 123,
       })
     })
 
     it('should handle string thread IDs', async () => {
-      const { Octokit } = await import('@octokit/rest')
-      const mockOctokit = new Octokit()
-      ;(mockOctokit.rest.activity.markThreadAsRead as any)
-        .mockResolvedValueOnce({})
+      mockMarkThreadAsRead.mockResolvedValueOnce({})
 
       await api.initialize('gho_test_token')
       await api.markAsRead('456')
 
-      expect(mockOctokit.rest.activity.markThreadAsRead).toHaveBeenCalledWith({
+      expect(mockMarkThreadAsRead).toHaveBeenCalledWith({
         thread_id: 456,
       })
     })
@@ -150,15 +142,12 @@ describe('GitHubAPI', () => {
     })
 
     it('should mark all notifications as read', async () => {
-      const { Octokit } = await import('@octokit/rest')
-      const mockOctokit = new Octokit()
-      ;(mockOctokit.rest.activity.markNotificationsAsRead as any)
-        .mockResolvedValueOnce({})
+      mockMarkNotificationsAsRead.mockResolvedValueOnce({})
 
       await api.initialize('gho_test_token')
       await api.markAllAsRead()
 
-      expect(mockOctokit.rest.activity.markNotificationsAsRead).toHaveBeenCalled()
+      expect(mockMarkNotificationsAsRead).toHaveBeenCalled()
     })
   })
 
