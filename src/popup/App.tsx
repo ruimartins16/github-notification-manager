@@ -2,6 +2,14 @@ import { useAuth } from '../hooks/useAuth'
 import { useNotifications, useUnreadCount } from '../hooks/useNotifications'
 import { useState, useEffect, useCallback, memo } from 'react'
 import type { GitHubNotification } from '../types/github'
+import { 
+  GitPullRequestIcon, 
+  IssueOpenedIcon, 
+  CommentDiscussionIcon, 
+  TagIcon,
+  GitCommitIcon,
+  CheckCircleIcon
+} from '@primer/octicons-react'
 
 // Helper function to get fallback avatar with initial
 function getFallbackAvatar(login: string): string {
@@ -21,6 +29,29 @@ function formatReason(reason: string): string {
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')
+}
+
+// Helper function to get notification type icon
+function getNotificationIcon(type: string) {
+  const iconProps = { size: 16, className: 'text-github-fg-muted flex-shrink-0' }
+  
+  switch (type) {
+    case 'PullRequest':
+      return <GitPullRequestIcon {...iconProps} />
+    case 'Issue':
+      return <IssueOpenedIcon {...iconProps} />
+    case 'Discussion':
+      return <CommentDiscussionIcon {...iconProps} />
+    case 'Release':
+      return <TagIcon {...iconProps} />
+    case 'Commit':
+      return <GitCommitIcon {...iconProps} />
+    case 'CheckSuite':
+    case 'CheckRun':
+      return <CheckCircleIcon {...iconProps} />
+    default:
+      return <IssueOpenedIcon {...iconProps} />
+  }
 }
 
 // Helper function to get relative time (e.g., "2 hours ago")
@@ -110,8 +141,11 @@ const NotificationItem = memo(({ notification }: { notification: GitHubNotificat
           </div>
 
           {/* Notification Title */}
-          <div className="text-sm font-medium text-github-fg-default mb-2 line-clamp-2">
-            {notification.subject.title}
+          <div className="flex items-start gap-2 mb-2">
+            {getNotificationIcon(notification.subject.type)}
+            <div className="text-sm font-medium text-github-fg-default line-clamp-2 flex-1">
+              {notification.subject.title}
+            </div>
           </div>
 
           {/* Metadata */}
