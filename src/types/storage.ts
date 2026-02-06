@@ -1,6 +1,7 @@
 // Chrome storage types
 
 import { GitHubNotification } from './github'
+import { AutoArchiveRule } from './rules'
 
 export interface StorageSchema {
   // Authentication
@@ -16,6 +17,9 @@ export interface StorageSchema {
   
   // Snoozed notifications
   snoozed: SnoozedNotification[]
+  
+  // Auto-archive rules
+  autoArchiveRules: AutoArchiveRule[]
   
   // Settings
   settings: UserSettings

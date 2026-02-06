@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware'
 import { GitHubNotification, NotificationReason, SnoozedNotification } from '../types/github'
+import { AutoArchiveRule } from '../types/rules'
 import { NOTIFICATIONS_STORAGE_KEY } from '../utils/notification-service'
+import { applyRules } from '../utils/rule-matcher'
 
 // Filter types based on notification reasons
 export type NotificationFilter = 'all' | 'mentions' | 'reviews' | 'assigned'
@@ -15,6 +17,7 @@ interface NotificationState {
   notifications: GitHubNotification[]
   snoozedNotifications: SnoozedNotification[]
   archivedNotifications: GitHubNotification[]
+  autoArchiveRules: AutoArchiveRule[]
   isLoading: boolean
   error: string | null
   lastFetched: number | null
@@ -36,6 +39,14 @@ interface NotificationState {
   // Archive actions
   archiveNotification: (notificationId: string) => void
   unarchiveNotification: (notificationId: string) => void
+  
+  // Auto-archive rule actions
+  addRule: (rule: AutoArchiveRule) => void
+  updateRule: (ruleId: string, updates: Partial<AutoArchiveRule>) => void
+  deleteRule: (ruleId: string) => void
+  toggleRule: (ruleId: string) => void
+  applyAutoArchiveRules: () => void
+  incrementRuleArchivedCount: (ruleId: string, count: number) => void
   
   // Snooze actions
   snoozeNotification: (notificationId: string, wakeTime: number) => void
@@ -104,6 +115,7 @@ export const useNotificationStore = create<NotificationState>()(
       notifications: [],
       snoozedNotifications: [],
       archivedNotifications: [],
+      autoArchiveRules: [],
       isLoading: false,
       error: null,
       lastFetched: null,
@@ -214,6 +226,84 @@ export const useNotificationStore = create<NotificationState>()(
             ),
           }
         }),
+
+      // Auto-archive rule actions
+      addRule: (rule) =>
+        set((state) => ({
+          autoArchiveRules: [...state.autoArchiveRules, rule],
+        })),
+
+      updateRule: (ruleId, updates) =>
+        set((state) => ({
+          autoArchiveRules: state.autoArchiveRules.map((rule) => {
+            if (rule.id !== ruleId) return rule
+            
+            // Type-safe update: prevent changing rule type which would break discriminated union
+            if ('type' in updates && updates.type !== undefined && updates.type !== rule.type) {
+              console.error('[Store] Cannot change rule type via update')
+              return rule
+            }
+            
+            return { ...rule, ...updates } as AutoArchiveRule
+          }),
+        })),
+
+      deleteRule: (ruleId) =>
+        set((state) => ({
+          autoArchiveRules: state.autoArchiveRules.filter((rule) => rule.id !== ruleId),
+        })),
+
+      toggleRule: (ruleId) =>
+        set((state) => ({
+          autoArchiveRules: state.autoArchiveRules.map((rule) =>
+            rule.id === ruleId ? { ...rule, enabled: !rule.enabled } : rule
+          ),
+        })),
+
+      applyAutoArchiveRules: () =>
+        set((state) => {
+          if (state.autoArchiveRules.length === 0) {
+            return state
+          }
+
+          const { toArchive, toKeep, ruleMatches } = applyRules(
+            state.notifications,
+            state.autoArchiveRules
+          )
+
+          if (toArchive.length === 0) {
+            return state
+          }
+
+          console.log('[Auto-Archive] Archiving', toArchive.length, 'notifications')
+
+          // Update rule statistics
+          const updatedRules = state.autoArchiveRules.map((rule) => {
+            const matches = ruleMatches.get(rule.id) || []
+            if (matches.length > 0) {
+              return {
+                ...rule,
+                archivedCount: rule.archivedCount + matches.length,
+              }
+            }
+            return rule
+          })
+
+          return {
+            notifications: toKeep,
+            archivedNotifications: [...state.archivedNotifications, ...toArchive],
+            autoArchiveRules: updatedRules,
+          }
+        }),
+
+      incrementRuleArchivedCount: (ruleId, count) =>
+        set((state) => ({
+          autoArchiveRules: state.autoArchiveRules.map((rule) =>
+            rule.id === ruleId
+              ? { ...rule, archivedCount: rule.archivedCount + count }
+              : rule
+          ),
+        })),
 
       // Snooze actions
       snoozeNotification: (notificationId, wakeTime) =>
@@ -421,11 +511,12 @@ export const useNotificationStore = create<NotificationState>()(
     {
       name: 'zustand-notifications', // Use different key from NotificationService
       storage: createJSONStorage(() => chromeStorage),
-      // Persist notifications, snoozed notifications, archived notifications, and selected filter
+      // Persist notifications, snoozed notifications, archived notifications, rules, and selected filter
       partialize: (state) => ({
         notifications: state.notifications,
         snoozedNotifications: state.snoozedNotifications,
         archivedNotifications: state.archivedNotifications,
+        autoArchiveRules: state.autoArchiveRules,
         lastFetched: state.lastFetched,
         activeFilter: state.activeFilter,
       }),
@@ -459,7 +550,13 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
     if (message.type === 'SNOOZE_WAKEUP') {
       console.log('[Zustand] Received wake-up message for:', message.notificationId)
       useNotificationStore.getState().wakeNotification(message.notificationId)
+      return false
+    } else if (message.type === 'APPLY_AUTO_ARCHIVE_RULES') {
+      console.log('[Zustand] Received request to apply auto-archive rules')
+      useNotificationStore.getState().applyAutoArchiveRules()
+      return true // Indicates message was handled successfully
     }
+    return false
   })
 }
 

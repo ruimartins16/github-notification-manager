@@ -4,6 +4,8 @@
 import { AuthService } from '../utils/auth-service'
 import { NotificationService, NOTIFICATIONS_STORAGE_KEY } from '../utils/notification-service'
 import { BadgeService } from '../utils/badge-service'
+import { applyRules } from '../utils/rule-matcher'
+import { AutoArchiveRule } from '../types/rules'
 import type { GitHubNotification } from '../types/github'
 
 console.log('GitHub Notification Manager: Background service worker loaded')
@@ -171,6 +173,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 /**
  * Fetch notifications in background (called by alarm)
  * Only fetches if user is authenticated
+ * Applies auto-archive rules after fetching
  */
 async function fetchNotificationsInBackground() {
   try {
@@ -186,10 +189,93 @@ async function fetchNotificationsInBackground() {
     const notifications = await NotificationService.fetchAndStore(token)
     console.log('Background fetch complete:', notifications.length, 'notifications')
     
+    // Try to notify UI to apply rules (if open)
+    const sent = await chrome.runtime.sendMessage({
+      type: 'APPLY_AUTO_ARCHIVE_RULES',
+    }).catch(() => null)
+    
+    if (!sent) {
+      // UI not open, apply rules in background
+      await applyAutoArchiveRulesInBackground(notifications)
+    }
+    
     // Badge will be updated automatically by storage listener
   } catch (error) {
     console.error('Background fetch failed:', error)
     // Don't throw - we'll retry on next alarm
+  }
+}
+
+/**
+ * Apply auto-archive rules to notifications in background (only when UI is closed)
+ * Uses a lock-free approach to avoid race conditions with the UI
+ */
+async function applyAutoArchiveRulesInBackground(notifications: GitHubNotification[]) {
+  try {
+    // Get auto-archive rules from storage
+    const result = await chrome.storage.local.get('zustand-notifications')
+    if (!result['zustand-notifications']) {
+      return
+    }
+
+    const parsed = JSON.parse(result['zustand-notifications'])
+    const rules: AutoArchiveRule[] = parsed.state?.autoArchiveRules || []
+
+    if (rules.length === 0) {
+      return
+    }
+
+    console.log('Applying', rules.length, 'auto-archive rules in background')
+
+    // Apply rules
+    const { toArchive, toKeep, ruleMatches } = applyRules(notifications, rules)
+
+    if (toArchive.length === 0) {
+      console.log('No notifications to archive')
+      return
+    }
+
+    console.log('Auto-archiving', toArchive.length, 'notifications')
+
+    // Update rule statistics
+    const updatedRules = rules.map((rule) => {
+      const matches = ruleMatches.get(rule.id) || []
+      if (matches.length > 0) {
+        return {
+          ...rule,
+          archivedCount: rule.archivedCount + matches.length,
+        }
+      }
+      return rule
+    })
+
+    // Get current archived notifications
+    const archivedNotifications: GitHubNotification[] = parsed.state?.archivedNotifications || []
+
+    // IMPORTANT: Read storage again to ensure we have the latest state
+    // This prevents overwriting changes made by the UI between reads
+    const latestResult = await chrome.storage.local.get('zustand-notifications')
+    const latestParsed = latestResult['zustand-notifications'] 
+      ? JSON.parse(latestResult['zustand-notifications'])
+      : parsed
+
+    // Update storage with filtered notifications and updated rules
+    latestParsed.state = {
+      ...latestParsed.state,
+      notifications: toKeep,
+      archivedNotifications: [...archivedNotifications, ...toArchive],
+      autoArchiveRules: updatedRules,
+    }
+
+    // Write atomically - both keys in one operation
+    await chrome.storage.local.set({
+      'zustand-notifications': JSON.stringify(latestParsed),
+      [NOTIFICATIONS_STORAGE_KEY]: toKeep,
+    })
+
+    console.log('Auto-archive complete:', toArchive.length, 'archived,', toKeep.length, 'kept')
+  } catch (error) {
+    console.error('Failed to apply auto-archive rules:', error)
   }
 }
 
