@@ -33,3 +33,7 @@ build
 .env
 .env.local
 .env.production
+
+# Playwright
+playwright-report/
+test-results/
