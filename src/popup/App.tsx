@@ -20,7 +20,7 @@ type ViewMode = 'active' | 'snoozed' | 'archived'
 type PageMode = 'notifications' | 'settings'
 
 function App() {
-  const { isAuthenticated, isLoading: authLoading, error: authError, deviceAuthInfo, login, logout } = useAuth()
+  const { isAuthenticated, isLoading: authLoading, error: authError, deviceAuthInfo, login } = useAuth()
   const { 
     notifications, 
     isLoading: notificationsLoading, 
@@ -494,16 +494,9 @@ function App() {
                            font-medium text-xs text-github-fg-default flex items-center gap-1.5"
                   aria-label="Settings"
                   title="Settings"
+                  data-testid="settings-button"
                 >
                   <GearIcon size={14} />
-                </button>
-                <button
-                  onClick={logout}
-                  className="px-3 py-1.5 bg-github-canvas-default border border-github-border-default
-                           rounded-github hover:bg-github-canvas-subtle transition-colors
-                           font-medium text-xs text-github-fg-default"
-                >
-                  Logout
                 </button>
               </div>
             </div>

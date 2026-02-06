@@ -184,34 +184,6 @@ describe('App Component', () => {
       expect(screen.getByText('Notifications')).toBeInTheDocument()
     })
 
-    it('should render logout button', () => {
-      renderWithQueryClient(<App />)
-      
-      const button = screen.getByRole('button', { name: /Logout/i })
-      expect(button).toBeInTheDocument()
-      expect(button).toBeEnabled()
-    })
-
-    it('should call logout when Logout button is clicked', async () => {
-      const logoutMock = vi.fn()
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
-        login: vi.fn(),
-        logout: logoutMock,
-        checkAuth: vi.fn(),
-      })
-
-      const user = userEvent.setup()
-      renderWithQueryClient(<App />)
-      
-      const button = screen.getByRole('button', { name: /Logout/i })
-      await user.click(button)
-      
-      expect(logoutMock).toHaveBeenCalledTimes(1)
-    })
-
     it('should display empty state when no notifications', () => {
       mockUseNotifications.mockReturnValue({
         notifications: [],

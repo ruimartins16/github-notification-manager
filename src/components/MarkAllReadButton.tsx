@@ -64,7 +64,7 @@ export function MarkAllReadButton({ onMarkAll, disabled = false }: MarkAllReadBu
         disabled={disabled || unreadCount === 0 || isLoading}
         className={`
           px-3 py-1.5 rounded-github font-medium text-xs transition-colors
-          flex items-center gap-2
+          flex items-center gap-2 whitespace-nowrap
           ${
             unreadCount === 0 || disabled || isLoading
               ? 'bg-github-canvas-subtle text-github-fg-muted cursor-not-allowed'
