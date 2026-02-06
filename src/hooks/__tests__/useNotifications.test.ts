@@ -28,6 +28,22 @@ vi.mock('../useAuth', () => ({
   })),
 }))
 
+// Mock chrome.storage API
+const mockStorage = {
+  onChanged: {
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+  },
+  local: {
+    set: vi.fn(),
+    get: vi.fn(),
+  },
+}
+
+global.chrome = {
+  storage: mockStorage,
+} as any
+
 describe('useNotifications', () => {
   let queryClient: QueryClient
 

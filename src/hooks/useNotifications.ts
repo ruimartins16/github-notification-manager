@@ -7,6 +7,7 @@
  * - Auto refetch on window focus and reconnect
  * - Loading, error, and data states
  * - Retry logic with exponential backoff
+ * - Stores notifications in chrome.storage to trigger badge updates
  * 
  * Usage:
  * ```typescript
@@ -15,11 +16,12 @@
  */
 
 import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { GitHubAPI } from '../utils/github-api'
+import { NOTIFICATIONS_STORAGE_KEY } from '../utils/notification-service'
 import { useAuth } from './useAuth'
 import type { GitHubNotification } from '../types/github'
 
-const POLL_INTERVAL = 60 * 1000 // 60 seconds - respects GitHub's X-Poll-Interval recommendation
 const STALE_TIME = 30 * 1000 // 30 seconds - data considered fresh for 30s
 
 export interface UseNotificationsOptions {
@@ -48,12 +50,16 @@ export interface UseNotificationsOptions {
 export function useNotifications(options?: UseNotificationsOptions) {
   const { token, isAuthenticated } = useAuth()
 
-  return useQuery<GitHubNotification[], Error>({
+  const query = useQuery<GitHubNotification[], Error>({
     queryKey: ['notifications', { all: options?.all, participating: options?.participating }],
     queryFn: async () => {
+      if (!token) {
+        throw new Error('Token is required but not available')
+      }
+
       // Use singleton to prevent memory leaks from polling
       const api = GitHubAPI.getInstance()
-      await api.initialize(token!) // Non-null assertion safe due to enabled check
+      await api.initialize(token)
       
       const notifications = await api.fetchNotifications({
         all: options?.all,
@@ -65,14 +71,35 @@ export function useNotifications(options?: UseNotificationsOptions) {
     },
     // Only fetch if authenticated AND token exists (prevents race condition)
     enabled: (options?.enabled ?? true) && isAuthenticated && !!token,
-    // Polling configuration
-    refetchInterval: options?.refetchInterval ?? POLL_INTERVAL,
+    // Don't poll in popup - background service worker handles periodic fetching
+    // This prevents duplicate API calls
+    refetchInterval: false,
     staleTime: STALE_TIME,
-    // These are set globally in QueryClient but can be overridden here
+    // Fetch when popup opens/refocuses
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     retry: 3,
   })
+
+  // Listen for background updates and sync with React Query cache
+  // This keeps the popup in sync when background worker fetches new data
+  useEffect(() => {
+    const handleStorageChange = (changes: Record<string, chrome.storage.StorageChange>, areaName: string) => {
+      if (areaName === 'local' && changes[NOTIFICATIONS_STORAGE_KEY]) {
+        const newNotifications = changes[NOTIFICATIONS_STORAGE_KEY].newValue as GitHubNotification[] | undefined
+        
+        if (newNotifications) {
+          // Update React Query cache with new data from background fetch
+          query.refetch()
+        }
+      }
+    }
+
+    chrome.storage.onChanged.addListener(handleStorageChange)
+    return () => chrome.storage.onChanged.removeListener(handleStorageChange)
+  }, [query])
+
+  return query
 }
 
 /**

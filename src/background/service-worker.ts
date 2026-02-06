@@ -2,22 +2,47 @@
 // Handles: notification fetching, alarms, badge updates, OAuth polling
 
 import { AuthService } from '../utils/auth-service'
+import { NotificationService, NOTIFICATIONS_STORAGE_KEY } from '../utils/notification-service'
+import { BadgeService } from '../utils/badge-service'
+import type { GitHubNotification } from '../types/github'
 
 console.log('GitHub Notification Manager: Background service worker loaded')
 
 // Track active polling
 let isPolling = false
 
-// Initialize extension on install
+// Alarm name for periodic notification fetching
+const FETCH_ALARM_NAME = 'fetch-notifications'
+
+// Initialize extension on install or update
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('Extension installed:', details.reason)
   
-  if (details.reason === 'install') {
+  if (details.reason === 'install' || details.reason === 'update') {
     // Set initial badge
     chrome.action.setBadgeBackgroundColor({ color: '#0969da' })
     chrome.action.setBadgeText({ text: '' })
     
-    console.log('GitHub Notification Manager initialized')
+    // Create/recreate alarm for periodic notification fetching (every 1 minute)
+    // Alarms are cleared on extension update, so we recreate them
+    chrome.alarms.create(FETCH_ALARM_NAME, {
+      delayInMinutes: 1,
+      periodInMinutes: 1,
+    })
+    
+    console.log('GitHub Notification Manager initialized with background polling')
+  }
+})
+
+// Ensure alarm exists on browser startup
+chrome.runtime.onStartup.addListener(async () => {
+  const alarm = await chrome.alarms.get(FETCH_ALARM_NAME)
+  if (!alarm) {
+    console.log('Recreating notification fetch alarm on startup')
+    chrome.alarms.create(FETCH_ALARM_NAME, {
+      delayInMinutes: 1,
+      periodInMinutes: 1,
+    })
   }
 })
 
@@ -75,28 +100,71 @@ chrome.action.onClicked.addListener(() => {
   console.log('Extension icon clicked')
 })
 
-// Placeholder for future alarm handlers (for snooze functionality)
-chrome.alarms.onAlarm.addListener((alarm) => {
-  console.log('Alarm fired:', alarm.name)
+// Listen for storage changes to update badge
+// Debounced to prevent redundant updates when storage is written multiple times rapidly
+let lastBadgeUpdateTimestamp = 0
+const BADGE_UPDATE_DEBOUNCE_MS = 100
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'local' && changes[NOTIFICATIONS_STORAGE_KEY]) {
+    // Debounce rapid updates (e.g., when background fetch writes immediately after popup)
+    const now = Date.now()
+    if (now - lastBadgeUpdateTimestamp < BADGE_UPDATE_DEBOUNCE_MS) {
+      return
+    }
+    lastBadgeUpdateTimestamp = now
+
+    const newNotifications = changes[NOTIFICATIONS_STORAGE_KEY].newValue as GitHubNotification[] | undefined
+    
+    if (newNotifications) {
+      console.log('Notifications updated, refreshing badge:', newNotifications.length)
+      BadgeService.updateBadge(newNotifications)
+    } else {
+      // Notifications cleared
+      BadgeService.clearBadge()
+    }
+  }
+})
+
+// Handle alarms for background notification fetching
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === FETCH_ALARM_NAME) {
+    console.log('Background fetch alarm triggered')
+    await fetchNotificationsInBackground()
+  }
+  
   // TODO: Handle snooze wake-up in GNM-008
 })
 
-// Keep service worker alive
-let keepAliveInterval: number | undefined
+/**
+ * Fetch notifications in background (called by alarm)
+ * Only fetches if user is authenticated
+ */
+async function fetchNotificationsInBackground() {
+  try {
+    // Check if user is authenticated
+    const token = await AuthService.getStoredToken()
+    
+    if (!token) {
+      console.log('No token found, skipping background fetch')
+      return
+    }
 
-function keepAlive() {
-  keepAliveInterval = setInterval(() => {
-    // Ping to keep service worker active
-  }, 20000) // Every 20 seconds
+    console.log('Fetching notifications in background...')
+    const notifications = await NotificationService.fetchAndStore(token)
+    console.log('Background fetch complete:', notifications.length, 'notifications')
+    
+    // Badge will be updated automatically by storage listener
+  } catch (error) {
+    console.error('Background fetch failed:', error)
+    // Don't throw - we'll retry on next alarm
+  }
 }
 
-keepAlive()
-
-// Clean up on shutdown
-self.addEventListener('unload', () => {
-  if (keepAliveInterval) {
-    clearInterval(keepAliveInterval)
-  }
-})
+// Service worker will hibernate when idle and wake up for:
+// - chrome.alarms (notification fetching)
+// - chrome.storage.onChanged (badge updates)
+// - chrome.runtime.onMessage (auth polling, messages from popup)
+// No keep-alive needed - Chrome handles lifecycle automatically
 
 export {}
