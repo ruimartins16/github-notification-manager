@@ -1,13 +1,22 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware'
-import { GitHubNotification } from '../types/github'
+import { GitHubNotification, NotificationReason } from '../types/github'
 import { NOTIFICATIONS_STORAGE_KEY } from '../utils/notification-service'
+
+// Filter types based on notification reasons
+export type NotificationFilter = 'all' | 'mentions' | 'reviews' | 'assigned'
+
+// Mapping of reasons to filters
+const MENTION_REASONS: NotificationReason[] = ['mention', 'team_mention', 'author']
+const REVIEW_REASONS: NotificationReason[] = ['review_requested']
+const ASSIGNED_REASONS: NotificationReason[] = ['assign']
 
 interface NotificationState {
   notifications: GitHubNotification[]
   isLoading: boolean
   error: string | null
   lastFetched: number | null
+  activeFilter: NotificationFilter
   
   // Actions
   setNotifications: (notifications: GitHubNotification[]) => void
@@ -16,6 +25,11 @@ interface NotificationState {
   clearNotifications: () => void
   markAsRead: (notificationId: string) => void
   updateLastFetched: () => void
+  setFilter: (filter: NotificationFilter) => void
+  
+  // Selectors
+  getFilteredNotifications: () => GitHubNotification[]
+  getFilterCounts: () => Record<NotificationFilter, number>
 }
 
 // Chrome storage adapter for Zustand persist middleware
@@ -58,12 +72,13 @@ const chromeStorage: StateStorage = {
 
 export const useNotificationStore = create<NotificationState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       // Initial state
       notifications: [],
       isLoading: false,
       error: null,
       lastFetched: null,
+      activeFilter: 'all',
 
       // Actions
       setNotifications: (notifications) =>
@@ -87,14 +102,47 @@ export const useNotificationStore = create<NotificationState>()(
 
       updateLastFetched: () =>
         set({ lastFetched: Date.now() }),
+
+      setFilter: (filter) =>
+        set({ activeFilter: filter }),
+
+      // Selectors
+      getFilteredNotifications: () => {
+        const state = get()
+        const { notifications, activeFilter } = state
+
+        switch (activeFilter) {
+          case 'mentions':
+            return notifications.filter(n => MENTION_REASONS.includes(n.reason))
+          case 'reviews':
+            return notifications.filter(n => REVIEW_REASONS.includes(n.reason))
+          case 'assigned':
+            return notifications.filter(n => ASSIGNED_REASONS.includes(n.reason))
+          case 'all':
+          default:
+            return notifications
+        }
+      },
+
+      getFilterCounts: () => {
+        const { notifications } = get()
+
+        return {
+          all: notifications.length,
+          mentions: notifications.filter(n => MENTION_REASONS.includes(n.reason)).length,
+          reviews: notifications.filter(n => REVIEW_REASONS.includes(n.reason)).length,
+          assigned: notifications.filter(n => ASSIGNED_REASONS.includes(n.reason)).length,
+        }
+      },
     }),
     {
       name: 'zustand-notifications', // Use different key from NotificationService
       storage: createJSONStorage(() => chromeStorage),
-      // Only persist notifications, not loading/error states
+      // Persist notifications and selected filter
       partialize: (state) => ({
         notifications: state.notifications,
         lastFetched: state.lastFetched,
+        activeFilter: state.activeFilter,
       }),
     }
   )

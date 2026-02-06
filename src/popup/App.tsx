@@ -1,5 +1,7 @@
 import { useAuth } from '../hooks/useAuth'
 import { useNotifications, useUnreadCount } from '../hooks/useNotifications'
+import { useNotificationStore } from '../store/notification-store'
+import { FilterBar } from '../components/FilterBar'
 import { useState, useEffect, useCallback, memo } from 'react'
 import type { GitHubNotification, NotificationType } from '../types/github'
 import { 
@@ -197,6 +199,10 @@ function App() {
   } = useNotifications()
   const unreadCount = useUnreadCount()
   
+  // Get filtered notifications from store
+  const getFilteredNotifications = useNotificationStore(state => state.getFilteredNotifications)
+  const filteredNotifications = getFilteredNotifications()
+  
   const [copied, setCopied] = useState(false)
   const [isPolling, setIsPolling] = useState(false)
   
@@ -366,9 +372,9 @@ function App() {
         ) : null}
 
         {isAuthenticated ? (
-          <div className="space-y-4">
+          <div className="space-y-0">
             {/* Header with unread count and logout */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between p-4 pb-3">
               <div>
                 <h2 className="text-lg font-semibold text-github-fg-default">
                   Notifications
@@ -389,6 +395,9 @@ function App() {
               </button>
             </div>
 
+            {/* Filter Bar */}
+            <FilterBar />
+
             {/* Notifications Loading State */}
             {notificationsLoading && (
               <div className="p-8 text-center">
@@ -404,7 +413,7 @@ function App() {
             {/* Notifications Error State */}
             {notificationsError && (
               <div 
-                className="p-4 bg-github-danger-subtle border border-github-danger-emphasis rounded-github"
+                className="p-4 bg-github-danger-subtle border border-github-danger-emphasis rounded-github m-4"
                 role="alert"
               >
                 <p className="text-sm text-github-danger-fg font-medium mb-2">
@@ -426,8 +435,12 @@ function App() {
 
             {/* Notifications List */}
             {!notificationsLoading && !notificationsError && notifications && (
-              <div className="space-y-2">
-                {notifications.length === 0 ? (
+              <div 
+                id="notification-list"
+                className="p-4 pt-2"
+                role="tabpanel"
+              >
+                {filteredNotifications.length === 0 ? (
                   // Empty State
                   <div className="p-8 text-center bg-github-canvas-subtle rounded-github border border-github-border-default">
                     <div className="text-4xl mb-3">🎉</div>
@@ -435,7 +448,9 @@ function App() {
                       All caught up!
                     </h3>
                     <p className="text-xs text-github-fg-muted">
-                      You have no unread notifications
+                      {notifications.length === 0 
+                        ? 'You have no unread notifications'
+                        : 'No notifications in this filter'}
                     </p>
                   </div>
                 ) : (
@@ -445,7 +460,7 @@ function App() {
                     role="list"
                     aria-label="GitHub notifications"
                   >
-                    {notifications.map((notification) => (
+                    {filteredNotifications.map((notification) => (
                       <div key={notification.id} role="listitem">
                         <NotificationItem
                           notification={notification}
