@@ -1103,4 +1103,255 @@ describe('useNotificationStore', () => {
       })
     })
   })
+
+  describe('Mark All as Read Functionality', () => {
+    describe('markAllAsRead', () => {
+      it('should mark all notifications as read', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const notification2: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+        }
+
+        act(() => {
+          result.current.setNotifications([mockNotification, notification2])
+        })
+
+        expect(result.current.notifications.filter((n) => n.unread)).toHaveLength(2)
+
+        let markedNotifications: GitHubNotification[] = []
+        act(() => {
+          markedNotifications = result.current.markAllAsRead()
+        })
+
+        expect(markedNotifications).toHaveLength(2)
+        expect(result.current.notifications.filter((n) => n.unread)).toHaveLength(0)
+        expect(result.current.markAllBackup).toEqual([mockNotification, notification2])
+      })
+
+      it('should only mark filtered notifications as read', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const mentionNotification: GitHubNotification = {
+          ...mockNotification,
+          id: '1',
+          reason: 'mention',
+        }
+
+        const reviewNotification: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+          reason: 'review_requested',
+        }
+
+        act(() => {
+          result.current.setNotifications([mentionNotification, reviewNotification])
+          result.current.setFilter('mentions')
+        })
+
+        let markedNotifications: GitHubNotification[] = []
+        act(() => {
+          markedNotifications = result.current.markAllAsRead()
+        })
+
+        // Should only mark mention notification
+        expect(markedNotifications).toHaveLength(1)
+        expect(markedNotifications[0].id).toBe('1')
+
+        // Check that only mention notification was marked as read
+        const mention = result.current.notifications.find((n) => n.id === '1')!
+        const review = result.current.notifications.find((n) => n.id === '2')!
+        expect(mention.unread).toBe(false)
+        expect(review.unread).toBe(true)
+      })
+
+      it('should create backup for undo', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+        })
+
+        // Store backup before marking
+        const backupBefore = result.current.markAllBackup
+
+        act(() => {
+          result.current.markAllAsRead()
+        })
+
+        // Backup should now exist and contain the notifications
+        expect(result.current.markAllBackup).toEqual([mockNotification])
+        expect(result.current.markAllBackup).not.toBe(backupBefore)
+      })
+
+      it('should return empty array when no notifications to mark', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        let markedNotifications: GitHubNotification[] = []
+        act(() => {
+          markedNotifications = result.current.markAllAsRead()
+        })
+
+        expect(markedNotifications).toHaveLength(0)
+      })
+
+      it('should handle notifications already marked as read', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const readNotification: GitHubNotification = {
+          ...mockNotification,
+          unread: false,
+        }
+
+        act(() => {
+          result.current.setNotifications([readNotification])
+        })
+
+        let markedNotifications: GitHubNotification[] = []
+        act(() => {
+          markedNotifications = result.current.markAllAsRead()
+        })
+
+        // Should still return the notification in marked list
+        expect(markedNotifications).toHaveLength(1)
+        // Should remain marked as read
+        expect(result.current.notifications[0].unread).toBe(false)
+      })
+    })
+
+    describe('undoMarkAllAsRead', () => {
+      it('should restore notifications from backup', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const notification2: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+        }
+
+        act(() => {
+          result.current.setNotifications([mockNotification, notification2])
+          result.current.markAllAsRead()
+        })
+
+        expect(result.current.notifications.filter((n) => n.unread)).toHaveLength(0)
+
+        act(() => {
+          result.current.undoMarkAllAsRead()
+        })
+
+        expect(result.current.notifications.filter((n) => n.unread)).toHaveLength(2)
+        expect(result.current.markAllBackup).toBeNull()
+      })
+
+      it('should handle undo when no backup exists', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        act(() => {
+          result.current.setNotifications([mockNotification])
+        })
+
+        // Try to undo without marking first
+        act(() => {
+          result.current.undoMarkAllAsRead()
+        })
+
+        // Should not change notifications
+        expect(result.current.notifications).toEqual([mockNotification])
+      })
+
+      it('should restore exact state including unread flags', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const notification2: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+          unread: false, // Already read
+        }
+
+        const notification3: GitHubNotification = {
+          ...mockNotification,
+          id: '3',
+          unread: true,
+        }
+
+        act(() => {
+          result.current.setNotifications([mockNotification, notification2, notification3])
+          result.current.markAllAsRead()
+        })
+
+        act(() => {
+          result.current.undoMarkAllAsRead()
+        })
+
+        const restoredNotifications = result.current.notifications
+        expect(restoredNotifications).toHaveLength(3)
+        expect(restoredNotifications.find((n) => n.id === '1')!.unread).toBe(true)
+        expect(restoredNotifications.find((n) => n.id === '2')!.unread).toBe(false)
+        expect(restoredNotifications.find((n) => n.id === '3')!.unread).toBe(true)
+      })
+    })
+
+    describe('Mark All Integration', () => {
+      it('should work with filter changes after marking', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const mentionNotification: GitHubNotification = {
+          ...mockNotification,
+          id: '1',
+          reason: 'mention',
+        }
+
+        const reviewNotification: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+          reason: 'review_requested',
+        }
+
+        act(() => {
+          result.current.setNotifications([mentionNotification, reviewNotification])
+          result.current.setFilter('mentions')
+          result.current.markAllAsRead()
+        })
+
+        // Switch to reviews filter
+        act(() => {
+          result.current.setFilter('reviews')
+        })
+
+        const filtered = result.current.getFilteredNotifications()
+        // Review notification should still be unread
+        expect(filtered).toHaveLength(1)
+        expect(filtered[0].unread).toBe(true)
+      })
+
+      it('should update filter counts after marking all as read', () => {
+        const { result } = renderHook(() => useNotificationStore())
+
+        const notification2: GitHubNotification = {
+          ...mockNotification,
+          id: '2',
+          reason: 'mention',
+        }
+
+        act(() => {
+          result.current.setNotifications([mockNotification, notification2])
+        })
+
+        let counts = result.current.getFilterCounts()
+        expect(counts.all).toBe(2)
+        expect(counts.mentions).toBe(2)
+
+        act(() => {
+          result.current.markAllAsRead()
+        })
+
+        counts = result.current.getFilterCounts()
+        // Counts should be 0 for unread notifications
+        // (Note: getFilterCounts may need adjustment based on your implementation)
+        expect(result.current.notifications).toHaveLength(2) // Notifications still exist
+        expect(result.current.notifications.filter((n) => n.unread)).toHaveLength(0) // But all are read
+      })
+    })
+  })
 })

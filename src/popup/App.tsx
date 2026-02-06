@@ -4,7 +4,11 @@ import { useNotificationStore } from '../store/notification-store'
 import { FilterBar } from '../components/FilterBar'
 import { NotificationItem } from '../components/NotificationItem'
 import { SnoozedTab } from '../components/SnoozedTab'
-import { useState, useEffect } from 'react'
+import { MarkAllReadButton } from '../components/MarkAllReadButton'
+import { ToastContainer } from '../components/Toast'
+import { useToast } from '../hooks/useToast'
+import { GitHubAPI } from '../utils/github-api'
+import { useState, useEffect, useCallback } from 'react'
 
 type ViewMode = 'active' | 'snoozed'
 
@@ -27,6 +31,13 @@ function App() {
   const [copied, setCopied] = useState(false)
   const [isPolling, setIsPolling] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('active')
+  
+  // Toast notifications
+  const { toasts, addToast, removeToast } = useToast()
+  
+  // Get store actions
+  const markAllAsRead = useNotificationStore(state => state.markAllAsRead)
+  const undoMarkAllAsRead = useNotificationStore(state => state.undoMarkAllAsRead)
   
   // Combined loading state
   const isLoading = authLoading
@@ -57,6 +68,41 @@ function App() {
       })
     }
   }
+
+  // Handle mark all as read
+  const handleMarkAllAsRead = useCallback(async () => {
+    // Optimistic update - mark all filtered notifications as read in the store
+    const markedNotifications = markAllAsRead()
+    
+    // Show toast with undo option
+    addToast(`Marked ${markedNotifications.length} notification${markedNotifications.length === 1 ? '' : 's'} as read`, {
+      variant: 'success',
+      duration: 5000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          undoMarkAllAsRead()
+          addToast('Restored notifications', { variant: 'info', duration: 3000 })
+        },
+      },
+    })
+
+    // Call GitHub API to actually mark as read (runs in background)
+    try {
+      const token = await chrome.storage.local.get('github_token')
+      if (token.github_token) {
+        const api = GitHubAPI.getInstance()
+        await api.initialize(token.github_token)
+        await api.markAllAsRead()
+      }
+    } catch (error) {
+      console.error('Failed to mark notifications as read on GitHub:', error)
+      // Don't show error toast - optimistic update already happened
+      // User can still undo if needed
+    }
+  }, [markAllAsRead, undoMarkAllAsRead, addToast])
+
+
 
   if (isLoading) {
     return (
@@ -195,7 +241,7 @@ function App() {
 
         {isAuthenticated ? (
           <div className="space-y-0">
-            {/* Header with unread count and logout */}
+            {/* Header with unread count, actions, and logout */}
             <div className="flex items-center justify-between p-4 pb-3">
               <div>
                 <h2 className="text-lg font-semibold text-github-fg-default">
@@ -207,14 +253,22 @@ function App() {
                   )}
                 </h2>
               </div>
-              <button
-                onClick={logout}
-                className="px-3 py-1.5 bg-github-canvas-default border border-github-border-default
-                         rounded-github hover:bg-github-canvas-subtle transition-colors
-                         font-medium text-xs text-github-fg-default"
-              >
-                Logout
-              </button>
+              <div className="flex items-center gap-2">
+                {viewMode === 'active' && (
+                  <MarkAllReadButton
+                    onMarkAll={handleMarkAllAsRead}
+                    disabled={notificationsLoading}
+                  />
+                )}
+                <button
+                  onClick={logout}
+                  className="px-3 py-1.5 bg-github-canvas-default border border-github-border-default
+                           rounded-github hover:bg-github-canvas-subtle transition-colors
+                           font-medium text-xs text-github-fg-default"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
 
             {/* View Mode Toggle */}
@@ -347,6 +401,9 @@ function App() {
           </p>
         </footer>
       </div>
+
+      {/* Toast notifications */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   )
 }

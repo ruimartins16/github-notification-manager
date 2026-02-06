@@ -18,6 +18,7 @@ interface NotificationState {
   error: string | null
   lastFetched: number | null
   activeFilter: NotificationFilter
+  markAllBackup: GitHubNotification[] | null
   
   // Actions
   setNotifications: (notifications: GitHubNotification[]) => void
@@ -25,6 +26,8 @@ interface NotificationState {
   setError: (error: string | null) => void
   clearNotifications: () => void
   markAsRead: (notificationId: string) => void
+  markAllAsRead: () => GitHubNotification[]
+  undoMarkAllAsRead: () => void
   updateLastFetched: () => void
   setFilter: (filter: NotificationFilter) => void
   
@@ -88,6 +91,7 @@ export const useNotificationStore = create<NotificationState>()(
       error: null,
       lastFetched: null,
       activeFilter: 'all',
+      markAllBackup: null,
 
       // Actions
       setNotifications: (notifications) =>
@@ -108,6 +112,44 @@ export const useNotificationStore = create<NotificationState>()(
             (n) => n.id !== notificationId
           ),
         })),
+
+      markAllAsRead: () => {
+        const state = get()
+        const filteredNotifications = state.getFilteredNotifications()
+        
+        // Create backup of all current notifications for undo
+        const backup = [...state.notifications]
+        
+        // Get IDs of filtered notifications to mark as read
+        const idsToMarkAsRead = new Set(filteredNotifications.map(n => n.id))
+        
+        // Mark filtered notifications as read by setting unread = false
+        const updatedNotifications = state.notifications.map(n => 
+          idsToMarkAsRead.has(n.id) 
+            ? { ...n, unread: false }
+            : n
+        )
+        
+        set({ 
+          notifications: updatedNotifications,
+          markAllBackup: backup
+        })
+        
+        return filteredNotifications
+      },
+
+      undoMarkAllAsRead: () =>
+        set((state) => {
+          if (!state.markAllBackup) {
+            console.warn('No backup available for undo')
+            return state
+          }
+          
+          return {
+            notifications: state.markAllBackup,
+            markAllBackup: null,
+          }
+        }),
 
       updateLastFetched: () =>
         set({ lastFetched: Date.now() }),
