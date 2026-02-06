@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { CheckIcon } from '@primer/octicons-react'
 import { useNotificationStore } from '../store/notification-store'
 import { ConfirmationDialog } from './ConfirmationDialog'
@@ -12,16 +12,20 @@ export function MarkAllReadButton({ onMarkAll, disabled = false }: MarkAllReadBu
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   
-  const getFilteredNotifications = useNotificationStore(state => state.getFilteredNotifications)
+  // Memoized selector to prevent unnecessary re-renders
+  const filteredNotifications = useNotificationStore(state => state.getFilteredNotifications())
   const activeFilter = useNotificationStore(state => state.activeFilter)
-  const filteredNotifications = getFilteredNotifications()
   
-  const unreadCount = filteredNotifications.filter(n => n.unread).length
+  // Memoize unread count calculation
+  const unreadCount = useMemo(
+    () => filteredNotifications.filter(n => n.unread).length,
+    [filteredNotifications]
+  )
 
   const handleClick = useCallback(() => {
-    if (unreadCount === 0) return
+    if (unreadCount === 0 || showConfirmation || isLoading) return
     setShowConfirmation(true)
-  }, [unreadCount])
+  }, [unreadCount, showConfirmation, isLoading])
 
   const handleConfirm = useCallback(async () => {
     setShowConfirmation(false)

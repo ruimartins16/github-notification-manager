@@ -97,8 +97,32 @@ function App() {
       }
     } catch (error) {
       console.error('Failed to mark notifications as read on GitHub:', error)
-      // Don't show error toast - optimistic update already happened
-      // User can still undo if needed
+      
+      // Show error toast with retry option
+      addToast('Failed to sync with GitHub. Changes saved locally.', {
+        variant: 'warning',
+        duration: 7000,
+        action: {
+          label: 'Retry',
+          onClick: async () => {
+            try {
+              const token = await chrome.storage.local.get('github_token')
+              if (token.github_token) {
+                const api = GitHubAPI.getInstance()
+                await api.initialize(token.github_token)
+                await api.markAllAsRead()
+                addToast('Synced with GitHub', { variant: 'success', duration: 3000 })
+              }
+            } catch (retryError) {
+              console.error('Retry failed:', retryError)
+              addToast('Retry failed. Please try again later.', { 
+                variant: 'error', 
+                duration: 5000 
+              })
+            }
+          }
+        }
+      })
     }
   }, [markAllAsRead, undoMarkAllAsRead, addToast])
 

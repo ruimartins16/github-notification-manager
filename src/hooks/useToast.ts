@@ -16,7 +16,8 @@ export function useToast() {
         }
       }
     ) => {
-      const id = `toast-${Date.now()}-${Math.random()}`
+      // Use crypto.randomUUID for unique, collision-free IDs
+      const id = `toast-${crypto.randomUUID()}`
       const newToast: ToastMessage = {
         id,
         message,

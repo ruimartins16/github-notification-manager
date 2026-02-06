@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useRef } from 'react'
 
 export interface ConfirmationDialogProps {
   isOpen: boolean
@@ -21,27 +21,54 @@ export function ConfirmationDialog({
   onConfirm,
   onCancel,
 }: ConfirmationDialogProps) {
-  // Handle escape key to close dialog
-  const handleEscape = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onCancel()
-      }
-    },
-    [onCancel]
-  )
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape)
-      // Prevent background scrolling
-      document.body.style.overflow = 'hidden'
+    if (!isOpen) return
+
+    // Save currently focused element
+    const previouslyFocused = document.activeElement as HTMLElement
+
+    // Set focus to first focusable element (cancel button)
+    const firstButton = dialogRef.current?.querySelector('button')
+    firstButton?.focus()
+
+    // Handle keyboard events
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Handle escape key
+      if (e.key === 'Escape') {
+        onCancel()
+        return
+      }
+
+      // Handle tab key for focus trap
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusableElements = dialogRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+        const firstElement = focusableElements[0] as HTMLElement
+        const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
+
+        if (e.shiftKey && document.activeElement === firstElement) {
+          e.preventDefault()
+          lastElement?.focus()
+        } else if (!e.shiftKey && document.activeElement === lastElement) {
+          e.preventDefault()
+          firstElement?.focus()
+        }
+      }
     }
+
+    document.addEventListener('keydown', handleKeyDown)
+    document.body.style.overflow = 'hidden'
+
     return () => {
-      document.removeEventListener('keydown', handleEscape)
+      document.removeEventListener('keydown', handleKeyDown)
       document.body.style.overflow = 'unset'
+      // Restore focus to previously focused element
+      previouslyFocused?.focus()
     }
-  }, [isOpen, handleEscape])
+  }, [isOpen, onCancel])
 
   if (!isOpen) return null
 
@@ -65,7 +92,10 @@ export function ConfirmationDialog({
       />
 
       {/* Dialog */}
-      <div className="relative bg-github-canvas-default border border-github-border-default rounded-github shadow-xl max-w-md w-full mx-4 p-6">
+      <div
+        ref={dialogRef}
+        className="relative bg-github-canvas-default border border-github-border-default rounded-github shadow-xl max-w-md w-full mx-4 p-6"
+      >
         <h2
           id="dialog-title"
           className="text-lg font-semibold text-github-fg-default mb-3"

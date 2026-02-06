@@ -44,19 +44,23 @@ export function Toast({
 
   return (
     <div
-      className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50
-                  flex items-center gap-3 px-4 py-3 rounded-github border
+      className={`flex items-center gap-3 px-4 py-3 rounded-github border
                   shadow-xl min-w-[300px] max-w-md animate-slide-up
                   ${variantStyles[variant]}`}
       role="alert"
       aria-live="polite"
+      aria-atomic="true"
     >
       <IconComponent size={16} className="flex-shrink-0" />
       <p className="text-sm font-medium flex-1">{message}</p>
 
       {action && (
         <button
-          onClick={action.onClick}
+          onClick={(e) => {
+            e.stopPropagation()
+            action.onClick()
+            onClose() // Close immediately after action
+          }}
           className="px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-sm font-semibold transition-colors"
         >
           {action.label}
@@ -93,17 +97,18 @@ export interface ToastContainerProps {
 
 export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
   return (
-    <>
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex flex-col-reverse gap-2 pointer-events-none">
       {toasts.map((toast) => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          variant={toast.variant}
-          duration={toast.duration}
-          action={toast.action}
-          onClose={() => onRemove(toast.id)}
-        />
+        <div key={toast.id} className="pointer-events-auto">
+          <Toast
+            message={toast.message}
+            variant={toast.variant}
+            duration={toast.duration}
+            action={toast.action}
+            onClose={() => onRemove(toast.id)}
+          />
+        </div>
       ))}
-    </>
+    </div>
   )
 }
