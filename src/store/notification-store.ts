@@ -262,37 +262,42 @@ export const useNotificationStore = create<NotificationState>()(
 
       applyAutoArchiveRules: () =>
         set((state) => {
-          if (state.autoArchiveRules.length === 0) {
-            return state
-          }
-
-          const { toArchive, toKeep, ruleMatches } = applyRules(
-            state.notifications,
-            state.autoArchiveRules
-          )
-
-          if (toArchive.length === 0) {
-            return state
-          }
-
-          console.log('[Auto-Archive] Archiving', toArchive.length, 'notifications')
-
-          // Update rule statistics
-          const updatedRules = state.autoArchiveRules.map((rule) => {
-            const matches = ruleMatches.get(rule.id) || []
-            if (matches.length > 0) {
-              return {
-                ...rule,
-                archivedCount: rule.archivedCount + matches.length,
-              }
+          try {
+            if (!state.autoArchiveRules || !Array.isArray(state.autoArchiveRules) || state.autoArchiveRules.length === 0) {
+              return state
             }
-            return rule
-          })
 
-          return {
-            notifications: toKeep,
-            archivedNotifications: [...state.archivedNotifications, ...toArchive],
-            autoArchiveRules: updatedRules,
+            const { toArchive, toKeep, ruleMatches } = applyRules(
+              state.notifications,
+              state.autoArchiveRules
+            )
+
+            if (toArchive.length === 0) {
+              return state
+            }
+
+            console.log('[Auto-Archive] Archiving', toArchive.length, 'notifications')
+
+            // Update rule statistics
+            const updatedRules = state.autoArchiveRules.map((rule) => {
+              const matches = ruleMatches.get(rule.id) || []
+              if (matches.length > 0) {
+                return {
+                  ...rule,
+                  archivedCount: rule.archivedCount + matches.length,
+                }
+              }
+              return rule
+            })
+
+            return {
+              notifications: toKeep,
+              archivedNotifications: [...state.archivedNotifications, ...toArchive],
+              autoArchiveRules: updatedRules,
+            }
+          } catch (error) {
+            console.error('[Auto-Archive] Error applying rules:', error)
+            return state
           }
         }),
 
