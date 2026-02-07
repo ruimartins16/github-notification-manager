@@ -1520,42 +1520,43 @@ export async function validateLicense(): Promise<ProUser> {
 
 ---
 
-## Sprint F3: Keyboard Shortcuts & Settings (Week 3) 🚧 PLANNED
+## Sprint F3: Keyboard Shortcuts & Settings (Week 3) ✅ COMPLETED
 
 **Sprint Goal:** Gate keyboard shortcuts and add subscription management in settings  
-**Total Points:** 13-18 SP  
-**Status:** 🚧 Planned  
-**Estimated Duration:** 1-2 days
+**Total Points:** 13 SP  
+**Status:** ✅ Completed  
+**Duration:** 1 day
 
-**Prioritized Stories:**
+**Completed Stories:**
 
 **High Priority (Must Have - 13 SP):**
-- 🎯 **GNM-034:** Gate Keyboard Shortcuts Behind Pro Check (3 SP)
-  - Disable shortcuts for free users
-  - Show upgrade toast when Pro shortcut pressed
-  - Show ProBadge in keyboard help modal
-- 🎯 **GNM-038:** Implement onPaid Callback Handler (5 SP)
-  - Listen for ExtPay payment events
-  - Update UI immediately when user upgrades
-  - Show success toast: "Welcome to Pro!"
-  - Critical for good UX after payment
-- 🎯 **GNM-037:** Settings/Account Page with Subscription Status (5 SP)
-  - Show Pro status in settings
-  - Display plan type (Monthly/Annual/Lifetime)
+- ✅ **GNM-034:** Gate Keyboard Shortcuts Behind Pro Check (3 SP)
+  - Disabled Pro shortcuts for free users
+  - Shows upgrade modal when Pro shortcut pressed
+  - Shows ProBadge in keyboard help modal
+  - Free shortcuts still work (J/K, 1-4, ?)
+- ✅ **GNM-038:** Implement onPaid Callback Handler (5 SP)
+  - Listens for ExtPay payment events
+  - Updates UI immediately when user upgrades
+  - Shows success toast: "Welcome to Pro! ⭐ All features unlocked."
+  - Background worker + UI hook integration
+- ✅ **GNM-037:** Settings/Account Page with Subscription Status (5 SP)
+  - Shows Pro/Free status with badge
+  - Displays email and member since for Pro users
   - "Manage Subscription" button for Pro users
-  - "Upgrade" button for free users
+  - "Upgrade to Pro" button for free users
+  - Shows Pro features list and pricing for free users
 
-**Medium Priority (Should Have - 5 SP):**
-- **GNM-036:** Implement Upgrade Prompts on Feature Click (5 SP)
-  - Create UpgradeContext for centralized prompt handling
-  - Track analytics for upgrade prompt impressions
-  - Consistent UX across all locked features
+**Deferred to Future:**
+- **GNM-036:** Implement Upgrade Prompts Context (5 SP - optional refactoring)
+  - Current implementation works fine with local state
+  - Can refactor to context if needed in future
 
 **Why This Sprint Order:**
-1. **GNM-038 (onPaid)** is critical for completing the payment flow
-2. **GNM-034 (Keyboard)** completes the core feature gating (Snooze ✅, Rules ✅, Keyboard ⏳)
+1. **GNM-038 (onPaid)** was critical for completing the payment flow
+2. **GNM-034 (Keyboard)** completed the core feature gating (Snooze ✅, Rules ✅, Keyboard ✅)
 3. **GNM-037 (Settings)** gives users visibility into subscription status
-4. **GNM-036 (Context)** is nice-to-have refactoring (can be deferred)
+4. **GNM-036 (Context)** is nice-to-have refactoring (deferred)
 
 **Optional/Future Sprints:**
 - GNM-035: Complete Pro Badge audit (1 SP remaining)
@@ -2243,10 +2244,11 @@ export function useUpgradePrompt() {
 
 ---
 
-### [GNM-037] Create Settings/Account Page with Subscription Status
+### [GNM-037] Create Settings/Account Page with Subscription Status ✅
 **Priority:** P1 (Should Have)
 **Story Points:** 5
 **Dependencies:** GNM-027
+**Status:** COMPLETED
 
 **User Story:**
 As a user, I want to see my subscription status in settings so that I know my current plan and can manage my subscription.
