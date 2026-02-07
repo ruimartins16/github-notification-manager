@@ -582,16 +582,18 @@ function App() {
                     {selectionMode ? 'Done' : <CheckboxIcon size={14} />}
                   </button>
                 )}
-                <button
-                  onClick={() => setIsHelpModalOpen(true)}
-                  className="px-3 py-1.5 bg-github-canvas-default border border-github-border-default
-                           rounded-github hover:bg-github-canvas-subtle transition-colors
-                           font-medium text-xs text-github-fg-default flex items-center gap-1.5"
-                  aria-label="Keyboard shortcuts help"
-                  title="Keyboard shortcuts (?)"
-                >
-                  <QuestionIcon size={14} />
-                </button>
+                {isPro && (
+                  <button
+                    onClick={() => setIsHelpModalOpen(true)}
+                    className="px-3 py-1.5 bg-github-canvas-default border border-github-border-default
+                             rounded-github hover:bg-github-canvas-subtle transition-colors
+                             font-medium text-xs text-github-fg-default flex items-center gap-1.5"
+                    aria-label="Keyboard shortcuts help"
+                    title="Keyboard shortcuts (?)"
+                  >
+                    <QuestionIcon size={14} />
+                  </button>
+                )}
                 <button
                   onClick={() => setPageMode('settings')}
                   className="px-3 py-1.5 bg-github-canvas-default border border-github-border-default
