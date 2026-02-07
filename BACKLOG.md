@@ -697,13 +697,14 @@ See detailed LANDING-PAGE.md document for full requirements.
 ### Pricing Model
 - **Monthly:** $3/month
 - **Annual:** $30/year (save 16%)
+- **Lifetime:** $100 one-time payment (pay once, use forever)
 - **Payment Processing:** Stripe via ExtensionPay
 - **Fee:** 5% per transaction (handled by ExtensionPay)
 
 ### Feature Tiers
 
-| Feature | FREE | PRO ($3/mo) |
-|---------|------|-------------|
+| Feature | FREE | PRO (Monthly/Annual/Lifetime) |
+|---------|------|-------------------------------|
 | View notifications | ✅ | ✅ |
 | Basic filters (Unread, Mentions, PRs, etc.) | ✅ | ✅ |
 | Mark as read (single + bulk) | ✅ | ✅ |
@@ -713,6 +714,11 @@ See detailed LANDING-PAGE.md document for full requirements.
 | **Snooze notifications** | ❌ | ✅ |
 | **Custom rules engine** | ❌ | ✅ |
 | **Keyboard shortcuts** | ❌ | ✅ |
+
+**Pro Plans:**
+- Monthly: $3/month
+- Annual: $30/year (save 16%)
+- Lifetime: $100 one-time (pay once, use forever)
 
 ---
 
@@ -792,26 +798,28 @@ As a developer, I want to connect my Stripe account to ExtensionPay so that I ca
 
 ---
 
-### [GNM-020] Configure Pricing Plans in ExtensionPay
+### [GNM-020] Configure Pricing Plans in ExtensionPay ✅
 **Priority:** P0 (Must Have)
 **Story Points:** 1
 **Dependencies:** GNM-019
+**Status:** COMPLETED
 
 **User Story:**
-As a developer, I want to configure the pricing plans so that users can subscribe to monthly or annual plans.
+As a developer, I want to configure the pricing plans so that users can subscribe to monthly, annual, or lifetime plans.
 
 **Acceptance Criteria:**
-- [ ] Monthly plan created: $3/month
-- [ ] Annual plan created: $30/year
-- [ ] Plan descriptions written clearly
-- [ ] Currency set to USD
-- [ ] Plans tested in test mode
-- [ ] Subscription lifecycle verified (create, cancel, reactivate)
+- [x] Monthly plan created: $3/month
+- [x] Annual plan created: $30/year
+- [x] Lifetime plan created: $100 one-time payment
+- [x] Plan descriptions written clearly
+- [x] Currency set to USD
+- [ ] Plans tested in test mode (will test during integration)
+- [ ] Subscription lifecycle verified (will verify during GNM-038)
 
 **Technical Notes:**
 - ExtensionPay supports multiple pricing tiers
 - Annual plan shows as "$2.50/month (billed yearly)" in UI
-- Consider adding a "lifetime" option in future
+- Lifetime plan added for users who prefer one-time payment
 - Plans can be modified after launch (careful with existing subscribers)
 
 **Plan Configuration:**
@@ -826,13 +834,25 @@ Annual Plan:
 - ID: yearly  
 - Price: $30.00 USD
 - Interval: year
-- Description: "Pro features, save 16%"
+- Description: "Pro features, save 16% (billed yearly)"
+
+Lifetime Plan:
+- ID: lifetime
+- Price: $100.00 USD
+- Interval: one-time
+- Description: "Pro features forever, pay once"
 ```
 
+**Implementation Summary:**
+- Three pricing tiers configured in ExtensionPay dashboard
+- Monthly ($3), Annual ($30), and Lifetime ($100) plans active
+- All plans provide full Pro feature access
+- Ready for technical integration
+
 **Definition of Done:**
-- Both plans active in ExtensionPay dashboard
-- Test subscriptions work for both plans
-- Code review not required (setup task)
+- ✅ All three plans active in ExtensionPay dashboard
+- ⏳ Test subscriptions will be verified during integration (GNM-022+)
+- ✅ Code review not required (setup task)
 
 ---
 

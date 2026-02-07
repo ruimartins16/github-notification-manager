@@ -44,8 +44,11 @@ The extension ID will be bundled into the production build via Vite environment 
 
 - **Monthly:** $3/month
 - **Annual:** $30/year (save 16%)
+- **Lifetime:** $100 one-time payment (pay once, use forever)
 - **Free Tier:** Basic features
 - **No Trial Period:** Users start on free tier
+
+All paid plans (Monthly, Annual, and Lifetime) provide full Pro feature access.
 
 ### Feature Gates
 
