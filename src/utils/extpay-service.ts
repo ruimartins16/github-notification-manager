@@ -5,7 +5,11 @@
  * Handles license validation, user status, and payment flows.
  */
 
-import { extpay } from '../background/service-worker'
+import ExtPay from 'extpay'
+
+// Initialize ExtPay with extension ID from environment
+const EXTENSION_ID = import.meta.env.VITE_EXTPAY_EXTENSION_ID || 'github-notification-manager'
+const extpay = ExtPay(EXTENSION_ID)
 
 /**
  * Pro user information with subscription details
