@@ -32,6 +32,13 @@
     "https://api.github.com/*",
     "https://github.com/*"
   ],
+  "content_scripts": [
+    {
+      "matches": ["https://extensionpay.com/*"],
+      "js": ["public/ExtPay.js"],
+      "run_at": "document_start"
+    }
+  ],
   "oauth2": {
     "client_id": "Ov23lizRYABSJ6d1qdVQ",
     "scopes": [
