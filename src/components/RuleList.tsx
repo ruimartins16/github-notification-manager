@@ -7,9 +7,11 @@ interface RuleListProps {
   rules: AutoArchiveRule[]
   onToggle: (ruleId: string) => void
   onDelete: (ruleId: string) => void
+  isPro: boolean
+  proLoading: boolean
 }
 
-export function RuleList({ rules, onToggle, onDelete }: RuleListProps) {
+export function RuleList({ rules, onToggle, onDelete, isPro, proLoading }: RuleListProps) {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   if (rules.length === 0) {
     return (
@@ -81,16 +83,27 @@ export function RuleList({ rules, onToggle, onDelete }: RuleListProps) {
               {/* Toggle Enable/Disable */}
               <button
                 onClick={() => onToggle(rule.id)}
-                aria-label={rule.enabled ? 'Disable rule' : 'Enable rule'}
+                disabled={proLoading || !isPro}
+                aria-label={
+                  !isPro 
+                    ? 'Toggle rule (Pro feature)' 
+                    : rule.enabled ? 'Disable rule' : 'Enable rule'
+                }
                 className={`
                   p-2 rounded-md transition-colors
-                  ${
-                    rule.enabled
+                  ${!isPro 
+                    ? 'opacity-50 cursor-not-allowed'
+                    : rule.enabled
                       ? 'text-green-600 hover:bg-green-50'
                       : 'text-gray-400 hover:bg-gray-100'
                   }
+                  ${!isPro && (rule.enabled ? 'text-green-600' : 'text-gray-400')}
                 `}
-                title={rule.enabled ? 'Disable rule' : 'Enable rule'}
+                title={
+                  !isPro 
+                    ? 'Upgrade to Pro to toggle rules' 
+                    : rule.enabled ? 'Disable rule' : 'Enable rule'
+                }
               >
                 {rule.enabled ? (
                   // Check icon
@@ -128,9 +141,16 @@ export function RuleList({ rules, onToggle, onDelete }: RuleListProps) {
               {/* Delete */}
               <button
                 onClick={() => setDeleteConfirm(rule.id)}
-                aria-label="Delete rule"
-                className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                title="Delete rule"
+                disabled={proLoading || !isPro}
+                aria-label={!isPro ? 'Delete rule (Pro feature)' : 'Delete rule'}
+                className={`
+                  p-2 rounded-md transition-colors
+                  ${!isPro 
+                    ? 'opacity-50 cursor-not-allowed text-red-400' 
+                    : 'text-red-600 hover:bg-red-50'
+                  }
+                `}
+                title={!isPro ? 'Upgrade to Pro to delete rules' : 'Delete rule'}
               >
                 {/* Trash icon */}
                 <svg
