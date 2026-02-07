@@ -1,6 +1,18 @@
 // Background service worker for GitHub Notification Manager
-// Handles: notification fetching, alarms, badge updates, OAuth polling
+// Handles: notification fetching, alarms, badge updates, OAuth polling, payment management
 
+// ExtPay MUST be initialized first, before any other imports or code
+import ExtPay from 'extpay'
+
+// Initialize ExtPay with extension ID from environment
+const EXTENSION_ID = import.meta.env.VITE_EXTPAY_EXTENSION_ID || 'github-notification-manager'
+export const extpay = ExtPay(EXTENSION_ID)
+
+// Start ExtPay background service immediately
+extpay.startBackground()
+console.log('[ExtPay] Background service initialized with extension ID:', EXTENSION_ID)
+
+// Now import other services
 import { AuthService } from '../utils/auth-service'
 import { NotificationService, NOTIFICATIONS_STORAGE_KEY } from '../utils/notification-service'
 import { BadgeService } from '../utils/badge-service'
