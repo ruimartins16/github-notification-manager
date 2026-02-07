@@ -3,9 +3,12 @@
  * 
  * Handles license validation on extension startup and caches results
  * in chrome.storage.local for offline access and fast loading.
+ * 
+ * Includes offline support with network detection and 7-day grace period.
  */
 
 import { extPayService, type ProUser } from './extpay-service'
+import { isOnline, isNetworkError } from './network-handler'
 
 /** Cache key for storing user data in chrome.storage.local */
 const CACHE_KEY = 'extpay_user_cache'
@@ -57,8 +60,20 @@ export async function validateLicense(forceRefresh = false): Promise<ProUser> {
       }
     }
     
+    // Check network connectivity before attempting fetch
+    if (!isOnline()) {
+      console.log('[LicenseValidator] Offline detected, using cached status')
+      const cached = await getCachedUser()
+      if (cached) {
+        return cached.user
+      }
+      // No cache available - return free tier
+      console.warn('[LicenseValidator] Offline with no cache, returning free tier')
+      return getFreeTierUser()
+    }
+    
     // Fetch fresh from ExtPay
-    console.log('[LicenseValidator] Fetching fresh user data')
+    console.log('[LicenseValidator] Online, fetching fresh user data')
     const user = await extPayService.getUser()
     
     // Cache the result
@@ -67,6 +82,12 @@ export async function validateLicense(forceRefresh = false): Promise<ProUser> {
     return user
   } catch (error) {
     console.error('[LicenseValidator] Failed to validate license:', error)
+    
+    // Determine if error is network-related
+    const isNetworkIssue = isNetworkError(error)
+    if (isNetworkIssue) {
+      console.warn('[LicenseValidator] Network error detected, using cached fallback')
+    }
     
     // Try to use cached data as fallback (extended TTL for offline)
     const cached = await getCachedUser()

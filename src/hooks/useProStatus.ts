@@ -2,12 +2,13 @@
  * useProStatus Hook
  * 
  * React hook for checking user's Pro subscription status.
- * Handles loading, caching, and real-time updates via onPaid events.
+ * Handles loading, caching, offline detection, and real-time updates.
  */
 
 import { useState, useEffect, useCallback } from 'react'
 import { extPayService, type ProUser } from '../utils/extpay-service'
-import { validateLicense } from '../utils/license-validator'
+import { validateLicense, getCacheAge } from '../utils/license-validator'
+import { onNetworkChange } from '../utils/network-handler'
 
 /**
  * Return type for useProStatus hook
@@ -21,6 +22,10 @@ export interface UseProStatusResult {
   user: ProUser | null
   /** Error that occurred during validation, or null if successful */
   error: Error | null
+  /** Whether the app is currently online */
+  isOnline: boolean
+  /** Age of cached data in milliseconds, or null if no cache */
+  cacheAge: number | null
   /** Manually refresh user status (bypasses cache) */
   refresh: () => Promise<void>
 }
@@ -32,6 +37,8 @@ export interface UseProStatusResult {
  * - Loads user status on mount
  * - Uses cached data when available (fast!)
  * - Listens for payment events (real-time updates)
+ * - Detects network connectivity changes
+ * - Auto-refreshes when connection restored
  * - Handles loading and error states
  * - Provides manual refresh function
  * - Safe with React Strict Mode
@@ -39,10 +46,14 @@ export interface UseProStatusResult {
  * @example
  * ```tsx
  * function MyComponent() {
- *   const { isPro, isLoading, user } = useProStatus()
+ *   const { isPro, isLoading, user, isOnline, cacheAge } = useProStatus()
  *   
  *   if (isLoading) {
  *     return <div>Loading...</div>
+ *   }
+ *   
+ *   if (!isOnline) {
+ *     return <div>Offline - showing cached status</div>
  *   }
  *   
  *   if (isPro) {
@@ -59,6 +70,8 @@ export function useProStatus(): UseProStatusResult {
   const [user, setUser] = useState<ProUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const [cacheAge, setCacheAge] = useState<number | null>(null)
 
   /**
    * Fetch user status from license validator
@@ -71,6 +84,10 @@ export function useProStatus(): UseProStatusResult {
     try {
       const proUser = await validateLicense(forceRefresh)
       setUser(proUser)
+      
+      // Update cache age
+      const age = await getCacheAge()
+      setCacheAge(age)
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to check license')
       setError(error)
@@ -92,11 +109,12 @@ export function useProStatus(): UseProStatusResult {
     fetchUser()
 
     // Listen for payment events (real-time updates)
-    const cleanup = extPayService.onPaid((paidUser) => {
+    const cleanupPaid = extPayService.onPaid((paidUser) => {
       console.log('[useProStatus] Payment received, updating user')
       setUser(paidUser)
       setIsLoading(false)
       setError(null)
+      setCacheAge(0) // Fresh data
     })
     
     // Listen for Pro status changes from background worker
@@ -108,10 +126,23 @@ export function useProStatus(): UseProStatusResult {
     }
     
     chrome.runtime.onMessage.addListener(handleMessage)
+    
+    // Listen for network changes
+    const cleanupNetwork = onNetworkChange((online) => {
+      console.log('[useProStatus] Network status changed:', online ? 'online' : 'offline')
+      setIsOnline(online)
+      
+      // Auto-refresh when connection restored
+      if (online) {
+        console.log('[useProStatus] Connection restored, refreshing user status')
+        fetchUser()
+      }
+    })
 
     // Cleanup listeners on unmount
     return () => {
-      cleanup()
+      cleanupPaid()
+      cleanupNetwork()
       chrome.runtime.onMessage.removeListener(handleMessage)
     }
   }, [fetchUser])
@@ -121,6 +152,8 @@ export function useProStatus(): UseProStatusResult {
     isLoading,
     user,
     error,
+    isOnline,
+    cacheAge,
     refresh,
   }
 }
