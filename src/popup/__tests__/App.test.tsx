@@ -259,15 +259,5 @@ describe('App Component', () => {
       expect(header).toBeInTheDocument()
     })
 
-    it('should have footer section', () => {
-      const { container } = renderWithQueryClient(<App />)
-      const footer = container.querySelector('footer')
-      expect(footer).toBeInTheDocument()
-    })
-
-    it('should display tech stack in footer', () => {
-      renderWithQueryClient(<App />)
-      expect(screen.getByText(/Built with React \+ TypeScript \+ Tailwind CSS/i)).toBeInTheDocument()
-    })
   })
 })

@@ -37,3 +37,7 @@ build
 # Playwright
 playwright-report/
 test-results/
+
+# Screenshots
+Screenshot/
+screenshots/

@@ -4,6 +4,7 @@ import { GitHubNotification, NotificationReason, SnoozedNotification } from '../
 import { AutoArchiveRule } from '../types/rules'
 import { NOTIFICATIONS_STORAGE_KEY } from '../utils/notification-service'
 import { applyRules } from '../utils/rule-matcher'
+import { useSettingsStore } from './settings-store'
 
 // Filter types based on notification reasons
 export type NotificationFilter = 'all' | 'mentions' | 'reviews' | 'assigned'
@@ -119,7 +120,7 @@ export const useNotificationStore = create<NotificationState>()(
       isLoading: false,
       error: null,
       lastFetched: null,
-      activeFilter: 'all',
+      activeFilter: useSettingsStore.getState().defaultFilter,
       markAllBackup: null,
       selectedNotificationIds: new Set<string>(),
 

@@ -12,6 +12,8 @@ import { SnoozeButton } from './SnoozeButton'
 import { SnoozeDialog } from './SnoozeDialog'
 import { NotificationActions } from './NotificationActions'
 import { useNotificationStore } from '../store/notification-store'
+import { useSettingsStore } from '../store/settings-store'
+import { convertApiUrlToWebUrl } from '../utils/url-converter'
 
 // Helper function to get fallback avatar with initial
 function getFallbackAvatar(login: string): string {
@@ -113,6 +115,7 @@ export const NotificationItem = memo(({
   
   const selectedNotificationIds = useNotificationStore(state => state.selectedNotificationIds)
   const toggleSelection = useNotificationStore(state => state.toggleSelection)
+  const openLinksInNewTab = useSettingsStore(state => state.openLinksInNewTab)
   
   const isSelected = selectedNotificationIds.has(notification.id)
 
@@ -125,9 +128,9 @@ export const NotificationItem = memo(({
 
   const handleClick = useCallback(() => {
     try {
-      // Construct GitHub URL safely
+      // Get the API URL and convert to web URL
       let url = notification.subject.url
-        ? notification.subject.url.replace('api.github.com/repos', 'github.com')
+        ? convertApiUrlToWebUrl(notification.subject.url)
         : notification.repository.html_url
       
       // Validate it's a GitHub URL with correct protocol (XSS protection)
@@ -138,12 +141,18 @@ export const NotificationItem = memo(({
         return
       }
       
-      // Open in new tab with validated URL
-      chrome.tabs.create({ url: parsedUrl.toString(), active: true })
+      // Open based on user preference
+      if (openLinksInNewTab) {
+        // Open in new tab
+        chrome.tabs.create({ url: parsedUrl.toString(), active: true })
+      } else {
+        // Update current tab
+        chrome.tabs.update({ url: parsedUrl.toString() })
+      }
     } catch (error) {
       console.error('Invalid URL:', error)
     }
-  }, [notification.subject.url, notification.repository.html_url])
+  }, [notification.subject.url, notification.repository.html_url, openLinksInNewTab])
 
   const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     e.currentTarget.src = getFallbackAvatar(notification.repository.owner.login)
@@ -157,10 +166,11 @@ export const NotificationItem = memo(({
   return (
     <>
       <div
-        className={`relative w-full text-left p-4 bg-github-canvas-default border rounded-github 
+        className={`relative w-full text-left p-3 bg-github-canvas-default border rounded-github 
                    hover:bg-github-canvas-subtle transition-colors group
-                   ${isSelected ? 'border-github-accent-emphasis bg-github-accent-subtle' : 'border-github-border-default'}`}
+                   ${isSelected ? 'border-github-accent-emphasis border-l-4' : 'border-github-border-default'}`}
       >
+        {/* Top Row: Checkbox + Avatar + Content + Actions in top-right corner */}
         <div className="flex gap-3">
           {/* Selection Checkbox */}
           {showCheckbox && (
@@ -177,15 +187,22 @@ export const NotificationItem = memo(({
             </div>
           )}
 
-          {/* Repository Avatar */}
-          <img
-            src={notification.repository.owner.avatar_url}
-            alt={notification.repository.owner.login}
-            className="w-8 h-8 rounded-full flex-shrink-0 cursor-pointer"
-            onError={handleImageError}
-            onClick={handleClick}
-          />
+          {/* Repository Avatar with Unread Badge */}
+          <div className="relative flex-shrink-0">
+            <img
+              src={notification.repository.owner.avatar_url}
+              alt={notification.repository.owner.login}
+              className="w-8 h-8 rounded-full cursor-pointer"
+              onError={handleImageError}
+              onClick={handleClick}
+            />
+            {/* Unread indicator badge on avatar */}
+            {notification.unread && (
+              <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-github-accent-emphasis rounded-full border-2 border-github-canvas-default" />
+            )}
+          </div>
 
+          {/* Main Content Area - Full Width */}
           <div className="flex-1 min-w-0 cursor-pointer" onClick={handleClick}>
             {/* Repository Name */}
             <div className="text-xs text-github-fg-muted mb-1">
@@ -195,7 +212,7 @@ export const NotificationItem = memo(({
             {/* Notification Title */}
             <div className="flex items-start gap-2 mb-2">
               {getNotificationIcon(notification.subject.type)}
-              <div className="text-sm font-medium text-github-fg-default line-clamp-2 flex-1">
+              <div className="text-sm font-medium text-github-fg-default line-clamp-2 flex-1 pr-20">
                 {notification.subject.title}
               </div>
             </div>
@@ -222,37 +239,30 @@ export const NotificationItem = memo(({
               </span>
             </div>
           </div>
+        </div>
 
-          {/* Right side - Actions, Snooze button & Unread indicator */}
-          <div className="flex items-center gap-2">
-            {/* Action buttons (visible on hover) */}
-            {showActions && (
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                <NotificationActions
-                  notificationId={notification.id}
-                  notificationTitle={notification.subject.title}
-                  onActionComplete={handleActionComplete}
-                />
-              </div>
-            )}
+        {/* Actions - Positioned in Top-Right Corner */}
+        <div className="absolute top-3 right-3 flex items-center gap-2">
+          {/* Action buttons (visible on hover) */}
+          {showActions && (
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              <NotificationActions
+                notificationId={notification.id}
+                notificationTitle={notification.subject.title}
+                onActionComplete={handleActionComplete}
+              />
+            </div>
+          )}
 
-            {/* Snooze button (visible on hover) */}
-            {showSnoozeButton && (
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                <SnoozeButton
-                  notificationId={notification.id}
-                  onCustom={() => setIsSnoozeDialogOpen(true)}
-                />
-              </div>
-            )}
-
-            {/* Unread indicator */}
-            {notification.unread && (
-              <div className="flex-shrink-0">
-                <div className="w-2 h-2 bg-github-accent-emphasis rounded-full" />
-              </div>
-            )}
-          </div>
+          {/* Snooze button (visible on hover) */}
+          {showSnoozeButton && (
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              <SnoozeButton
+                notificationId={notification.id}
+                onCustom={() => setIsSnoozeDialogOpen(true)}
+              />
+            </div>
+          )}
         </div>
       </div>
 

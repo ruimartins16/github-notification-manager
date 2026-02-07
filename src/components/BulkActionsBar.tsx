@@ -74,8 +74,8 @@ export function BulkActionsBar({ onActionComplete }: BulkActionsBarProps) {
       role="toolbar"
       aria-label="Bulk actions"
     >
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-github-fg-default">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-medium text-github-fg-default whitespace-nowrap">
           {selectedCount} selected
         </span>
         
@@ -87,11 +87,12 @@ export function BulkActionsBar({ onActionComplete }: BulkActionsBarProps) {
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-github
                      bg-github-success-subtle text-github-success-fg border border-github-success-emphasis
                      hover:bg-github-success-emphasis hover:text-white
-                     transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                     transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
             aria-label={`Mark ${selectedCount} notifications as read`}
+            title="Mark as read"
           >
             {isProcessing ? <Spinner size={14} /> : <CheckIcon size={14} />}
-            Mark as Read
+            Read
           </button>
 
           {/* Bulk Archive */}
@@ -101,8 +102,9 @@ export function BulkActionsBar({ onActionComplete }: BulkActionsBarProps) {
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-github
                      bg-github-accent-subtle text-github-accent-fg border border-github-accent-emphasis
                      hover:bg-github-accent-emphasis hover:text-white
-                     transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                     transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
             aria-label={`Archive ${selectedCount} notifications`}
+            title="Archive"
           >
             {isProcessing ? <Spinner size={14} /> : <ArchiveIcon size={14} />}
             Archive
@@ -117,9 +119,9 @@ export function BulkActionsBar({ onActionComplete }: BulkActionsBarProps) {
                      hover:bg-github-canvas-subtle hover:text-github-fg-default
                      transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Clear selection"
+            title="Clear selection"
           >
             <XIcon size={14} />
-            Clear
           </button>
         </div>
       </div>

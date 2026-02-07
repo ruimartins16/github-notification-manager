@@ -1,11 +1,11 @@
 import { useAuth } from '../hooks/useAuth'
 import { useNotifications, useUnreadCount } from '../hooks/useNotifications'
 import { useNotificationStore } from '../store/notification-store'
+import { useSettingsStore } from '../store/settings-store'
 import { FilterBar } from '../components/FilterBar'
 import { NotificationItem } from '../components/NotificationItem'
 import { SnoozedTab } from '../components/SnoozedTab'
 import { ArchivedTab } from '../components/ArchivedTab'
-import { MarkAllReadButton } from '../components/MarkAllReadButton'
 import { BulkActionsBar } from '../components/BulkActionsBar'
 import { ToastContainer } from '../components/Toast'
 import { SettingsPage } from '../components/SettingsPage'
@@ -13,8 +13,9 @@ import { ShortcutHelpModal } from '../components/ShortcutHelpModal'
 import { useToast } from '../hooks/useToast'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { GitHubAPI } from '../utils/github-api'
-import { useState, useEffect, useCallback } from 'react'
-import { GearIcon, ArrowLeftIcon } from '@primer/octicons-react'
+import { convertApiUrlToWebUrl } from '../utils/url-converter'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { GearIcon, ArrowLeftIcon, CheckCircleIcon, CheckboxIcon, QuestionIcon } from '@primer/octicons-react'
 
 type ViewMode = 'active' | 'snoozed' | 'archived'
 type PageMode = 'notifications' | 'settings'
@@ -42,6 +43,13 @@ function App() {
   const clearSelection = useNotificationStore(state => state.clearSelection)
   const snoozeNotification = useNotificationStore(state => state.snoozeNotification)
   
+  // Get settings
+  const openLinksInNewTab = useSettingsStore(state => state.openLinksInNewTab)
+  const defaultFilter = useSettingsStore(state => state.defaultFilter)
+  
+  // Get filter setter
+  const setFilter = useNotificationStore(state => state.setFilter)
+  
   const [copied, setCopied] = useState(false)
   const [isPolling, setIsPolling] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('active')
@@ -49,6 +57,9 @@ function App() {
   const [selectionMode, setSelectionMode] = useState(false)
   const [focusedIndex, setFocusedIndex] = useState(-1) // -1 means no item focused
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
+  
+  // Track if we've applied the initial default filter
+  const hasAppliedInitialFilter = useRef(false)
   
   // Toast notifications
   const { toasts, addToast, removeToast } = useToast()
@@ -70,7 +81,7 @@ function App() {
     
     try {
       let url = notification.subject.url
-        ? notification.subject.url.replace('api.github.com/repos', 'github.com')
+        ? convertApiUrlToWebUrl(notification.subject.url)
         : notification.repository.html_url
       
       const parsedUrl = new URL(url)
@@ -80,11 +91,16 @@ function App() {
         return
       }
       
-      chrome.tabs.create({ url: parsedUrl.toString(), active: true })
+      // Open based on user preference
+      if (openLinksInNewTab) {
+        chrome.tabs.create({ url: parsedUrl.toString(), active: true })
+      } else {
+        chrome.tabs.update({ url: parsedUrl.toString() })
+      }
     } catch (error) {
       console.error('Invalid URL:', error)
     }
-  }, [focusedIndex, filteredNotifications])
+  }, [focusedIndex, filteredNotifications, openLinksInNewTab])
 
   const handleMarkFocusedDone = useCallback(async () => {
     const notification = filteredNotifications[focusedIndex]
@@ -131,6 +147,17 @@ function App() {
     setFocusedIndex(-1)
   }, [focusedIndex, filteredNotifications, snoozeNotification, addToast])
 
+  // Apply default filter from settings once on mount (after settings rehydrate)
+  useEffect(() => {
+    // Only apply once when component mounts
+    // By the time this runs, settings store should have rehydrated
+    if (!hasAppliedInitialFilter.current) {
+      console.log(`[App] Applying default filter from settings: ${defaultFilter}`)
+      setFilter(defaultFilter)
+      hasAppliedInitialFilter.current = true
+    }
+  }, [defaultFilter, setFilter])
+  
   // Reset focus when changing views or filters
   useEffect(() => {
     setFocusedIndex(-1)
@@ -305,8 +332,8 @@ function App() {
 
   return (
     <div className="w-[400px] h-[600px] bg-github-canvas-default">
-      <div className="p-6">
-        <header className="mb-6">
+      <div className="p-4">
+        <header className="mb-4">
           <h1 className="text-2xl font-bold text-github-fg-default mb-2">
             GitHub Notification Manager
           </h1>
@@ -427,7 +454,7 @@ function App() {
           pageMode === 'settings' ? (
             /* Settings Page */
             <div className="h-full">
-              <div className="flex items-center justify-between p-4 pb-3 border-b border-github-border-default">
+              <div className="flex items-center justify-between mb-3 pb-3 border-b border-github-border-default">
                 <button
                   onClick={() => setPageMode('notifications')}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-github-canvas-default border border-github-border-default
@@ -444,7 +471,7 @@ function App() {
             </div>
           ) : (
             /* Notifications Page */
-            <div className="space-y-0">
+            <div>
               {/* ARIA Live Regions for Screen Readers */}
               <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
                 {unreadCount} unread notification{unreadCount === 1 ? '' : 's'}
@@ -457,7 +484,7 @@ function App() {
               </div>
 
               {/* Header with unread count, actions, and logout */}
-            <div className="flex items-center justify-between p-4 pb-3">
+            <div className="flex items-center justify-between gap-4 mb-3">
               <div>
                 <h2 className="text-lg font-semibold text-github-fg-default">
                   Notifications
@@ -465,23 +492,43 @@ function App() {
               </div>
               <div className="flex items-center gap-2">
                 {viewMode === 'active' && !selectionMode && (
-                  <MarkAllReadButton
-                    onMarkAll={handleMarkAllAsRead}
+                  <button
+                    onClick={handleMarkAllAsRead}
                     disabled={notificationsLoading}
-                  />
+                    className="px-3 py-1.5 bg-github-canvas-default border border-github-border-default
+                             rounded-github hover:bg-github-canvas-subtle transition-colors
+                             font-medium text-xs text-github-fg-default flex items-center gap-1.5
+                             disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Mark all as read"
+                    title="Mark all as read"
+                  >
+                    <CheckCircleIcon size={14} />
+                  </button>
                 )}
                 {viewMode === 'active' && (
                   <button
                     onClick={handleToggleSelectionMode}
-                    className={`px-3 py-1.5 rounded-github font-medium text-xs transition-colors
+                    className={`px-3 py-1.5 rounded-github font-medium text-xs transition-colors flex items-center gap-1.5
                              ${selectionMode 
                                ? 'bg-github-accent-emphasis text-white hover:bg-github-accent-fg' 
                                : 'bg-github-canvas-default border border-github-border-default text-github-fg-default hover:bg-github-canvas-subtle'
                              }`}
+                    aria-label={selectionMode ? 'Exit selection mode' : 'Enter selection mode'}
+                    title={selectionMode ? 'Exit selection mode' : 'Select notifications'}
                   >
-                    {selectionMode ? 'Done' : 'Select'}
+                    {selectionMode ? 'Done' : <CheckboxIcon size={14} />}
                   </button>
                 )}
+                <button
+                  onClick={() => setIsHelpModalOpen(true)}
+                  className="px-3 py-1.5 bg-github-canvas-default border border-github-border-default
+                           rounded-github hover:bg-github-canvas-subtle transition-colors
+                           font-medium text-xs text-github-fg-default flex items-center gap-1.5"
+                  aria-label="Keyboard shortcuts help"
+                  title="Keyboard shortcuts (?)"
+                >
+                  <QuestionIcon size={14} />
+                </button>
                 <button
                   onClick={() => setPageMode('settings')}
                   className="px-3 py-1.5 bg-github-canvas-default border border-github-border-default
@@ -497,7 +544,7 @@ function App() {
             </div>
 
             {/* View Mode Toggle */}
-            <div className="flex items-center gap-1.5 px-4 pb-2">
+            <div className="flex items-center gap-1.5 mb-2">
               <button
                 onClick={() => setViewMode('active')}
                 className={`
@@ -559,7 +606,7 @@ function App() {
 
             {/* Select All - only show in selection mode */}
             {viewMode === 'active' && selectionMode && filteredNotifications.length > 0 && (
-              <div className="px-4 pb-2">
+              <div className="mb-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -593,7 +640,7 @@ function App() {
             {/* Notifications Error State */}
             {notificationsError && (
               <div 
-                className="p-4 bg-github-danger-subtle border border-github-danger-emphasis rounded-github m-4"
+                className="p-4 bg-github-danger-subtle border border-github-danger-emphasis rounded-github"
                 role="alert"
               >
                 <p className="text-sm text-github-danger-fg font-medium mb-2">
@@ -618,7 +665,7 @@ function App() {
               <div 
                 ref={listRef}
                 id="notification-list"
-                className="p-4 pt-2"
+                className="mt-2"
                 role="tabpanel"
               >
                 {filteredNotifications.length === 0 ? (
@@ -666,26 +713,20 @@ function App() {
 
             {/* Snoozed View */}
             {viewMode === 'snoozed' && (
-              <div className="p-4 pt-2">
+              <div className="mt-2">
                 <SnoozedTab />
               </div>
             )}
 
             {/* Archived View */}
             {viewMode === 'archived' && (
-              <div className="p-4 pt-2">
+              <div className="mt-2">
                 <ArchivedTab />
               </div>
             )}
             </div>
           )
         ) : null}
-
-        <footer className="mt-6 pt-4 border-t border-github-border-default">
-          <p className="text-xs text-github-fg-subtle text-center">
-            Built with React + TypeScript + Tailwind CSS
-          </p>
-        </footer>
       </div>
 
       {/* Toast notifications */}

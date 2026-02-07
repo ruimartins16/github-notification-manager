@@ -123,6 +123,10 @@ export function useKeyboardShortcuts({
         if (filter) {
           e.preventDefault()
           setFilter(filter)
+          // Blur the currently focused element to remove the focus ring
+          if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur()
+          }
           return
         }
       }

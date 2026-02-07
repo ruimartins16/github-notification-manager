@@ -28,32 +28,33 @@ export const FilterBar = memo(() => {
 
   return (
     <div 
-      className="flex items-center gap-1 p-2 border-b border-github-border-default bg-github-canvas-default"
+      className="overflow-x-auto border-b border-github-border-default bg-github-canvas-default mb-2"
       role="tablist"
       aria-label="Notification filters"
     >
-      {FILTER_TABS.map((tab) => {
-        const count = filterCounts[tab.id] ?? 0
-        const isActive = activeFilter === tab.id
+      <div className="flex items-center gap-1 px-2 py-2 min-w-max">
+        {FILTER_TABS.map((tab) => {
+          const count = filterCounts[tab.id] ?? 0
+          const isActive = activeFilter === tab.id
 
-        return (
-          <button
-            key={tab.id}
-            onClick={() => handleFilterClick(tab.id)}
-            role="tab"
-            aria-selected={isActive}
-            aria-controls="notification-list"
-            aria-label={`${tab.label} (${count} notifications) - Press ${tab.shortcut}`}
-            className={`
-              relative px-4 py-2 rounded-github text-sm font-medium transition-all
-              focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis focus:ring-offset-2
-              ${
-                isActive
-                  ? 'bg-github-accent-emphasis text-white shadow-sm'
-                  : 'text-github-fg-default hover:bg-github-canvas-subtle hover:text-github-fg-default'
-              }
-            `}
-          >
+          return (
+            <button
+              key={tab.id}
+              onClick={() => handleFilterClick(tab.id)}
+              role="tab"
+              aria-selected={isActive}
+              aria-controls="notification-list"
+              aria-label={`${tab.label} (${count} notifications) - Press ${tab.shortcut}`}
+              className={`
+                relative px-3 py-1.5 rounded-github text-xs font-medium transition-all flex-shrink-0
+                focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis
+                ${
+                  isActive
+                    ? 'bg-github-accent-emphasis text-white shadow-sm'
+                    : 'text-github-fg-default hover:bg-github-canvas-subtle hover:text-github-fg-default'
+                }
+              `}
+            >
             <span className="flex items-center gap-2">
               <span>{tab.label}</span>
               {count > 0 && (
@@ -72,25 +73,10 @@ export const FilterBar = memo(() => {
                 </span>
               )}
             </span>
-            
-            {/* Keyboard shortcut hint */}
-            <span
-              className={`
-                absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center
-                rounded text-[10px] font-bold
-                ${
-                  isActive
-                    ? 'bg-white text-github-accent-emphasis'
-                    : 'bg-github-canvas-subtle text-github-fg-muted border border-github-border-default'
-                }
-              `}
-              aria-hidden="true"
-            >
-              {tab.shortcut}
-            </span>
           </button>
         )
       })}
+      </div>
     </div>
   )
 })
