@@ -48,6 +48,9 @@ let isPolling = false
 // Alarm name for periodic notification fetching
 const FETCH_ALARM_NAME = 'fetch-notifications'
 
+// Alarm name for periodic subscription status check
+const SUB_STATUS_ALARM_NAME = 'check-subscription-status'
+
 // Initialize extension on install or update
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('Extension installed:', details.reason)
@@ -62,6 +65,13 @@ chrome.runtime.onInstalled.addListener((details) => {
     chrome.alarms.create(FETCH_ALARM_NAME, {
       delayInMinutes: 1,
       periodInMinutes: 1,
+    })
+    
+    // Create alarm for periodic subscription status check (every 60 minutes)
+    // This ensures we catch subscription changes like payment failures or cancellations
+    chrome.alarms.create(SUB_STATUS_ALARM_NAME, {
+      delayInMinutes: 5, // First check after 5 minutes
+      periodInMinutes: 60, // Then every hour
     })
     
     console.log('GitHub Notification Manager initialized with background polling')
@@ -80,6 +90,16 @@ chrome.runtime.onStartup.addListener(async () => {
     chrome.alarms.create(FETCH_ALARM_NAME, {
       delayInMinutes: 1,
       periodInMinutes: 1,
+    })
+  }
+  
+  // Recreate subscription status alarm if missing
+  const subAlarm = await chrome.alarms.get(SUB_STATUS_ALARM_NAME)
+  if (!subAlarm) {
+    console.log('Recreating subscription status check alarm on startup')
+    chrome.alarms.create(SUB_STATUS_ALARM_NAME, {
+      delayInMinutes: 5,
+      periodInMinutes: 60,
     })
   }
   
@@ -192,11 +212,14 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
 })
 
-// Handle alarms for background notification fetching and snooze wake-ups
+// Handle alarms for background notification fetching, snooze wake-ups, and subscription checks
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === FETCH_ALARM_NAME) {
     console.log('Background fetch alarm triggered')
     await fetchNotificationsInBackground()
+  } else if (alarm.name === SUB_STATUS_ALARM_NAME) {
+    console.log('Subscription status check alarm triggered')
+    await checkSubscriptionStatus()
   } else if (alarm.name.startsWith('snooze-')) {
     // Handle snooze wake-up
     const notificationId = alarm.name.replace('snooze-', '')
@@ -237,6 +260,48 @@ async function fetchNotificationsInBackground() {
     // Badge will be updated automatically by storage listener
   } catch (error) {
     console.error('Background fetch failed:', error)
+    // Don't throw - we'll retry on next alarm
+  }
+}
+
+/**
+ * Check subscription status in background (called by alarm)
+ * Refreshes user's Pro status and notifies UI of any changes
+ * Helps catch subscription changes like payment failures or cancellations
+ */
+async function checkSubscriptionStatus() {
+  try {
+    console.log('[SubStatus] Checking subscription status...')
+    
+    // Force refresh to get latest status from ExtensionPay
+    const user = await validateLicense(true)
+    
+    console.log('[SubStatus] Status check complete:', {
+      isPro: user.isPro,
+      status: user.subscriptionStatus,
+      cancelAt: user.subscriptionCancelAt
+    })
+    
+    // Detect status changes that need user attention
+    const needsAttention = user.isPro && (
+      user.subscriptionStatus === 'past_due' || 
+      user.subscriptionStatus === 'canceled'
+    )
+    
+    // Notify popup of status (if open)
+    chrome.runtime.sendMessage({
+      type: 'PRO_STATUS_CHANGED',
+      isPro: user.isPro,
+      status: user.subscriptionStatus,
+      needsAttention,
+    }).catch(() => {
+      // Popup not open - that's okay
+      if (needsAttention) {
+        console.warn('[SubStatus] Subscription needs attention:', user.subscriptionStatus)
+      }
+    })
+  } catch (error) {
+    console.error('[SubStatus] Failed to check subscription status:', error)
     // Don't throw - we'll retry on next alarm
   }
 }

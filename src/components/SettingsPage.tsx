@@ -4,6 +4,7 @@ import { useSettingsStore } from '../store/settings-store'
 import { useNotificationStore } from '../store/notification-store'
 import { AutoArchiveRules } from '../components/AutoArchiveRules'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { SubscriptionStatus } from '../components/SubscriptionStatus'
 import { FilterType } from '../types/storage'
 import { useProStatus } from '../hooks/useProStatus'
 import { extPayService } from '../utils/extpay-service'
@@ -291,6 +292,9 @@ export function SettingsPage() {
                     </div>
                   ) : (
                     <div className="space-y-4">
+                      {/* Subscription Status Warnings */}
+                      <SubscriptionStatus user={proUser} />
+                      
                       {/* Status Badge */}
                       <div className="flex items-center justify-between p-4 bg-github-canvas-default rounded-github border border-github-border-default">
                         <div>
