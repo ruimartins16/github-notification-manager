@@ -58,7 +58,7 @@ console.log('ExtPay test mode:', extpay.test) // Should be true in dev
 Verify the upgrade modal displays:
 - [ ] "Upgrade to Pro" heading
 - [ ] Feature being gated (e.g., "Snooze notifications")
-- [ ] Pricing: $3/month, $30 lifetime
+- [ ] Pricing: €3/month, €15 lifetime
 - [ ] "Upgrade Now" button that opens payment page
 - [ ] "Maybe Later" button to dismiss
 - [ ] Analytics tracked: `upgrade_modal_shown` with location
@@ -81,7 +81,7 @@ Verify the upgrade modal displays:
 
 #### 2.1 Monthly Subscription (Test Mode)
 - [ ] Open payment page from upgrade modal
-- [ ] Select "Monthly" plan ($3/month)
+- [ ] Select "Monthly" plan (€3/month)
 - [ ] Use test card: `4242 4242 4242 4242`
 - [ ] Expiry: Any future date (e.g., 12/34)
 - [ ] CVC: Any 3 digits (e.g., 123)
@@ -95,7 +95,7 @@ Verify the upgrade modal displays:
 #### 2.2 Lifetime Purchase (Test Mode)
 - [ ] Reset test (cancel subscription if needed)
 - [ ] Open payment page
-- [ ] Select "Lifetime" plan ($30)
+- [ ] Select "Lifetime" plan (€15)
 - [ ] Use test card: `4242 4242 4242 4242`
 - [ ] Complete payment
 - [ ] Verify analytics tracked: `payment_completed` (no `subscription_started` for lifetime)

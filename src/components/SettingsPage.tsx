@@ -395,14 +395,14 @@ export function SettingsPage() {
                           <div className="grid grid-cols-2 gap-3 text-center text-xs">
                             <div className="p-3 bg-github-canvas-default rounded-github border border-github-border-default">
                               <p className="font-semibold text-github-fg-default mb-1">Monthly</p>
-                              <p className="text-github-fg-muted">$3/month</p>
+                              <p className="text-github-fg-muted">€3/month</p>
                             </div>
                             <div className="p-3 bg-github-canvas-default rounded-github border-2 border-github-accent-emphasis relative">
                               <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-github-accent-emphasis text-white rounded-full text-[10px] font-semibold whitespace-nowrap">
                                 Best Value
                               </div>
                               <p className="font-semibold text-github-fg-default mb-1">Lifetime</p>
-                              <p className="text-github-fg-muted">$30 once</p>
+                              <p className="text-github-fg-muted">€15 once</p>
                             </div>
                           </div>
                         </div>

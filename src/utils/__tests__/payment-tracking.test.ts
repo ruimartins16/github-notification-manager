@@ -77,8 +77,8 @@ describe('Payment and Subscription Tracking', () => {
       await trackEvent(ANALYTICS_EVENTS.PAYMENT_COMPLETED, {
         plan: 'Pro Monthly',
         interval: 'month',
-        amount: 5,
-        currency: 'usd',
+        amount: 3,
+        currency: 'eur',
       })
       
       const events = await getEventsByName(ANALYTICS_EVENTS.PAYMENT_COMPLETED)
@@ -86,8 +86,8 @@ describe('Payment and Subscription Tracking', () => {
       expect(events[0]?.properties).toEqual({
         plan: 'Pro Monthly',
         interval: 'month',
-        amount: 5,
-        currency: 'usd',
+        amount: 3,
+        currency: 'eur',
       })
     })
 
@@ -97,14 +97,14 @@ describe('Payment and Subscription Tracking', () => {
       await trackEvent(ANALYTICS_EVENTS.PAYMENT_COMPLETED, {
         plan: 'Lifetime',
         interval: 'once',
-        amount: 30,
-        currency: 'usd',
+        amount: 15,
+        currency: 'eur',
       })
       
       const events = await getEventsByName(ANALYTICS_EVENTS.PAYMENT_COMPLETED)
       expect(events).toHaveLength(1)
       expect(events[0]?.properties?.interval).toBe('once')
-      expect(events[0]?.properties?.amount).toBe(30)
+      expect(events[0]?.properties?.amount).toBe(15)
     })
   })
 
@@ -129,8 +129,8 @@ describe('Payment and Subscription Tracking', () => {
       await trackEvent(ANALYTICS_EVENTS.PAYMENT_COMPLETED, {
         plan: 'Pro Monthly',
         interval: 'month',
-        amount: 5,
-        currency: 'usd',
+        amount: 3,
+        currency: 'eur',
       })
       
       await trackEvent(ANALYTICS_EVENTS.SUBSCRIPTION_STARTED, {
@@ -226,8 +226,8 @@ describe('Payment and Subscription Tracking', () => {
       await trackEvent(ANALYTICS_EVENTS.PAYMENT_COMPLETED, {
         plan: 'Pro Monthly',
         interval: 'month',
-        amount: 5,
-        currency: 'usd',
+        amount: 3,
+        currency: 'eur',
       })
       await trackEvent(ANALYTICS_EVENTS.SUBSCRIPTION_STARTED, {
         plan: 'Pro Monthly',
@@ -291,15 +291,15 @@ describe('Payment and Subscription Tracking', () => {
       await trackEvent(ANALYTICS_EVENTS.PAYMENT_COMPLETED, {
         plan: 'Pro Monthly',
         interval: 'month',
-        amount: 5,
-        currency: 'usd',
+        amount: 3,
+        currency: 'eur',
       })
       
       await trackEvent(ANALYTICS_EVENTS.PAYMENT_COMPLETED, {
         plan: 'Lifetime',
         interval: 'once',
-        amount: 30,
-        currency: 'usd',
+        amount: 15,
+        currency: 'eur',
       })
       
       const rate = await calculateConversionRate()
@@ -319,8 +319,8 @@ describe('Payment and Subscription Tracking', () => {
         trackEvent(ANALYTICS_EVENTS.PAYMENT_COMPLETED, {
           plan: 'Pro Monthly',
           interval: 'month',
-          amount: 5,
-          currency: 'usd',
+          amount: 3,
+          currency: 'eur',
         })
       ).resolves.not.toThrow()
     })
@@ -334,15 +334,15 @@ describe('Payment and Subscription Tracking', () => {
       await trackEvent(ANALYTICS_EVENTS.PAYMENT_COMPLETED, {
         plan: 'Pro Monthly',
         interval: 'month',
-        amount: 5,
-        currency: 'usd',
+        amount: 3,
+        currency: 'eur',
       })
       
       await trackEvent(ANALYTICS_EVENTS.PAYMENT_COMPLETED, {
         plan: 'Lifetime',
         interval: 'once',
-        amount: 30,
-        currency: 'usd',
+        amount: 15,
+        currency: 'eur',
       })
       
       const payments = await getEventsByName(ANALYTICS_EVENTS.PAYMENT_COMPLETED)

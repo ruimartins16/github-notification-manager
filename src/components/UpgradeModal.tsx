@@ -33,8 +33,8 @@ const PRO_FEATURES = [
  * Pricing plans to display
  */
 const PRICING_PLANS = [
-  { name: 'Monthly', price: '$3/month', savings: null },
-  { name: 'Lifetime', price: '$30 once', savings: 'Best Value' },
+  { name: 'Monthly', price: '€3/month', savings: null },
+  { name: 'Lifetime', price: '€15 once', savings: 'Best Value' },
 ]
 
 /**

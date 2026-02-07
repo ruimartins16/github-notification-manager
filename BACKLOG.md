@@ -695,8 +695,8 @@ See detailed LANDING-PAGE.md document for full requirements.
 **Payment Provider:** ExtensionPay (https://extensionpay.com)
 
 ### Pricing Model
-- **Monthly:** $3/month
-- **Lifetime:** $30 one-time payment (pay once, use forever)
+- **Monthly:** €3/month
+- **Lifetime:** €15 one-time payment (pay once, use forever)
 - **Payment Processing:** Stripe via ExtensionPay
 - **Fee:** 5% per transaction (handled by ExtensionPay)
 
@@ -715,8 +715,8 @@ See detailed LANDING-PAGE.md document for full requirements.
 | **Keyboard shortcuts** | ❌ | ✅ |
 
 **Pro Plans:**
-- Monthly: $3/month
-- Lifetime: $30 one-time (pay once, use forever)
+- Monthly: €3/month
+- Lifetime: €15 one-time (pay once, use forever)
 
 ---
 
@@ -834,10 +834,10 @@ As a developer, I want to connect my Stripe account to ExtensionPay so that I ca
 As a developer, I want to configure the pricing plans so that users can subscribe to monthly, annual, or lifetime plans.
 
 **Acceptance Criteria:**
-- [x] Monthly plan created: $3/month
-- [x] Lifetime plan created: $30 one-time payment
+- [x] Monthly plan created: €3/month
+- [x] Lifetime plan created: €15 one-time payment
 - [x] Plan descriptions written clearly
-- [x] Currency set to USD
+- [x] Currency set to EUR
 - [ ] Plans tested in test mode (will test during integration)
 - [ ] Subscription lifecycle verified (will verify during GNM-038)
 
@@ -850,20 +850,20 @@ As a developer, I want to configure the pricing plans so that users can subscrib
 ```
 Monthly Plan:
 - ID: monthly
-- Price: $3.00 USD
+- Price: €3.00 EUR
 - Interval: month
 - Description: "Pro features, billed monthly"
 
 Lifetime Plan:
 - ID: lifetime
-- Price: $30.00 USD
+- Price: €15.00 EUR
 - Interval: one-time
 - Description: "Pro features forever, pay once"
 ```
 
 **Implementation Summary:**
 - Two pricing tiers configured in ExtensionPay dashboard
-- Monthly ($3) and Lifetime ($30) plans active
+- Monthly (€3) and Lifetime (€15) plans active
 - All plans provide full Pro feature access
 - Ready for technical integration
 
@@ -1586,7 +1586,7 @@ As a free user, I want to see a compelling upgrade modal when I try a Pro featur
 - Dependencies: @headlessui/react, @heroicons/react
 - [ ] Modal opens when locked feature is clicked
 - [ ] Modal displays all Pro features with checkmarks
-- [ ] Modal shows pricing: $3/mo or $30 lifetime
+- [ ] Modal shows pricing: €3/mo or €15 lifetime
 - [ ] "Upgrade to Pro" CTA button opens payment page
 - [ ] "Maybe Later" dismiss button closes modal
 - [ ] Modal is accessible (keyboard nav, screen reader)
@@ -2734,7 +2734,7 @@ As a potential user, I want to see pricing information in the store listing so t
 ✓ Auto-refresh every 30 minutes
 ✓ Badge count
 
-## Pro Features ($3/month or $30 lifetime)
+## Pro Features (€3/month or €15 lifetime)
 ⭐ Snooze notifications (30min, 1hr, 3hrs, tomorrow, next week, custom)
 ⭐ Custom rules engine for advanced filtering and automation
 ⭐ Keyboard shortcuts (j/k navigation, m, s, a, r quick actions)
