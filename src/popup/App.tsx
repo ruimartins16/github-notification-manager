@@ -17,6 +17,7 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { GitHubAPI } from '../utils/github-api'
 import { convertApiUrlToWebUrl } from '../utils/url-converter'
 import { extPayService } from '../utils/extpay-service'
+import { trackEvent, ANALYTICS_EVENTS } from '../utils/analytics'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { GearIcon, ArrowLeftIcon, CheckCircleIcon, CheckboxIcon, QuestionIcon } from '@primer/octicons-react'
 
@@ -367,7 +368,10 @@ function App() {
             </p>
             {!proLoading && !isPro && (
               <button
-                onClick={() => setShowUpgradeModal(true)}
+                onClick={() => {
+                  trackEvent(ANALYTICS_EVENTS.UPGRADE_BUTTON_CLICKED, { location: 'header' })
+                  setShowUpgradeModal(true)
+                }}
                 className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-full hover:bg-blue-700 
                          transition-colors font-semibold whitespace-nowrap"
                 aria-label="Upgrade to Pro"

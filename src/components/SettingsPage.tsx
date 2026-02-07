@@ -8,6 +8,7 @@ import { SubscriptionStatus } from '../components/SubscriptionStatus'
 import { FilterType } from '../types/storage'
 import { useProStatus } from '../hooks/useProStatus'
 import { extPayService } from '../utils/extpay-service'
+import { trackEvent, ANALYTICS_EVENTS } from '../utils/analytics'
 
 type SettingsSection = 'account' | 'notifications' | 'behavior' | 'advanced' | 'rules'
 
@@ -346,7 +347,13 @@ export function SettingsPage() {
 
                       {/* Action Button */}
                       <button
-                        onClick={() => extPayService.openPaymentPage()}
+                        onClick={() => {
+                          trackEvent(
+                            isPro ? ANALYTICS_EVENTS.PAYMENT_PAGE_OPENED : ANALYTICS_EVENTS.UPGRADE_BUTTON_CLICKED,
+                            { location: 'settings', isPro }
+                          )
+                          extPayService.openPaymentPage()
+                        }}
                         className={`w-full px-4 py-2.5 text-sm font-medium rounded-github transition-colors focus:outline-none focus:ring-2 ${
                           isPro
                             ? 'bg-github-canvas-default border border-github-border-default text-github-fg-default hover:bg-github-canvas-subtle focus:ring-github-accent-emphasis'

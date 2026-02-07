@@ -6,9 +6,10 @@
  */
 
 import { Dialog, Transition } from '@headlessui/react'
-import { Fragment } from 'react'
+import { Fragment, useEffect } from 'react'
 import { LockClosedIcon, CheckIcon } from '@heroicons/react/24/outline'
 import { extPayService } from '../utils/extpay-service'
+import { trackEvent, ANALYTICS_EVENTS } from '../utils/analytics'
 
 interface UpgradeModalProps {
   /** Whether the modal is open */
@@ -62,8 +63,16 @@ const PRICING_PLANS = [
  * ```
  */
 export function UpgradeModal({ isOpen, onClose, feature }: UpgradeModalProps) {
+  // Track when modal is shown
+  useEffect(() => {
+    if (isOpen) {
+      trackEvent(ANALYTICS_EVENTS.UPGRADE_MODAL_SHOWN, { feature })
+    }
+  }, [isOpen, feature])
+
   const handleUpgrade = async () => {
     try {
+      trackEvent(ANALYTICS_EVENTS.PAYMENT_PAGE_OPENED, { source: 'upgrade_modal', feature })
       await extPayService.openPaymentPage()
       onClose()
     } catch (error) {
@@ -72,9 +81,14 @@ export function UpgradeModal({ isOpen, onClose, feature }: UpgradeModalProps) {
     }
   }
 
+  const handleClose = () => {
+    trackEvent(ANALYTICS_EVENTS.UPGRADE_MODAL_DISMISSED, { feature })
+    onClose()
+  }
+
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog as="div" className="relative z-50" onClose={handleClose}>
         {/* Backdrop with fade animation */}
         <Transition.Child
           as={Fragment}
@@ -166,7 +180,7 @@ export function UpgradeModal({ isOpen, onClose, feature }: UpgradeModalProps) {
                 </button>
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="w-full text-gray-600 py-2 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300 rounded transition-colors"
                   aria-label="Close modal"
                 >
