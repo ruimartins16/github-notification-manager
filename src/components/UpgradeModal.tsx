@@ -25,7 +25,7 @@ interface UpgradeModalProps {
 const PRO_FEATURES = [
   'Snooze notifications (30min, 1hr, 3hrs, tomorrow, next week)',
   'Custom rules engine for advanced filtering',
-  'Keyboard shortcuts (j/k, m, s, a, r)',
+  'All keyboard shortcuts (J/K navigation, D/A/S/O actions, 1-4 filters, Shift+D mark all)',
 ]
 
 /**

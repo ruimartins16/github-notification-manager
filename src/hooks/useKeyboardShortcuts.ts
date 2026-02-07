@@ -40,14 +40,14 @@ interface UseKeyboardShortcutsOptions {
  * Hook to manage keyboard shortcuts for notifications
  * 
  * Provides comprehensive keyboard navigation and actions:
- * - J/K: Navigate up/down (Free)
+ * - J/K: Navigate up/down (Pro)
  * - D: Mark as done (Pro)
  * - A: Archive (Pro)
  * - S: Snooze (Pro)
  * - O: Open notification (Pro)
- * - 1-4: Filter tabs (Free)
+ * - 1-4: Filter tabs (Pro)
  * - Shift+D: Mark all as read (Pro)
- * - ?: Show help (Free)
+ * - ?: Show help (Free - always available)
  */
 export function useKeyboardShortcuts({
   focusedIndex,
@@ -116,7 +116,15 @@ export function useKeyboardShortcuts({
         return
       }
 
-      // Filter shortcuts (1-4)
+      // Help shortcut (always free)
+      if (e.key === '?' && e.shiftKey) {
+        e.preventDefault()
+        onOpenHelp?.()
+        return
+      }
+
+      // All other shortcuts require Pro
+      // Filter shortcuts (1-4) - PRO
       if (!e.shiftKey) {
         const filterMap: Record<string, 'all' | 'mentions' | 'reviews' | 'assigned'> = {
           '1': 'all',
@@ -128,6 +136,10 @@ export function useKeyboardShortcuts({
         const filter = filterMap[e.key]
         if (filter) {
           e.preventDefault()
+          if (!isPro) {
+            onShowUpgrade?.('Keyboard Shortcuts')
+            return
+          }
           setFilter(filter)
           // Blur the currently focused element to remove the focus ring
           if (document.activeElement instanceof HTMLElement) {
@@ -137,15 +149,23 @@ export function useKeyboardShortcuts({
         }
       }
 
-      // Navigation shortcuts (lowercase only, Shift+J/K should not trigger)
+      // Navigation shortcuts (lowercase only, Shift+J/K should not trigger) - PRO
       if (e.key === 'j' && !e.shiftKey) {
         e.preventDefault()
+        if (!isPro) {
+          onShowUpgrade?.('Keyboard Shortcuts')
+          return
+        }
         navigateNext()
         return
       }
 
       if (e.key === 'k' && !e.shiftKey) {
         e.preventDefault()
+        if (!isPro) {
+          onShowUpgrade?.('Keyboard Shortcuts')
+          return
+        }
         navigatePrevious()
         return
       }
@@ -193,7 +213,7 @@ export function useKeyboardShortcuts({
         }
       }
 
-      // Global shortcuts
+      // Global shortcuts - PRO
       if (e.key === 'D' && e.shiftKey) {
         e.preventDefault()
         if (!isPro) {
@@ -201,12 +221,6 @@ export function useKeyboardShortcuts({
           return
         }
         onMarkAllRead?.()
-        return
-      }
-
-      if (e.key === '?' && e.shiftKey) {
-        e.preventDefault()
-        onOpenHelp?.()
         return
       }
     },
@@ -260,22 +274,22 @@ export function useKeyboardShortcuts({
    */
   const getShortcuts = useCallback((): KeyboardShortcut[] => {
     return [
-      // Navigation
+      // Navigation - PRO
       {
         key: 'J',
         description: 'Navigate to next notification',
         action: navigateNext,
         category: 'navigation',
-        isPro: false,
+        isPro: true,
       },
       {
         key: 'K',
         description: 'Navigate to previous notification',
         action: navigatePrevious,
         category: 'navigation',
-        isPro: false,
+        isPro: true,
       },
-      // Actions on focused item (Pro)
+      // Actions on focused item - PRO
       {
         key: 'D',
         description: 'Mark focused notification as done',
@@ -304,36 +318,36 @@ export function useKeyboardShortcuts({
         category: 'actions',
         isPro: true,
       },
-      // Filters (Free)
+      // Filters - PRO
       {
         key: '1',
         description: 'Show all notifications',
         action: () => setFilter('all'),
         category: 'filters',
-        isPro: false,
+        isPro: true,
       },
       {
         key: '2',
         description: 'Show mentions only',
         action: () => setFilter('mentions'),
         category: 'filters',
-        isPro: false,
+        isPro: true,
       },
       {
         key: '3',
         description: 'Show review requests',
         action: () => setFilter('reviews'),
         category: 'filters',
-        isPro: false,
+        isPro: true,
       },
       {
         key: '4',
         description: 'Show assigned issues',
         action: () => setFilter('assigned'),
         category: 'filters',
-        isPro: false,
+        isPro: true,
       },
-      // Global
+      // Global - PRO except help
       {
         key: 'Shift + D',
         description: 'Mark all as read',

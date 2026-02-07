@@ -369,7 +369,7 @@ export function SettingsPage() {
                             </li>
                             <li className="flex items-start gap-2 text-sm text-github-fg-muted">
                               <span className="text-github-success-fg mt-0.5">✓</span>
-                              <span>Pro keyboard shortcuts (D, A, S, O, Shift+D)</span>
+                              <span>All keyboard shortcuts (J/K navigation, D/A/S/O actions, 1-4 filters, Shift+D mark all)</span>
                             </li>
                           </ul>
                         </div>
