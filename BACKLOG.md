@@ -687,15 +687,2001 @@ See detailed LANDING-PAGE.md document for full requirements.
 
 ---
 
+## Epic 2: Freemium Monetization (GNM-018 to GNM-047)
+
+**Total Story Points:** 120
+**Estimated Duration:** 3 weeks (3 sprints)
+**Dependencies:** GNM-015 (Chrome Web Store Assets)
+**Payment Provider:** ExtensionPay (https://extensionpay.com)
+
+### Pricing Model
+- **Monthly:** $3/month
+- **Annual:** $30/year (save 16%)
+- **Payment Processing:** Stripe via ExtensionPay
+- **Fee:** 5% per transaction (handled by ExtensionPay)
+
+### Feature Tiers
+
+| Feature | FREE | PRO ($3/mo) |
+|---------|------|-------------|
+| View notifications | ✅ | ✅ |
+| Basic filters (Unread, Mentions, PRs, etc.) | ✅ | ✅ |
+| Mark as read (single + bulk) | ✅ | ✅ |
+| Archive notifications | ✅ | ✅ |
+| Auto-refresh (30 min) | ✅ | ✅ |
+| Browser badge count | ✅ | ✅ |
+| **Snooze notifications** | ❌ | ✅ |
+| **Custom rules engine** | ❌ | ✅ |
+| **Keyboard shortcuts** | ❌ | ✅ |
+
+---
+
+## Sprint F1: Foundation & Integration (Week 1)
+
+### [GNM-018] Create ExtensionPay Account and Register Extension
+**Priority:** P0 (Must Have)
+**Story Points:** 1
+**Dependencies:** None
+
+**User Story:**
+As a developer, I want to create an ExtensionPay account and register the extension so that I can start accepting payments.
+
+**Acceptance Criteria:**
+- [ ] ExtensionPay account created at https://extensionpay.com
+- [ ] Extension registered with ID "github-notification-manager"
+- [ ] Extension ID obtained and saved to project documentation
+- [ ] Dashboard access confirmed
+- [ ] Test mode enabled and verified working
+- [ ] API documentation reviewed
+
+**Technical Notes:**
+- ExtensionPay Docs: https://extensionpay.com/docs
+- Save extension ID in `.env.local` or secure config
+- Test mode allows testing payments without real charges
+- Extension ID format: lowercase with hyphens
+
+**Definition of Done:**
+- Account active with extension registered
+- Can access dashboard and see test data
+- Extension ID documented in project
+- Code review not required (setup task)
+
+---
+
+### [GNM-019] Connect Stripe Account for Payouts
+**Priority:** P0 (Must Have)
+**Story Points:** 2
+**Dependencies:** GNM-018
+
+**User Story:**
+As a developer, I want to connect my Stripe account to ExtensionPay so that I can receive payment payouts.
+
+**Acceptance Criteria:**
+- [ ] Stripe account created (if not existing)
+- [ ] Stripe account connected to ExtensionPay
+- [ ] Payout settings configured (bank account)
+- [ ] Test payment processed successfully in test mode
+- [ ] Payout received in Stripe dashboard (test mode)
+- [ ] Tax settings reviewed
+
+**Technical Notes:**
+- Stripe Dashboard: https://dashboard.stripe.com
+- ExtensionPay uses Stripe Connect for payouts
+- Payouts are automatic (daily or weekly configurable)
+- Stripe fees are separate from ExtensionPay 5% fee
+- Consider Stripe Atlas if setting up business entity
+
+**Definition of Done:**
+- Stripe connected and verified
+- Test payment shows in Stripe dashboard
+- Payout settings configured
+- Code review not required (setup task)
+
+---
+
+### [GNM-020] Configure Pricing Plans in ExtensionPay
+**Priority:** P0 (Must Have)
+**Story Points:** 1
+**Dependencies:** GNM-019
+
+**User Story:**
+As a developer, I want to configure the pricing plans so that users can subscribe to monthly or annual plans.
+
+**Acceptance Criteria:**
+- [ ] Monthly plan created: $3/month
+- [ ] Annual plan created: $30/year
+- [ ] Plan descriptions written clearly
+- [ ] Currency set to USD
+- [ ] Plans tested in test mode
+- [ ] Subscription lifecycle verified (create, cancel, reactivate)
+
+**Technical Notes:**
+- ExtensionPay supports multiple pricing tiers
+- Annual plan shows as "$2.50/month (billed yearly)" in UI
+- Consider adding a "lifetime" option in future
+- Plans can be modified after launch (careful with existing subscribers)
+
+**Plan Configuration:**
+```
+Monthly Plan:
+- ID: monthly
+- Price: $3.00 USD
+- Interval: month
+- Description: "Pro features, billed monthly"
+
+Annual Plan:
+- ID: yearly  
+- Price: $30.00 USD
+- Interval: year
+- Description: "Pro features, save 16%"
+```
+
+**Definition of Done:**
+- Both plans active in ExtensionPay dashboard
+- Test subscriptions work for both plans
+- Code review not required (setup task)
+
+---
+
+### [GNM-021] Install ExtPay npm Package
+**Priority:** P0 (Must Have)
+**Story Points:** 1
+**Dependencies:** GNM-018
+
+**User Story:**
+As a developer, I want to install the ExtPay library so that I can integrate payment functionality into the extension.
+
+**Acceptance Criteria:**
+- [ ] ExtPay package installed via npm
+- [ ] Package appears in package.json dependencies
+- [ ] TypeScript types available (or create declarations)
+- [ ] Library imports successfully in test file
+- [ ] No build errors after installation
+- [ ] Package version documented
+
+**Technical Notes:**
+```bash
+npm install extpay --save
+```
+
+- ExtPay GitHub: https://github.com/AwardsLabs/extpay.js
+- If no TypeScript types, create `src/types/extpay.d.ts`
+- Check for peer dependencies
+
+**Type Declaration (if needed):**
+```typescript
+// src/types/extpay.d.ts
+declare module 'extpay' {
+  interface User {
+    paid: boolean;
+    paidAt: Date | null;
+    email: string | null;
+    installedAt: Date;
+    trialStartedAt: Date | null;
+  }
+
+  interface ExtPay {
+    startBackground(): void;
+    getUser(): Promise<User>;
+    openPaymentPage(): void;
+    openTrialPage(daysRemaining: number): void;
+    onPaid: {
+      addListener(callback: (user: User) => void): void;
+    };
+  }
+
+  export default function ExtPay(extensionId: string): ExtPay;
+}
+```
+
+**Definition of Done:**
+- Package installed and importable
+- Types available for TypeScript
+- Build passes
+- Run code review before committing
+
+---
+
+### [GNM-022] Integrate ExtPay in Background Service Worker
+**Priority:** P0 (Must Have)
+**Story Points:** 3
+**Dependencies:** GNM-021
+
+**User Story:**
+As a developer, I want ExtPay initialized in the background service worker so that license validation works throughout the extension lifecycle.
+
+**Acceptance Criteria:**
+- [ ] ExtPay imported in background service worker
+- [ ] `extpay.startBackground()` called on service worker startup
+- [ ] Extension ID configured from environment/config
+- [ ] No console errors on extension load
+- [ ] ExtPay connection verified in console logs
+- [ ] Service worker doesn't crash or restart unexpectedly
+
+**Technical Notes:**
+- Background service worker: `src/background/service-worker.ts`
+- ExtPay must be initialized before any other code runs
+- Service worker may restart; ExtPay handles reconnection
+
+**Implementation:**
+```typescript
+// src/background/service-worker.ts
+import ExtPay from 'extpay';
+
+// Initialize ExtPay first
+const EXTENSION_ID = 'github-notification-manager';
+export const extpay = ExtPay(EXTENSION_ID);
+extpay.startBackground();
+
+// Rest of service worker code...
+console.log('[ExtPay] Background initialized');
+```
+
+**Testing:**
+1. Load extension in Chrome
+2. Open background service worker DevTools
+3. Verify no errors in console
+4. Check ExtPay connection message
+
+**Definition of Done:**
+- ExtPay running in background
+- No errors on startup
+- Service worker stable
+- Run code review before committing
+
+---
+
+### [GNM-023] Update manifest.json for ExtensionPay
+**Priority:** P0 (Must Have)
+**Story Points:** 2
+**Dependencies:** GNM-022
+
+**User Story:**
+As a developer, I want the manifest configured correctly so that ExtensionPay can handle payments and callbacks.
+
+**Acceptance Criteria:**
+- [ ] Content script permission added for extensionpay.com
+- [ ] Storage permission confirmed (already present)
+- [ ] Host permissions include extensionpay.com
+- [ ] Extension loads without permission errors
+- [ ] Payment page opens correctly from extension
+- [ ] Build successful with updated manifest
+
+**Technical Notes:**
+ExtensionPay requires a content script to handle payment callbacks.
+
+**Manifest Changes:**
+```json
+{
+  "content_scripts": [
+    {
+      "matches": ["https://extensionpay.com/*"],
+      "js": ["extpay-content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "host_permissions": [
+    "https://api.github.com/*",
+    "https://github.com/*",
+    "https://extensionpay.com/*"
+  ]
+}
+```
+
+**Note:** CRXJS may handle content script bundling differently. Test thoroughly.
+
+**Definition of Done:**
+- Manifest updated
+- Extension loads without errors
+- Payment flow works in test mode
+- Run code review before committing
+
+---
+
+### [GNM-024] Create ExtPay Service Wrapper
+**Priority:** P0 (Must Have)
+**Story Points:** 5
+**Dependencies:** GNM-022, GNM-023
+
+**User Story:**
+As a developer, I want a service wrapper for ExtPay so that I have a clean API to interact with payment functionality throughout the app.
+
+**Acceptance Criteria:**
+- [ ] ExtPayService class/module created
+- [ ] Methods: getUser, openPaymentPage, openManagementPage
+- [ ] Type-safe interface with proper TypeScript types
+- [ ] Error handling for network failures
+- [ ] Singleton pattern to ensure one instance
+- [ ] Unit tests written for service wrapper
+- [ ] Works in both popup and background contexts
+
+**Technical Notes:**
+Create a wrapper that abstracts ExtPay and provides a clean interface.
+
+**Implementation:**
+```typescript
+// src/services/extpay-service.ts
+import ExtPay from 'extpay';
+
+export interface ProUser {
+  isPro: boolean;
+  paidAt: Date | null;
+  email: string | null;
+  plan: 'monthly' | 'yearly' | null;
+  installedAt: Date;
+}
+
+class ExtPayService {
+  private static instance: ExtPayService;
+  private extpay: ReturnType<typeof ExtPay>;
+  private cachedUser: ProUser | null = null;
+
+  private constructor() {
+    this.extpay = ExtPay('github-notification-manager');
+  }
+
+  static getInstance(): ExtPayService {
+    if (!ExtPayService.instance) {
+      ExtPayService.instance = new ExtPayService();
+    }
+    return ExtPayService.instance;
+  }
+
+  async getUser(): Promise<ProUser> {
+    try {
+      const user = await this.extpay.getUser();
+      this.cachedUser = {
+        isPro: user.paid,
+        paidAt: user.paidAt,
+        email: user.email,
+        plan: this.detectPlan(user),
+        installedAt: user.installedAt,
+      };
+      return this.cachedUser;
+    } catch (error) {
+      console.error('[ExtPayService] Failed to get user:', error);
+      // Return cached or default on error
+      return this.cachedUser || {
+        isPro: false,
+        paidAt: null,
+        email: null,
+        plan: null,
+        installedAt: new Date(),
+      };
+    }
+  }
+
+  getCachedUser(): ProUser | null {
+    return this.cachedUser;
+  }
+
+  openPaymentPage(): void {
+    this.extpay.openPaymentPage();
+  }
+
+  onPaid(callback: (user: ProUser) => void): void {
+    this.extpay.onPaid.addListener((user) => {
+      const proUser = {
+        isPro: user.paid,
+        paidAt: user.paidAt,
+        email: user.email,
+        plan: this.detectPlan(user),
+        installedAt: user.installedAt,
+      };
+      this.cachedUser = proUser;
+      callback(proUser);
+    });
+  }
+
+  private detectPlan(user: any): 'monthly' | 'yearly' | null {
+    // ExtPay doesn't expose plan directly, infer from context
+    // or store in local storage after payment
+    return null; // Will be enhanced later
+  }
+}
+
+export const extPayService = ExtPayService.getInstance();
+```
+
+**Test File:**
+```typescript
+// src/services/__tests__/extpay-service.test.ts
+describe('ExtPayService', () => {
+  it('should return singleton instance', () => {
+    const instance1 = ExtPayService.getInstance();
+    const instance2 = ExtPayService.getInstance();
+    expect(instance1).toBe(instance2);
+  });
+
+  it('should return free user by default', async () => {
+    const user = await extPayService.getUser();
+    expect(user.isPro).toBe(false);
+  });
+
+  // More tests...
+});
+```
+
+**Definition of Done:**
+- Service wrapper implemented
+- Unit tests passing (>80% coverage)
+- Works in popup and background
+- Run code review before committing
+
+---
+
+### [GNM-025] Implement License Validation on Extension Startup
+**Priority:** P0 (Must Have)
+**Story Points:** 5
+**Dependencies:** GNM-024
+
+**User Story:**
+As a user, I want my Pro status to be validated when I open the extension so that I see the correct features available.
+
+**Acceptance Criteria:**
+- [ ] License checked on popup open
+- [ ] License checked on background service worker start
+- [ ] Status cached in chrome.storage.local
+- [ ] Cache refreshed every 24 hours
+- [ ] Offline handling (use cached status)
+- [ ] Loading state while checking license
+- [ ] Unit tests for validation logic
+
+**Technical Notes:**
+- Check license on startup, cache result
+- Don't block UI while checking (show loading briefly)
+- Graceful degradation if offline
+
+**Implementation:**
+```typescript
+// src/utils/license-validator.ts
+const CACHE_KEY = 'extpay_user_cache';
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+interface CachedUser {
+  user: ProUser;
+  timestamp: number;
+}
+
+export async function validateLicense(): Promise<ProUser> {
+  // Try cache first
+  const cached = await getCachedUser();
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.user;
+  }
+
+  // Fetch fresh
+  try {
+    const user = await extPayService.getUser();
+    await cacheUser(user);
+    return user;
+  } catch (error) {
+    // Offline or error - return cached or free
+    if (cached) {
+      return cached.user;
+    }
+    return { isPro: false, paidAt: null, email: null, plan: null, installedAt: new Date() };
+  }
+}
+
+async function getCachedUser(): Promise<CachedUser | null> {
+  const result = await chrome.storage.local.get(CACHE_KEY);
+  return result[CACHE_KEY] || null;
+}
+
+async function cacheUser(user: ProUser): Promise<void> {
+  await chrome.storage.local.set({
+    [CACHE_KEY]: { user, timestamp: Date.now() }
+  });
+}
+```
+
+**Definition of Done:**
+- License validation working
+- Cache working correctly
+- Offline handling verified
+- Unit tests passing
+- Run code review before committing
+
+---
+
+### [GNM-026] Cache User Status in Chrome Storage
+**Priority:** P0 (Must Have)
+**Story Points:** 3
+**Dependencies:** GNM-025
+
+**User Story:**
+As a user, I want my Pro status cached locally so that the extension works offline and loads quickly.
+
+**Acceptance Criteria:**
+- [ ] User status stored in chrome.storage.local
+- [ ] Cache includes: isPro, paidAt, email, timestamp
+- [ ] Cache TTL of 24 hours implemented (7 days for offline use)
+- [ ] Cache cleared on logout
+- [ ] Cache updated on payment success
+- [ ] Unit tests for cache operations
+
+**Technical Notes:**
+This extends GNM-025 with more robust caching.
+
+**Storage Schema:**
+```typescript
+interface StoredProStatus {
+  user: {
+    isPro: boolean;
+    paidAt: string | null; // ISO date string
+    email: string | null;
+    plan: 'monthly' | 'yearly' | null;
+  };
+  cachedAt: number; // timestamp
+  version: number; // schema version for migrations
+}
+```
+
+**Definition of Done:**
+- Cache implemented and tested
+- TTL working correctly
+- Unit tests passing
+- Run code review before committing
+
+---
+
+### [GNM-027] Create React Hook useProStatus()
+**Priority:** P0 (Must Have)
+**Story Points:** 5
+**Dependencies:** GNM-025, GNM-026
+
+**User Story:**
+As a developer, I want a React hook to check Pro status so that I can easily gate features in components.
+
+**Acceptance Criteria:**
+- [ ] Hook returns { isPro, isLoading, user, error, refresh }
+- [ ] Hook fetches user status on mount
+- [ ] Hook updates when payment status changes (onPaid callback)
+- [ ] Hook handles loading and error states
+- [ ] Hook caches result to prevent unnecessary API calls
+- [ ] TypeScript types fully defined
+- [ ] Unit tests with mocked ExtPay
+- [ ] Works correctly with React Strict Mode
+
+**Technical Notes:**
+This is the primary interface for components to check Pro status.
+
+**Implementation:**
+```typescript
+// src/hooks/useProStatus.ts
+import { useState, useEffect, useCallback } from 'react';
+import { extPayService, ProUser } from '../services/extpay-service';
+import { validateLicense } from '../utils/license-validator';
+
+interface UseProStatusResult {
+  isPro: boolean;
+  isLoading: boolean;
+  user: ProUser | null;
+  error: Error | null;
+  refresh: () => Promise<void>;
+}
+
+export function useProStatus(): UseProStatusResult {
+  const [user, setUser] = useState<ProUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchUser = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const proUser = await validateLicense();
+      setUser(proUser);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to check license'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUser();
+
+    // Listen for payment events
+    extPayService.onPaid((paidUser) => {
+      setUser(paidUser);
+    });
+  }, [fetchUser]);
+
+  return {
+    isPro: user?.isPro ?? false,
+    isLoading,
+    user,
+    error,
+    refresh: fetchUser,
+  };
+}
+```
+
+**Test File:**
+```typescript
+// src/hooks/__tests__/useProStatus.test.ts
+import { renderHook, waitFor } from '@testing-library/react';
+import { useProStatus } from '../useProStatus';
+
+// Mock extPayService
+vi.mock('../../services/extpay-service', () => ({
+  extPayService: {
+    getUser: vi.fn().mockResolvedValue({ isPro: false }),
+    onPaid: { addListener: vi.fn() },
+  },
+}));
+
+describe('useProStatus', () => {
+  it('should start with loading state', () => {
+    const { result } = renderHook(() => useProStatus());
+    expect(result.current.isLoading).toBe(true);
+  });
+
+  it('should return isPro false for free user', async () => {
+    const { result } = renderHook(() => useProStatus());
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+    expect(result.current.isPro).toBe(false);
+  });
+
+  it('should return isPro true for paid user', async () => {
+    vi.mocked(extPayService.getUser).mockResolvedValueOnce({ isPro: true, ... });
+    const { result } = renderHook(() => useProStatus());
+    await waitFor(() => {
+      expect(result.current.isPro).toBe(true);
+    });
+  });
+
+  it('should handle errors gracefully', async () => {
+    vi.mocked(extPayService.getUser).mockRejectedValueOnce(new Error('Network error'));
+    const { result } = renderHook(() => useProStatus());
+    await waitFor(() => {
+      expect(result.current.error).toBeTruthy();
+      expect(result.current.isPro).toBe(false);
+    });
+  });
+});
+```
+
+**Definition of Done:**
+- Hook implemented with all features
+- Unit tests passing (>90% coverage)
+- Works in Strict Mode
+- Run code review before committing
+
+---
+
+### [GNM-028] Handle Offline and Network Errors Gracefully
+**Priority:** P1 (Should Have)
+**Story Points:** 4
+**Dependencies:** GNM-027
+
+**User Story:**
+As a user, I want the extension to work offline so that I can use it even without internet connection.
+
+**Acceptance Criteria:**
+- [ ] Extension works when offline (uses cached status)
+- [ ] Network errors don't crash the extension
+- [ ] User sees their last known Pro status when offline
+- [ ] Retry logic for transient failures
+- [ ] Clear error messages when payment server unreachable
+- [ ] Automatic retry when connection restored
+- [ ] Unit tests for offline scenarios
+
+**Technical Notes:**
+- Use navigator.onLine to detect connectivity
+- Cache should be trusted for 7 days offline
+- Show subtle indicator if status is stale
+
+**Implementation:**
+```typescript
+// src/utils/network-handler.ts
+export function isOnline(): boolean {
+  return navigator.onLine;
+}
+
+export function onNetworkChange(callback: (online: boolean) => void): () => void {
+  const handleOnline = () => callback(true);
+  const handleOffline = () => callback(false);
+  
+  window.addEventListener('online', handleOnline);
+  window.addEventListener('offline', handleOffline);
+  
+  return () => {
+    window.removeEventListener('online', handleOnline);
+    window.removeEventListener('offline', handleOffline);
+  };
+}
+
+// In validateLicense:
+export async function validateLicense(): Promise<ProUser> {
+  if (!isOnline()) {
+    const cached = await getCachedUser();
+    if (cached) {
+      console.log('[License] Offline, using cached status');
+      return cached.user;
+    }
+    // No cache, assume free
+    return defaultFreeUser();
+  }
+  
+  // Online - fetch fresh...
+}
+```
+
+**Definition of Done:**
+- Offline handling implemented
+- Retry logic working
+- Unit tests passing
+- Run code review before committing
+
+---
+
+## Sprint F2: UI & Feature Gating (Week 2)
+
+### [GNM-029] Create UpgradeModal Component
+**Priority:** P0 (Must Have)
+**Story Points:** 8
+**Dependencies:** GNM-027
+
+**User Story:**
+As a free user, I want to see a compelling upgrade modal when I try a Pro feature so that I understand the value and can easily upgrade.
+
+**Acceptance Criteria:**
+- [ ] Modal opens when locked feature is clicked
+- [ ] Modal displays all Pro features with checkmarks
+- [ ] Modal shows pricing: $3/mo or $30/yr with savings percentage
+- [ ] "Upgrade to Pro" CTA button opens payment page
+- [ ] "Maybe Later" dismiss button closes modal
+- [ ] Modal is accessible (keyboard nav, screen reader)
+- [ ] Responsive design (fits in 400px popup)
+- [ ] Smooth animations (fade in/out)
+- [ ] Unit tests for modal behavior
+- [ ] Visual regression test snapshot
+
+**Technical Notes:**
+Use existing UI components (Button, Modal if exists).
+
+**Implementation:**
+```typescript
+// src/components/UpgradeModal.tsx
+import { Dialog } from '@headlessui/react';
+import { LockClosedIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { extPayService } from '../services/extpay-service';
+
+interface UpgradeModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  feature?: string; // Which feature triggered the modal
+}
+
+const PRO_FEATURES = [
+  'Snooze notifications (30min, 1hr, 3hrs, tomorrow, next week)',
+  'Custom rules engine for advanced filtering',
+  'Keyboard shortcuts (j/k, m, s, a, r)',
+];
+
+export function UpgradeModal({ isOpen, onClose, feature }: UpgradeModalProps) {
+  const handleUpgrade = () => {
+    extPayService.openPaymentPage();
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onClose={onClose} className="relative z-50">
+      {/* Backdrop */}
+      <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+
+      {/* Modal */}
+      <div className="fixed inset-0 flex items-center justify-center p-4">
+        <Dialog.Panel className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+          {/* Icon */}
+          <div className="flex justify-center mb-4">
+            <div className="bg-yellow-100 rounded-full p-3">
+              <LockClosedIcon className="w-8 h-8 text-yellow-600" />
+            </div>
+          </div>
+
+          {/* Title */}
+          <Dialog.Title className="text-xl font-bold text-center text-gray-900 mb-2">
+            Unlock Pro Features
+          </Dialog.Title>
+
+          {/* Description */}
+          <Dialog.Description className="text-center text-gray-600 mb-6">
+            {feature 
+              ? `${feature} is a Pro feature.`
+              : 'Upgrade to unlock powerful features.'}
+          </Dialog.Description>
+
+          {/* Feature List */}
+          <ul className="space-y-3 mb-6">
+            {PRO_FEATURES.map((feat) => (
+              <li key={feat} className="flex items-start gap-3">
+                <CheckIcon className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                <span className="text-sm text-gray-700">{feat}</span>
+              </li>
+            ))}
+          </ul>
+
+          {/* Pricing */}
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-gray-600">Monthly</span>
+              <span className="font-semibold">$3/month</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Yearly</span>
+              <div className="text-right">
+                <span className="font-semibold">$30/year</span>
+                <span className="text-green-600 text-sm ml-2">Save 16%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <button
+            onClick={handleUpgrade}
+            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors mb-3"
+          >
+            Upgrade to Pro →
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full text-gray-600 py-2 hover:text-gray-800 transition-colors"
+          >
+            Maybe Later
+          </button>
+        </Dialog.Panel>
+      </div>
+    </Dialog>
+  );
+}
+```
+
+**Test File:**
+```typescript
+// src/components/__tests__/UpgradeModal.test.tsx
+describe('UpgradeModal', () => {
+  it('should render when open', () => {
+    render(<UpgradeModal isOpen={true} onClose={vi.fn()} />);
+    expect(screen.getByText('Unlock Pro Features')).toBeInTheDocument();
+  });
+
+  it('should show feature name when provided', () => {
+    render(<UpgradeModal isOpen={true} onClose={vi.fn()} feature="Snooze" />);
+    expect(screen.getByText('Snooze is a Pro feature.')).toBeInTheDocument();
+  });
+
+  it('should call onClose when Maybe Later clicked', () => {
+    const onClose = vi.fn();
+    render(<UpgradeModal isOpen={true} onClose={onClose} />);
+    fireEvent.click(screen.getByText('Maybe Later'));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('should open payment page when Upgrade clicked', () => {
+    const mockOpenPayment = vi.spyOn(extPayService, 'openPaymentPage');
+    render(<UpgradeModal isOpen={true} onClose={vi.fn()} />);
+    fireEvent.click(screen.getByText('Upgrade to Pro →'));
+    expect(mockOpenPayment).toHaveBeenCalled();
+  });
+
+  it('should be accessible', () => {
+    const { container } = render(<UpgradeModal isOpen={true} onClose={vi.fn()} />);
+    expect(container).toBeAccessible(); // using jest-axe
+  });
+});
+```
+
+**Definition of Done:**
+- Modal component implemented
+- All acceptance criteria met
+- Unit tests passing
+- Accessible (WCAG 2.1 AA)
+- Run code review before committing
+
+---
+
+### [GNM-030] Create ProBadge Component
+**Priority:** P1 (Should Have)
+**Story Points:** 3
+**Dependencies:** None
+
+**User Story:**
+As a user, I want to see a visual indicator on Pro features so that I know which features require an upgrade.
+
+**Acceptance Criteria:**
+- [ ] Badge component shows "PRO" text
+- [ ] Badge is visually distinct (yellow/gold color)
+- [ ] Badge is small and doesn't obstruct UI
+- [ ] Badge has tooltip explaining Pro features
+- [ ] Badge is accessible (aria-label)
+- [ ] Unit tests for rendering
+
+**Implementation:**
+```typescript
+// src/components/ProBadge.tsx
+interface ProBadgeProps {
+  className?: string;
+  showTooltip?: boolean;
+}
+
+export function ProBadge({ className = '', showTooltip = true }: ProBadgeProps) {
+  return (
+    <span
+      className={`
+        inline-flex items-center px-1.5 py-0.5 
+        text-xs font-semibold 
+        bg-gradient-to-r from-yellow-400 to-yellow-500 
+        text-yellow-900 
+        rounded-full
+        ${className}
+      `}
+      title={showTooltip ? 'Upgrade to Pro to unlock this feature' : undefined}
+      aria-label="Pro feature"
+    >
+      PRO
+    </span>
+  );
+}
+```
+
+**Definition of Done:**
+- Component implemented
+- Unit tests passing
+- Accessible
+- Run code review before committing
+
+---
+
+### [GNM-031] Add Upgrade Button to Header
+**Priority:** P1 (Should Have)
+**Story Points:** 3
+**Dependencies:** GNM-027, GNM-029
+
+**User Story:**
+As a free user, I want to see an upgrade button in the header so that I can easily upgrade without trying a locked feature.
+
+**Acceptance Criteria:**
+- [ ] "Upgrade to Pro" button shown for free users
+- [ ] "⭐ Pro" badge shown for Pro users
+- [ ] Button opens upgrade modal (or payment page directly)
+- [ ] Pro badge links to account management
+- [ ] Button/badge positioned in header without disrupting layout
+- [ ] Unit tests for conditional rendering
+
+**Implementation:**
+```typescript
+// src/components/Header.tsx (add to existing)
+import { useProStatus } from '../hooks/useProStatus';
+import { ProBadge } from './ProBadge';
+
+export function Header() {
+  const { isPro, isLoading } = useProStatus();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  return (
+    <header className="flex items-center justify-between p-4 border-b">
+      <h1 className="text-lg font-semibold">Notifications</h1>
+      
+      <div className="flex items-center gap-2">
+        {isLoading ? (
+          <span className="text-sm text-gray-400">...</span>
+        ) : isPro ? (
+          <button
+            onClick={() => extPayService.openPaymentPage()}
+            className="flex items-center gap-1 text-sm text-yellow-600 hover:text-yellow-700"
+          >
+            <span>⭐</span>
+            <span>Pro</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => setShowUpgradeModal(true)}
+            className="text-sm bg-blue-600 text-white px-3 py-1 rounded-full hover:bg-blue-700"
+          >
+            Upgrade
+          </button>
+        )}
+        
+        {/* Settings button, etc. */}
+      </div>
+      
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
+    </header>
+  );
+}
+```
+
+**Definition of Done:**
+- Button/badge added to header
+- Conditional rendering working
+- Unit tests passing
+- Run code review before committing
+
+---
+
+### [GNM-032] Gate Snooze Feature Behind Pro Check
+**Priority:** P0 (Must Have)
+**Story Points:** 5
+**Dependencies:** GNM-027, GNM-029
+
+**User Story:**
+As a product owner, I want snooze functionality to be Pro-only so that free users have incentive to upgrade.
+
+**Acceptance Criteria:**
+- [ ] Snooze button shows Pro badge for free users
+- [ ] Clicking snooze opens upgrade modal for free users
+- [ ] Snooze works normally for Pro users
+- [ ] Clear visual indicator that feature is locked
+- [ ] No way to bypass the check (validation on action too)
+- [ ] Existing snoozed notifications still wake for free users who downgrade
+- [ ] Unit tests for gate logic
+
+**Technical Notes:**
+- Find all snooze entry points (button, context menu, keyboard)
+- Wrap in Pro check
+- Keep snooze logic intact, just add gating
+
+**Implementation:**
+```typescript
+// src/components/NotificationActions.tsx (or similar)
+const { isPro } = useProStatus();
+const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+const handleSnooze = () => {
+  if (!isPro) {
+    setShowUpgradeModal(true);
+    return;
+  }
+  
+  // Normal snooze logic
+  openSnoozeMenu();
+};
+
+<button
+  onClick={handleSnooze}
+  className="relative p-2 hover:bg-gray-100 rounded"
+  aria-label={isPro ? 'Snooze notification' : 'Snooze (Pro feature)'}
+>
+  <ClockIcon className="w-5 h-5" />
+  {!isPro && <ProBadge className="absolute -top-1 -right-1" />}
+</button>
+
+<UpgradeModal
+  isOpen={showUpgradeModal}
+  onClose={() => setShowUpgradeModal(false)}
+  feature="Snooze"
+/>
+```
+
+**Definition of Done:**
+- Snooze gated for free users
+- Pro users can snooze normally
+- Upgrade modal shows on click
+- Unit tests passing
+- Run code review before committing
+
+---
+
+### [GNM-033] Gate Custom Rules Behind Pro Check
+**Priority:** P0 (Must Have)
+**Story Points:** 5
+**Dependencies:** GNM-027, GNM-029
+
+**User Story:**
+As a product owner, I want custom rules to be Pro-only so that power users are incentivized to upgrade.
+
+**Acceptance Criteria:**
+- [ ] Rules section/page shows Pro badge for free users
+- [ ] Creating new rules opens upgrade modal for free users
+- [ ] Existing rules are visible but not editable for free users
+- [ ] Pro users can create unlimited rules
+- [ ] Clear messaging about Pro requirement
+- [ ] Rules engine still applies existing rules (just can't edit)
+- [ ] Unit tests for gate logic
+
+**Technical Notes:**
+- Gate: rule creation, rule editing, rule deletion
+- Don't gate: rule execution (let existing rules work)
+- This ensures users who downgrade don't lose their rules, just can't modify
+
+**Implementation:**
+```typescript
+// src/pages/RulesPage.tsx or src/components/RulesSection.tsx
+const { isPro } = useProStatus();
+
+return (
+  <div>
+    <div className="flex items-center justify-between mb-4">
+      <h2 className="text-lg font-semibold flex items-center gap-2">
+        Custom Rules
+        {!isPro && <ProBadge />}
+      </h2>
+      
+      <button
+        onClick={isPro ? handleCreateRule : () => setShowUpgradeModal(true)}
+        disabled={!isPro}
+        className={`px-3 py-1 rounded ${
+          isPro 
+            ? 'bg-blue-600 text-white hover:bg-blue-700' 
+            : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+        }`}
+      >
+        Create Rule
+      </button>
+    </div>
+    
+    {!isPro && (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+        <p className="text-sm text-yellow-800">
+          Upgrade to Pro to create and edit custom rules.
+        </p>
+        <button 
+          onClick={() => setShowUpgradeModal(true)}
+          className="text-sm text-blue-600 hover:underline mt-1"
+        >
+          Learn more →
+        </button>
+      </div>
+    )}
+    
+    <RulesList readOnly={!isPro} />
+  </div>
+);
+```
+
+**Definition of Done:**
+- Rules gated for free users
+- Existing rules still execute
+- Pro users have full access
+- Unit tests passing
+- Run code review before committing
+
+---
+
+### [GNM-034] Gate Keyboard Shortcuts Behind Pro Check
+**Priority:** P0 (Must Have)
+**Story Points:** 3
+**Dependencies:** GNM-027
+
+**User Story:**
+As a product owner, I want keyboard shortcuts to be Pro-only so that power users have incentive to upgrade.
+
+**Acceptance Criteria:**
+- [ ] Keyboard shortcuts disabled for free users
+- [ ] Pressing shortcut key shows upgrade toast/modal for free users
+- [ ] Shortcuts work normally for Pro users
+- [ ] Keyboard help modal shows Pro badge on shortcuts for free users
+- [ ] Unit tests for gate logic
+
+**Technical Notes:**
+- Modify useKeyboardShortcuts hook
+- Show brief toast instead of full modal for less disruption
+
+**Implementation:**
+```typescript
+// src/hooks/useKeyboardShortcuts.ts
+import { useProStatus } from './useProStatus';
+import { toast } from 'react-hot-toast'; // or your toast library
+
+export function useKeyboardShortcuts(/* existing params */) {
+  const { isPro } = useProStatus();
+  
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    // Allow certain keys even for free users (Escape, arrow navigation)
+    const freeKeys = ['Escape', 'ArrowUp', 'ArrowDown'];
+    
+    if (freeKeys.includes(event.key)) {
+      // Handle normally
+      return handleFreeKeyAction(event);
+    }
+    
+    // Pro-only shortcuts: j, k, m, s, a, r, ?
+    if (!isPro) {
+      toast.error('Keyboard shortcuts are a Pro feature', {
+        duration: 2000,
+        position: 'bottom-center',
+      });
+      return;
+    }
+    
+    // Handle Pro shortcuts
+    handleProKeyAction(event);
+  }, [isPro]);
+  
+  // ... rest of hook
+}
+```
+
+**Keyboard Help Modal Update:**
+```typescript
+// In keyboard shortcuts help modal
+const shortcuts = [
+  { key: 'j/k', action: 'Navigate up/down', isPro: true },
+  { key: 'm', action: 'Mark as read', isPro: true },
+  { key: 's', action: 'Snooze', isPro: true },
+  { key: 'a', action: 'Archive', isPro: true },
+  { key: 'r', action: 'Refresh', isPro: true },
+  { key: '?', action: 'Show shortcuts', isPro: false }, // Always available
+  { key: 'Esc', action: 'Close', isPro: false }, // Always available
+];
+```
+
+**Definition of Done:**
+- Shortcuts gated for free users
+- Toast shown when Pro shortcut pressed
+- Help modal shows Pro badges
+- Unit tests passing
+- Run code review before committing
+
+---
+
+### [GNM-035] Show Pro Badges on Locked Features
+**Priority:** P1 (Should Have)
+**Story Points:** 3
+**Dependencies:** GNM-030, GNM-027
+
+**User Story:**
+As a free user, I want to see Pro badges on locked features so that I know what I'll get when I upgrade.
+
+**Acceptance Criteria:**
+- [ ] Snooze button has Pro badge for free users
+- [ ] Rules section has Pro badge for free users
+- [ ] Keyboard shortcuts section has Pro badge for free users
+- [ ] Settings page shows which features are Pro
+- [ ] Badges removed for Pro users
+- [ ] Unit tests for conditional badge rendering
+
+**Technical Notes:**
+- Audit all Pro features and add badges
+- Use consistent ProBadge component
+
+**Definition of Done:**
+- All Pro features have badges
+- Badges conditional on user status
+- Unit tests passing
+- Run code review before committing
+
+---
+
+### [GNM-036] Implement Upgrade Prompts on Feature Click
+**Priority:** P1 (Should Have)
+**Story Points:** 5
+**Dependencies:** GNM-029
+
+**User Story:**
+As a free user, I want to see upgrade prompts when I try to use locked features so that I understand what I'm missing.
+
+**Acceptance Criteria:**
+- [ ] Clicking locked feature opens upgrade modal
+- [ ] Modal shows which feature was clicked
+- [ ] Modal opens from snooze, rules, and keyboard shortcut areas
+- [ ] Consistent experience across all locked features
+- [ ] Analytics event tracked (feature name)
+- [ ] Unit tests for prompt triggers
+
+**Technical Notes:**
+This ties together GNM-032, 033, 034 with consistent UX.
+
+**Implementation:**
+Create a shared context/provider for upgrade prompts:
+
+```typescript
+// src/contexts/UpgradeContext.tsx
+interface UpgradeContextType {
+  showUpgradePrompt: (feature: string) => void;
+}
+
+const UpgradeContext = createContext<UpgradeContextType | null>(null);
+
+export function UpgradeProvider({ children }: { children: React.ReactNode }) {
+  const [feature, setFeature] = useState<string | null>(null);
+  
+  const showUpgradePrompt = useCallback((feat: string) => {
+    setFeature(feat);
+    // Track analytics
+    trackEvent('upgrade_prompt_shown', { feature: feat });
+  }, []);
+  
+  return (
+    <UpgradeContext.Provider value={{ showUpgradePrompt }}>
+      {children}
+      <UpgradeModal 
+        isOpen={!!feature} 
+        onClose={() => setFeature(null)}
+        feature={feature || undefined}
+      />
+    </UpgradeContext.Provider>
+  );
+}
+
+export function useUpgradePrompt() {
+  const context = useContext(UpgradeContext);
+  if (!context) throw new Error('useUpgradePrompt must be used within UpgradeProvider');
+  return context;
+}
+```
+
+**Definition of Done:**
+- Context/provider implemented
+- All features use shared prompt
+- Analytics tracking added
+- Unit tests passing
+- Run code review before committing
+
+---
+
+### [GNM-037] Create Settings/Account Page with Subscription Status
+**Priority:** P1 (Should Have)
+**Story Points:** 5
+**Dependencies:** GNM-027
+
+**User Story:**
+As a user, I want to see my subscription status in settings so that I know my current plan and can manage my subscription.
+
+**Acceptance Criteria:**
+- [ ] Settings page shows account section
+- [ ] Free users see: "Free Plan" with upgrade button
+- [ ] Pro users see: plan type (Monthly/Yearly), next billing date
+- [ ] "Manage Subscription" button for Pro users
+- [ ] List of Pro features shown
+- [ ] Email address shown if available
+- [ ] Unit tests for account section
+
+**Technical Notes:**
+- Add account section to existing Settings page
+- Use extPayService.openPaymentPage() for manage button
+
+**Implementation:**
+```typescript
+// src/components/AccountSection.tsx
+export function AccountSection() {
+  const { isPro, user, isLoading } = useProStatus();
+  
+  if (isLoading) {
+    return <div className="animate-pulse h-32 bg-gray-100 rounded-lg" />;
+  }
+  
+  return (
+    <div className="bg-white rounded-lg border p-4">
+      <h3 className="font-semibold text-gray-900 mb-4">Account</h3>
+      
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-gray-600">Status</span>
+        {isPro ? (
+          <span className="flex items-center gap-1 text-yellow-600 font-medium">
+            <span>⭐</span> Pro
+          </span>
+        ) : (
+          <span className="text-gray-500">Free</span>
+        )}
+      </div>
+      
+      {isPro && user && (
+        <>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-gray-600">Plan</span>
+            <span>{user.plan === 'yearly' ? 'Yearly' : 'Monthly'}</span>
+          </div>
+          
+          {user.email && (
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-gray-600">Email</span>
+              <span className="text-sm">{user.email}</span>
+            </div>
+          )}
+          
+          {user.paidAt && (
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-gray-600">Member since</span>
+              <span className="text-sm">{formatDate(user.paidAt)}</span>
+            </div>
+          )}
+        </>
+      )}
+      
+      <button
+        onClick={() => extPayService.openPaymentPage()}
+        className={`w-full py-2 px-4 rounded-lg font-medium ${
+          isPro
+            ? 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+            : 'bg-blue-600 text-white hover:bg-blue-700'
+        }`}
+      >
+        {isPro ? 'Manage Subscription' : 'Upgrade to Pro'}
+      </button>
+      
+      {isPro && (
+        <div className="mt-4 pt-4 border-t">
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Pro Features</h4>
+          <ul className="text-sm text-gray-600 space-y-1">
+            <li>✓ Snooze notifications</li>
+            <li>✓ Custom rules engine</li>
+            <li>✓ Keyboard shortcuts</li>
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+**Definition of Done:**
+- Account section implemented
+- Free/Pro states displayed correctly
+- Manage subscription works
+- Unit tests passing
+- Run code review before committing
+
+---
+
+### [GNM-038] Implement onPaid Callback Handler
+**Priority:** P1 (Should Have)
+**Story Points:** 5
+**Dependencies:** GNM-024, GNM-027
+
+**User Story:**
+As a user, I want the extension to immediately recognize my payment so that I can start using Pro features without refreshing.
+
+**Acceptance Criteria:**
+- [ ] Extension listens for onPaid callback from ExtPay
+- [ ] UI updates immediately when payment confirmed
+- [ ] Pro badge appears in header
+- [ ] Locked features become unlocked
+- [ ] Success toast/notification shown
+- [ ] User data cached for future use
+- [ ] Unit tests for callback handling
+
+**Technical Notes:**
+- ExtPay sends callback when payment page completes
+- Must update all useProStatus hooks
+
+**Implementation:**
+```typescript
+// src/background/service-worker.ts
+import { extpay } from './extpay';
+
+// Listen for payment events
+extpay.onPaid.addListener((user) => {
+  console.log('[ExtPay] User paid!', user);
+  
+  // Cache the user
+  chrome.storage.local.set({
+    extpay_user_cache: {
+      user: {
+        isPro: true,
+        paidAt: user.paidAt,
+        email: user.email,
+        plan: null, // Detect from context
+      },
+      timestamp: Date.now(),
+    },
+  });
+  
+  // Notify popup if open
+  chrome.runtime.sendMessage({ type: 'PAYMENT_SUCCESS', user });
+});
+
+// src/popup/App.tsx (or context provider)
+useEffect(() => {
+  const handleMessage = (message: any) => {
+    if (message.type === 'PAYMENT_SUCCESS') {
+      // Refresh Pro status
+      refreshProStatus();
+      toast.success('Welcome to Pro! All features unlocked.', {
+        duration: 4000,
+        icon: '⭐',
+      });
+    }
+  };
+  
+  chrome.runtime.onMessage.addListener(handleMessage);
+  return () => chrome.runtime.onMessage.removeListener(handleMessage);
+}, []);
+```
+
+**Definition of Done:**
+- Callback handler implemented
+- UI updates immediately
+- Success toast shown
+- Unit tests passing
+- Run code review before committing
+
+---
+
+## Sprint F3: Polish & Launch Prep (Week 3)
+
+### [GNM-039] Test Subscription Cancellation Flow
+**Priority:** P1 (Should Have)
+**Story Points:** 3
+**Dependencies:** GNM-038
+
+**User Story:**
+As a user, I want to be able to cancel my subscription so that I'm not charged if I no longer want Pro.
+
+**Acceptance Criteria:**
+- [ ] Cancel button accessible from Settings
+- [ ] Cancel flow handled by ExtensionPay
+- [ ] User retains Pro until end of billing period
+- [ ] UI shows cancellation date
+- [ ] Can resubscribe after cancellation
+- [ ] E2E test for cancellation flow
+
+**Technical Notes:**
+- Cancellation handled by ExtPay payment page
+- Test in ExtPay test mode
+
+**Test Scenarios:**
+1. Cancel monthly subscription → verify Pro until end of month
+2. Cancel annual subscription → verify Pro until end of year
+3. Resubscribe after cancellation → verify Pro restored
+4. Check billing date display after cancellation
+
+**Definition of Done:**
+- Cancellation flow tested end-to-end
+- UI handles canceled state correctly
+- Resubscription works
+- Run code review before committing
+
+---
+
+### [GNM-040] Handle Subscription Status Changes
+**Priority:** P1 (Should Have)
+**Story Points:** 5
+**Dependencies:** GNM-039
+
+**User Story:**
+As a user, I want the extension to correctly reflect my subscription status so that I always see accurate Pro status.
+
+**Acceptance Criteria:**
+- [ ] Handle status: active, past_due, canceled
+- [ ] Show warning for past_due status
+- [ ] Show cancellation date for canceled status
+- [ ] Grace period handling (still Pro while past_due)
+- [ ] Automatic status refresh
+- [ ] Unit tests for all status states
+
+**Technical Notes:**
+- past_due: Payment failed but subscription not canceled yet
+- canceled: User canceled but still in billing period
+- expired: Subscription ended (not Pro anymore)
+
+**Implementation:**
+```typescript
+// src/components/SubscriptionStatus.tsx
+export function SubscriptionStatus() {
+  const { user } = useProStatus();
+  
+  if (!user?.isPro) return null;
+  
+  // Check for warning states
+  if (user.subscriptionStatus === 'past_due') {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+        <p className="text-sm text-yellow-800 font-medium">
+          ⚠️ Payment failed
+        </p>
+        <p className="text-sm text-yellow-700 mt-1">
+          Please update your payment method to keep Pro features.
+        </p>
+        <button
+          onClick={() => extPayService.openPaymentPage()}
+          className="text-sm text-blue-600 hover:underline mt-2"
+        >
+          Update payment →
+        </button>
+      </div>
+    );
+  }
+  
+  if (user.subscriptionStatus === 'canceled' && user.cancelAt) {
+    return (
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
+        <p className="text-sm text-gray-800">
+          Your subscription will end on {formatDate(user.cancelAt)}
+        </p>
+        <button
+          onClick={() => extPayService.openPaymentPage()}
+          className="text-sm text-blue-600 hover:underline mt-1"
+        >
+          Resubscribe →
+        </button>
+      </div>
+    );
+  }
+  
+  return null;
+}
+```
+
+**Definition of Done:**
+- All status states handled
+- Warnings displayed correctly
+- Unit tests passing
+- Run code review before committing
+
+---
+
+### [GNM-041] Add Analytics for Upgrade Flow
+**Priority:** P2 (Nice to Have)
+**Story Points:** 2
+**Dependencies:** GNM-036
+
+**User Story:**
+As a product owner, I want to track upgrade funnel metrics so that I can optimize conversion.
+
+**Acceptance Criteria:**
+- [ ] Track: upgrade_button_clicked (location)
+- [ ] Track: upgrade_modal_shown (feature trigger)
+- [ ] Track: upgrade_modal_dismissed
+- [ ] Track: payment_page_opened
+- [ ] Events stored locally (privacy-first)
+- [ ] Analytics can be exported/viewed
+- [ ] Unit tests for tracking functions
+
+**Technical Notes:**
+- Start with local analytics (no external service)
+- Decide on analytics provider later (GNM-041 notes)
+- Store events in chrome.storage.local
+
+**Implementation:**
+```typescript
+// src/utils/analytics.ts
+interface AnalyticsEvent {
+  event: string;
+  properties?: Record<string, any>;
+  timestamp: number;
+}
+
+const ANALYTICS_KEY = 'analytics_events';
+const MAX_EVENTS = 1000; // Keep last 1000 events
+
+export async function trackEvent(
+  event: string, 
+  properties?: Record<string, any>
+): Promise<void> {
+  const newEvent: AnalyticsEvent = {
+    event,
+    properties,
+    timestamp: Date.now(),
+  };
+  
+  const { [ANALYTICS_KEY]: events = [] } = await chrome.storage.local.get(ANALYTICS_KEY);
+  
+  // Add new event, keep only last MAX_EVENTS
+  const updatedEvents = [...events, newEvent].slice(-MAX_EVENTS);
+  
+  await chrome.storage.local.set({ [ANALYTICS_KEY]: updatedEvents });
+  
+  console.log('[Analytics]', event, properties);
+}
+
+export async function getEvents(): Promise<AnalyticsEvent[]> {
+  const { [ANALYTICS_KEY]: events = [] } = await chrome.storage.local.get(ANALYTICS_KEY);
+  return events;
+}
+
+export async function exportEvents(): Promise<string> {
+  const events = await getEvents();
+  return JSON.stringify(events, null, 2);
+}
+
+// Usage
+trackEvent('upgrade_button_clicked', { location: 'header' });
+trackEvent('upgrade_modal_shown', { feature: 'snooze' });
+trackEvent('upgrade_modal_dismissed');
+trackEvent('payment_page_opened');
+```
+
+**Definition of Done:**
+- Analytics utility implemented
+- Events tracked for upgrade flow
+- Unit tests passing
+- Run code review before committing
+
+---
+
+### [GNM-042] Track Successful Payments and Conversions
+**Priority:** P2 (Nice to Have)
+**Story Points:** 2
+**Dependencies:** GNM-041, GNM-038
+
+**User Story:**
+As a product owner, I want to track successful payments so that I can calculate conversion rate.
+
+**Acceptance Criteria:**
+- [ ] Track: payment_completed (plan type)
+- [ ] Track: subscription_started
+- [ ] Track: subscription_canceled
+- [ ] Track: subscription_reactivated
+- [ ] Calculate conversion rate from events
+- [ ] Unit tests for tracking
+
+**Technical Notes:**
+- Extend analytics from GNM-041
+- Track in onPaid callback
+
+**Implementation:**
+```typescript
+// In background service worker
+extpay.onPaid.addListener((user) => {
+  trackEvent('payment_completed', {
+    plan: detectPlan(user),
+    email_provided: !!user.email,
+  });
+  
+  trackEvent('subscription_started', {
+    timestamp: Date.now(),
+  });
+});
+
+// Conversion rate calculation
+export async function getConversionStats(): Promise<{
+  upgradeClicks: number;
+  modalViews: number;
+  paymentsCompleted: number;
+  conversionRate: number;
+}> {
+  const events = await getEvents();
+  
+  const upgradeClicks = events.filter(e => e.event === 'upgrade_button_clicked').length;
+  const modalViews = events.filter(e => e.event === 'upgrade_modal_shown').length;
+  const payments = events.filter(e => e.event === 'payment_completed').length;
+  
+  return {
+    upgradeClicks,
+    modalViews,
+    paymentsCompleted: payments,
+    conversionRate: modalViews > 0 ? (payments / modalViews) * 100 : 0,
+  };
+}
+```
+
+**Definition of Done:**
+- Payment tracking implemented
+- Stats calculation working
+- Unit tests passing
+- Run code review before committing
+
+---
+
+### [GNM-043] Update Chrome Web Store Listing with Pricing
+**Priority:** P1 (Should Have)
+**Story Points:** 2
+**Dependencies:** GNM-029
+
+**User Story:**
+As a potential user, I want to see pricing information in the store listing so that I can make an informed decision.
+
+**Acceptance Criteria:**
+- [ ] Store description mentions freemium model
+- [ ] Free features clearly listed
+- [ ] Pro features and pricing clearly listed
+- [ ] No misleading claims
+- [ ] Compliant with Chrome Web Store policies
+
+**Store Listing Update:**
+```markdown
+## Free Features
+✓ View all your GitHub notifications
+✓ Filter by type (Mentions, PRs, Issues, CI, Dependabot)
+✓ Mark as read (single or bulk)
+✓ Archive notifications
+✓ Auto-refresh every 30 minutes
+✓ Badge count
+
+## Pro Features ($3/month or $30/year)
+⭐ Snooze notifications (30min, 1hr, 3hrs, tomorrow, next week, custom)
+⭐ Custom rules engine for advanced filtering and automation
+⭐ Keyboard shortcuts (j/k navigation, m, s, a, r quick actions)
+
+Start for free, upgrade anytime!
+```
+
+**Definition of Done:**
+- Store listing updated
+- Pricing clearly stated
+- Compliant with policies
+- Run code review before committing (for docs/store-listing-copy.md)
+
+---
+
+### [GNM-044] Update Privacy Policy for Payment Data
+**Priority:** P0 (Must Have)
+**Story Points:** 2
+**Dependencies:** GNM-018
+
+**User Story:**
+As a user, I want to know how my payment information is handled so that I can trust the extension.
+
+**Acceptance Criteria:**
+- [ ] Privacy policy updated with payment section
+- [ ] Explains ExtensionPay and Stripe usage
+- [ ] Clarifies we don't store credit card info
+- [ ] Explains email collection for subscription management
+- [ ] Deployed to GitHub Pages
+- [ ] Link in extension settings
+
+**Privacy Policy Addition:**
+```markdown
+## Payment Information
+
+### Payment Processing
+We use ExtensionPay and Stripe to process subscription payments. 
+Your payment information is handled securely by Stripe and is never 
+stored in the extension or on our servers.
+
+### What We Collect
+- **Email address:** Used for subscription management, receipts, and 
+  account recovery. Stored by ExtensionPay.
+- **Subscription status:** Stored locally in your browser to enable 
+  Pro features.
+
+### What We Don't Collect
+- Credit card numbers
+- Bank account information
+- Billing addresses (handled by Stripe)
+
+### Third-Party Services
+- **ExtensionPay** (extensionpay.com): Manages subscriptions
+- **Stripe** (stripe.com): Processes payments securely
+
+For questions about payment data, contact support@extensionpay.com
+```
+
+**Definition of Done:**
+- Privacy policy updated
+- Deployed to GitHub Pages
+- Run code review before committing
+
+---
+
+### [GNM-045] End-to-End Payment Flow Testing
+**Priority:** P0 (Must Have)
+**Story Points:** 5
+**Dependencies:** All GNM-018 to GNM-044
+
+**User Story:**
+As a developer, I want to test the entire payment flow so that I'm confident it works before launch.
+
+**Acceptance Criteria:**
+- [ ] Test free user experience (all gates working)
+- [ ] Test upgrade flow (modal → payment page → success)
+- [ ] Test Pro user experience (all features unlocked)
+- [ ] Test subscription management
+- [ ] Test cancellation and resubscription
+- [ ] Test offline behavior
+- [ ] Test multi-device login
+- [ ] Document any issues found
+- [ ] All issues resolved before launch
+
+**Test Checklist:**
+
+**1. Free User Experience:**
+- [ ] Install extension fresh
+- [ ] Verify Pro badges on locked features
+- [ ] Click snooze → verify modal appears
+- [ ] Click rules → verify modal appears
+- [ ] Try keyboard shortcut → verify toast appears
+- [ ] Click upgrade in header → verify modal appears
+
+**2. Upgrade Flow:**
+- [ ] Click "Upgrade to Pro" in modal
+- [ ] Payment page opens
+- [ ] Select monthly plan, complete payment (test mode)
+- [ ] Return to extension
+- [ ] Verify Pro badge appears
+- [ ] Verify all features unlocked
+- [ ] Repeat with annual plan
+
+**3. Pro User Experience:**
+- [ ] Snooze works
+- [ ] Custom rules work
+- [ ] Keyboard shortcuts work
+- [ ] Settings shows subscription info
+- [ ] Manage subscription opens payment page
+
+**4. Cancellation:**
+- [ ] Cancel subscription in payment page
+- [ ] Verify Pro still works (until end of period)
+- [ ] Verify cancellation date shown
+- [ ] Resubscribe
+- [ ] Verify Pro restored
+
+**5. Edge Cases:**
+- [ ] Offline: verify cached status used
+- [ ] Network error: verify graceful degradation
+- [ ] Multiple devices: verify login works
+- [ ] Extension update: verify subscription persists
+
+**Definition of Done:**
+- All test cases pass
+- Issues documented and resolved
+- Ready for production launch
+- Run code review for any fixes
+
+---
+
+### [GNM-046] Test Multi-Device Login
+**Priority:** P2 (Nice to Have)
+**Story Points:** 3
+**Dependencies:** GNM-045
+
+**User Story:**
+As a user, I want to use my Pro subscription on multiple devices so that I can work from different computers.
+
+**Acceptance Criteria:**
+- [ ] Pay on Chrome (Device A)
+- [ ] Install on Firefox (Device B)
+- [ ] Log in with email on Device B
+- [ ] Pro status syncs to Device B
+- [ ] Both devices have Pro features
+- [ ] Document login flow for users
+
+**Test Scenarios:**
+1. Pay on Chrome Windows → Login on Chrome Mac
+2. Pay on Chrome → Login on Edge
+3. Pay on one Chrome profile → Login on another profile
+4. Uninstall → Reinstall → Login
+
+**Definition of Done:**
+- Multi-device login tested
+- Documentation written
+- Run code review for any changes
+
+---
+
+### [GNM-047] Test Offline Behavior
+**Priority:** P2 (Nice to Have)
+**Story Points:** 3
+**Dependencies:** GNM-028
+
+**User Story:**
+As a user, I want the extension to work offline so that I can use it without internet temporarily.
+
+**Acceptance Criteria:**
+- [ ] Extension works when offline (using cached status)
+- [ ] Pro users remain Pro offline (cached)
+- [ ] Free users remain free offline
+- [ ] Reconnection refreshes status
+- [ ] No crashes or errors offline
+- [ ] Test cache expiry (7 days)
+
+**Test Scenarios:**
+1. Go offline → verify Pro status from cache
+2. Stay offline for 1 hour → still works
+3. Reconnect → status refreshes
+4. Clear cache → go offline → graceful degradation
+5. Pro user: clear cache → go offline → should still see Pro (within TTL)
+
+**Definition of Done:**
+- Offline behavior tested
+- All scenarios pass
+- Run code review for any fixes
+
+---
+
 ## Priority Summary
 
 ### P0 - Must Have for MVP (58 points)
 - GNM-001 through GNM-010, GNM-012, GNM-014, GNM-015, GNM-016
 
-### P1 - Should Have (16 points)
-- GNM-011, GNM-013, GNM-017
+### P0 - Must Have for Freemium (50 points)
+- GNM-018, GNM-019, GNM-020, GNM-021, GNM-022, GNM-023, GNM-024, GNM-025, GNM-026, GNM-027, GNM-029, GNM-032, GNM-033, GNM-034, GNM-044, GNM-045
 
-### P2 - Nice to Have (Future Sprints)
+### P1 - Should Have (43 points)
+- GNM-011, GNM-013, GNM-017, GNM-028, GNM-030, GNM-031, GNM-035, GNM-036, GNM-037, GNM-038, GNM-039, GNM-040, GNM-043
+
+### P2 - Nice to Have (10 points)
+- GNM-041, GNM-042, GNM-046, GNM-047
 - Dark mode, search, sounds, notifications, multi-account, advanced filtering
 
 ---
