@@ -6,6 +6,7 @@
  */
 
 import ExtPay from 'extpay'
+import { trackEvent, ANALYTICS_EVENTS } from './analytics'
 
 // Initialize ExtPay with extension ID from environment
 const EXTENSION_ID = import.meta.env.VITE_EXTPAY_EXTENSION_ID || 'github-notification-manager'
@@ -244,6 +245,26 @@ class ExtPayService {
         // Update cache with fresh data
         this.cachedUser = proUser
         this.lastFetchTime = Date.now()
+        
+        // Track payment completion
+        trackEvent(ANALYTICS_EVENTS.PAYMENT_COMPLETED, {
+          plan: proUser.plan?.nickname || 'unknown',
+          interval: proUser.plan?.interval,
+          amount: proUser.plan?.amount,
+          currency: proUser.plan?.currency,
+        }).catch(error => {
+          console.error('[ExtPayService] Failed to track payment:', error)
+        })
+        
+        // Only track subscription_started for recurring plans (not one-time purchases)
+        if (proUser.plan?.interval && proUser.plan.interval !== 'once') {
+          trackEvent(ANALYTICS_EVENTS.SUBSCRIPTION_STARTED, {
+            plan: proUser.plan.nickname || 'unknown',
+            interval: proUser.plan.interval,
+          }).catch(error => {
+            console.error('[ExtPayService] Failed to track subscription start:', error)
+          })
+        }
         
         // Call all registered callbacks with error handling
         this.paidListeners.forEach(cb => {

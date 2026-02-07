@@ -21,6 +21,7 @@ import { AutoArchiveRule } from '../types/rules'
 import type { GitHubNotification } from '../types/github'
 import { extPayService } from '../utils/extpay-service'
 import { validateLicense, updateCacheOnPayment } from '../utils/license-validator'
+import { trackEvent, ANALYTICS_EVENTS } from '../utils/analytics'
 
 console.log('GitHub Notification Manager: Background service worker loaded')
 
@@ -273,6 +274,9 @@ async function checkSubscriptionStatus() {
   try {
     console.log('[SubStatus] Checking subscription status...')
     
+    // Get previous status to detect changes
+    const previousUser = extPayService.getCachedUser()
+    
     // Force refresh to get latest status from ExtensionPay
     const user = await validateLicense(true)
     
@@ -281,6 +285,37 @@ async function checkSubscriptionStatus() {
       status: user.subscriptionStatus,
       cancelAt: user.subscriptionCancelAt
     })
+    
+    // Track subscription status changes (only if we have a previous status to compare)
+    if (previousUser) {
+      const statusChanged = previousUser.subscriptionStatus !== user.subscriptionStatus
+      
+      if (statusChanged) {
+        console.log('[SubStatus] Status changed:', previousUser.subscriptionStatus, '->', user.subscriptionStatus)
+        
+        if (user.subscriptionStatus === 'canceled') {
+          trackEvent(ANALYTICS_EVENTS.SUBSCRIPTION_CANCELED, {
+            previousStatus: previousUser.subscriptionStatus,
+            cancelAt: user.subscriptionCancelAt?.toISOString(),
+          }).catch(error => {
+            console.error('[SubStatus] Failed to track cancellation:', error)
+          })
+        } else if (previousUser.subscriptionStatus === 'canceled' && user.subscriptionStatus === 'active') {
+          trackEvent(ANALYTICS_EVENTS.SUBSCRIPTION_REACTIVATED, {
+            plan: user.plan?.nickname || 'unknown',
+            interval: user.plan?.interval,
+          }).catch(error => {
+            console.error('[SubStatus] Failed to track reactivation:', error)
+          })
+        }
+      }
+    } else {
+      // First check - no previous status to compare, log current status
+      console.log('[SubStatus] First status check:', {
+        isPro: user.isPro,
+        status: user.subscriptionStatus,
+      })
+    }
     
     // Detect status changes that need user attention
     const needsAttention = user.isPro && (
