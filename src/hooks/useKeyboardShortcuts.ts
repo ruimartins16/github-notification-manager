@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react'
 import { useNotificationStore } from '../store/notification-store'
+import { useProStatus } from './useProStatus'
 
 export interface KeyboardShortcut {
   key: string
@@ -7,6 +8,7 @@ export interface KeyboardShortcut {
   action: () => void
   category: 'navigation' | 'actions' | 'filters' | 'global'
   requiresShift?: boolean
+  isPro?: boolean
 }
 
 interface UseKeyboardShortcutsOptions {
@@ -28,6 +30,8 @@ interface UseKeyboardShortcutsOptions {
   onMarkAllRead?: () => void
   /** Callback when opening help modal */
   onOpenHelp?: () => void
+  /** Callback to show upgrade prompt */
+  onShowUpgrade?: (feature: string) => void
   /** Whether shortcuts are enabled */
   enabled?: boolean
 }
@@ -36,14 +40,14 @@ interface UseKeyboardShortcutsOptions {
  * Hook to manage keyboard shortcuts for notifications
  * 
  * Provides comprehensive keyboard navigation and actions:
- * - J/K: Navigate up/down
- * - D: Mark as done
- * - A: Archive
- * - S: Snooze
- * - O: Open notification
- * - 1-4: Filter tabs
- * - Shift+D: Mark all as read
- * - ?: Show help
+ * - J/K: Navigate up/down (Free)
+ * - D: Mark as done (Pro)
+ * - A: Archive (Pro)
+ * - S: Snooze (Pro)
+ * - O: Open notification (Pro)
+ * - 1-4: Filter tabs (Free)
+ * - Shift+D: Mark all as read (Pro)
+ * - ?: Show help (Free)
  */
 export function useKeyboardShortcuts({
   focusedIndex,
@@ -55,10 +59,12 @@ export function useKeyboardShortcuts({
   onSnoozeFocused,
   onMarkAllRead,
   onOpenHelp,
+  onShowUpgrade,
   enabled = true,
 }: UseKeyboardShortcutsOptions) {
   const setFilter = useNotificationStore(state => state.setFilter)
   const listRef = useRef<HTMLDivElement | null>(null)
+  const { isPro } = useProStatus()
 
   /**
    * Navigate to next notification (J key)
@@ -148,24 +154,40 @@ export function useKeyboardShortcuts({
       if (focusedIndex >= 0) {
         if (e.key === 'd' && !e.shiftKey) {
           e.preventDefault()
+          if (!isPro) {
+            onShowUpgrade?.('Keyboard Shortcuts')
+            return
+          }
           onMarkFocusedDone?.()
           return
         }
 
         if ((e.key === 'a' || e.key === 'A') && !e.shiftKey) {
           e.preventDefault()
+          if (!isPro) {
+            onShowUpgrade?.('Keyboard Shortcuts')
+            return
+          }
           onArchiveFocused?.()
           return
         }
 
         if ((e.key === 's' || e.key === 'S') && !e.shiftKey) {
           e.preventDefault()
+          if (!isPro) {
+            onShowUpgrade?.('Keyboard Shortcuts')
+            return
+          }
           onSnoozeFocused?.()
           return
         }
 
         if ((e.key === 'o' || e.key === 'O') && !e.shiftKey) {
           e.preventDefault()
+          if (!isPro) {
+            onShowUpgrade?.('Keyboard Shortcuts')
+            return
+          }
           onOpenFocused?.()
           return
         }
@@ -174,6 +196,10 @@ export function useKeyboardShortcuts({
       // Global shortcuts
       if (e.key === 'D' && e.shiftKey) {
         e.preventDefault()
+        if (!isPro) {
+          onShowUpgrade?.('Keyboard Shortcuts')
+          return
+        }
         onMarkAllRead?.()
         return
       }
@@ -187,6 +213,7 @@ export function useKeyboardShortcuts({
     [
       enabled,
       focusedIndex,
+      isPro,
       navigateNext,
       navigatePrevious,
       onMarkFocusedDone,
@@ -195,6 +222,8 @@ export function useKeyboardShortcuts({
       onOpenFocused,
       onMarkAllRead,
       onOpenHelp,
+      onShowUpgrade,
+      setFilter,
     ]
   )
 
@@ -237,62 +266,72 @@ export function useKeyboardShortcuts({
         description: 'Navigate to next notification',
         action: navigateNext,
         category: 'navigation',
+        isPro: false,
       },
       {
         key: 'K',
         description: 'Navigate to previous notification',
         action: navigatePrevious,
         category: 'navigation',
+        isPro: false,
       },
-      // Actions on focused item
+      // Actions on focused item (Pro)
       {
         key: 'D',
         description: 'Mark focused notification as done',
         action: () => onMarkFocusedDone?.(),
         category: 'actions',
+        isPro: true,
       },
       {
         key: 'A',
         description: 'Archive focused notification',
         action: () => onArchiveFocused?.(),
         category: 'actions',
+        isPro: true,
       },
       {
         key: 'S',
         description: 'Snooze focused notification',
         action: () => onSnoozeFocused?.(),
         category: 'actions',
+        isPro: true,
       },
       {
         key: 'O',
         description: 'Open focused notification in GitHub',
         action: () => onOpenFocused?.(),
         category: 'actions',
+        isPro: true,
       },
-      // Filters
+      // Filters (Free)
       {
         key: '1',
         description: 'Show all notifications',
         action: () => setFilter('all'),
         category: 'filters',
+        isPro: false,
       },
       {
         key: '2',
         description: 'Show mentions only',
         action: () => setFilter('mentions'),
         category: 'filters',
+        isPro: false,
       },
       {
         key: '3',
         description: 'Show review requests',
         action: () => setFilter('reviews'),
         category: 'filters',
+        isPro: false,
       },
       {
         key: '4',
         description: 'Show assigned issues',
         action: () => setFilter('assigned'),
         category: 'filters',
+        isPro: false,
       },
       // Global
       {
@@ -301,6 +340,7 @@ export function useKeyboardShortcuts({
         action: () => onMarkAllRead?.(),
         category: 'global',
         requiresShift: true,
+        isPro: true,
       },
       {
         key: '?',
@@ -308,6 +348,7 @@ export function useKeyboardShortcuts({
         action: () => onOpenHelp?.(),
         category: 'global',
         requiresShift: true,
+        isPro: false,
       },
     ]
   }, [

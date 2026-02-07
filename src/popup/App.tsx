@@ -334,6 +334,7 @@ function App() {
     onSnoozeFocused: handleSnoozeFocused,
     onMarkAllRead: handleMarkAllAsRead,
     onOpenHelp: () => setIsHelpModalOpen(true),
+    onShowUpgrade: () => setShowUpgradeModal(true),
     enabled: viewMode === 'active' && !selectionMode && pageMode === 'notifications',
   })
 

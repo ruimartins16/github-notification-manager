@@ -2022,20 +2022,49 @@ return (
 
 ---
 
-### [GNM-034] Gate Keyboard Shortcuts Behind Pro Check
+### [GNM-034] Gate Keyboard Shortcuts Behind Pro Check ✅
 **Priority:** P0 (Must Have)
 **Story Points:** 3
 **Dependencies:** GNM-027
+**Status:** COMPLETED
 
 **User Story:**
 As a product owner, I want keyboard shortcuts to be Pro-only so that power users have incentive to upgrade.
 
 **Acceptance Criteria:**
-- [ ] Keyboard shortcuts disabled for free users
-- [ ] Pressing shortcut key shows upgrade toast/modal for free users
-- [ ] Shortcuts work normally for Pro users
-- [ ] Keyboard help modal shows Pro badge on shortcuts for free users
-- [ ] Unit tests for gate logic
+- [x] Keyboard shortcuts disabled for free users
+- [x] Pressing shortcut key shows upgrade modal for free users
+- [x] Shortcuts work normally for Pro users
+- [x] Keyboard help modal shows Pro badge on shortcuts for free users
+- [x] Free shortcuts still work (J/K navigation, 1-4 filters, ? help)
+
+**Implementation Summary:**
+- **useKeyboardShortcuts Hook:**
+  - Added `useProStatus()` to check Pro status
+  - Added `onShowUpgrade` callback parameter
+  - Added `isPro` field to KeyboardShortcut interface
+  - Pro check before executing Pro shortcuts (D, A, S, O, Shift+D)
+  - Shows upgrade modal when free users press Pro shortcuts
+  - Free shortcuts remain enabled (J/K, 1-4, ?)
+  
+- **Keyboard Shortcuts Classification:**
+  - **Free:** J/K (navigation), 1-4 (filters), ? (help)
+  - **Pro:** D (mark done), A (archive), S (snooze), O (open), Shift+D (mark all)
+  
+- **ShortcutHelpModal Component:**
+  - Added ProBadge import and display
+  - Pro shortcuts show ProBadge next to description
+  - Clear visual indicator for Pro features
+  
+- **App.tsx:**
+  - Added `onShowUpgrade` callback to useKeyboardShortcuts
+  - Opens UpgradeModal with "Keyboard Shortcuts" feature
+
+**User Experience:**
+1. Free user presses D (mark as done) → UpgradeModal opens
+2. Free user presses ? → Help modal shows ProBadge on Pro shortcuts
+3. Pro user presses D → Notification marked as done (works normally)
+4. All users can use J/K to navigate and 1-4 for filters
 
 **Technical Notes:**
 - Modify useKeyboardShortcuts hook

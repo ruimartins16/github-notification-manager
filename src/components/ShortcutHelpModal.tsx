@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import type { KeyboardShortcut } from '../hooks/useKeyboardShortcuts'
+import { ProBadge } from './ProBadge'
 
 interface ShortcutHelpModalProps {
   isOpen: boolean
@@ -90,9 +91,12 @@ export const ShortcutHelpModal = memo(({ isOpen, onClose, shortcuts }: ShortcutH
                                bg-github-canvas-subtle border border-github-border-default
                                hover:bg-github-canvas-default transition-colors"
                     >
-                      <span className="text-sm text-github-fg-default">
-                        {shortcut.description}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-github-fg-default">
+                          {shortcut.description}
+                        </span>
+                        {shortcut.isPro && <ProBadge />}
+                      </div>
                       <kbd
                         className="px-2.5 py-1 text-xs font-mono font-semibold
                                  bg-github-canvas-default text-github-fg-default
