@@ -19,7 +19,8 @@ const GITHUB_DEVICE_CODE_URL = 'https://github.com/login/device/code'
 const GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token'
 const SCOPES = 'notifications read:user'
 const STORAGE_KEY = 'authToken'
-const USER_STORAGE_KEY = 'user'
+// Note: We use chrome.storage.local.clear() in logout(), so individual keys aren't needed
+// const USER_STORAGE_KEY = 'user' // Previously used, now cleared with clear()
 
 interface DeviceCodeResponse {
   device_code: string
@@ -138,15 +139,38 @@ export class AuthService {
 
   /**
    * Logs out user by clearing stored credentials
-   * Removes both auth token and user data from storage
+   * Removes auth token, user data, and all application data from storage
+   * Then reloads the extension to reset state
    * 
    * @returns Promise<void>
    */
   static async logout(): Promise<void> {
     try {
-      await chrome.storage.local.remove([STORAGE_KEY, USER_STORAGE_KEY])
+      // Clear all chrome.storage.local data (auth, notifications, zustand stores)
+      await chrome.storage.local.clear()
+      
+      // Clear chrome.storage.sync data (settings)
+      await chrome.storage.sync.clear()
+      
+      // Reload the extension to reset all state
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.reload) {
+        chrome.runtime.reload()
+      } else {
+        // Fallback: just reload the popup window
+        window.location.reload()
+      }
     } catch (error) {
       console.error('Error clearing storage during logout:', error)
+      // Even if storage clear fails, try to reload
+      try {
+        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.reload) {
+          chrome.runtime.reload()
+        } else {
+          window.location.reload()
+        }
+      } catch (reloadError) {
+        console.error('Error reloading after logout:', reloadError)
+      }
     }
   }
 

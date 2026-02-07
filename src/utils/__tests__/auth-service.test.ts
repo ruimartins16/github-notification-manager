@@ -17,12 +17,17 @@ beforeEach(() => {
     ...global.chrome,
     runtime: {
       getManifest: mockGetManifest,
+      reload: vi.fn(),
     },
     storage: {
       local: {
         get: vi.fn().mockResolvedValue({}),
         set: vi.fn().mockResolvedValue(undefined),
         remove: vi.fn().mockResolvedValue(undefined),
+        clear: vi.fn().mockResolvedValue(undefined),
+      },
+      sync: {
+        clear: vi.fn().mockResolvedValue(undefined),
       },
     },
     tabs: {
@@ -367,14 +372,16 @@ describe('AuthService', () => {
   })
 
   describe('logout', () => {
-    it('should clear stored token and user data', async () => {
+    it('should clear all storage and reload extension', async () => {
       await AuthService.logout()
 
-      expect(chrome.storage.local.remove).toHaveBeenCalledWith(['authToken', 'user'])
+      expect(chrome.storage.local.clear).toHaveBeenCalled()
+      expect(chrome.storage.sync.clear).toHaveBeenCalled()
+      expect(chrome.runtime.reload).toHaveBeenCalled()
     })
 
     it('should resolve even if storage clear fails', async () => {
-      ;(chrome.storage.local.remove as any).mockRejectedValue(new Error('Storage error'))
+      ;(chrome.storage.local.clear as any).mockRejectedValue(new Error('Storage error'))
 
       // Should not throw
       await expect(AuthService.logout()).resolves.toBeUndefined()
