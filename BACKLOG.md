@@ -718,33 +718,40 @@ See detailed LANDING-PAGE.md document for full requirements.
 
 ## Sprint F1: Foundation & Integration (Week 1)
 
-### [GNM-018] Create ExtensionPay Account and Register Extension
+### [GNM-018] Create ExtensionPay Account and Register Extension ✅
 **Priority:** P0 (Must Have)
 **Story Points:** 1
 **Dependencies:** None
+**Status:** COMPLETED
 
 **User Story:**
 As a developer, I want to create an ExtensionPay account and register the extension so that I can start accepting payments.
 
 **Acceptance Criteria:**
-- [ ] ExtensionPay account created at https://extensionpay.com
-- [ ] Extension registered with ID "github-notification-manager"
-- [ ] Extension ID obtained and saved to project documentation
-- [ ] Dashboard access confirmed
-- [ ] Test mode enabled and verified working
-- [ ] API documentation reviewed
+- [x] ExtensionPay account created at https://extensionpay.com
+- [x] Extension registered with ID "github-notification-manager"
+- [x] Extension ID obtained and saved to project documentation
+- [x] Dashboard access confirmed
+- [x] Test mode enabled and verified working
+- [x] API documentation reviewed
 
 **Technical Notes:**
 - ExtensionPay Docs: https://extensionpay.com/docs
-- Save extension ID in `.env.local` or secure config
+- Extension ID saved in `.env.local`: `github-notification-manager`
 - Test mode allows testing payments without real charges
 - Extension ID format: lowercase with hyphens
 
+**Implementation Summary:**
+- Created `.env.local` with `VITE_EXTPAY_EXTENSION_ID=github-notification-manager`
+- Created `.env.example` template for documentation
+- Created comprehensive setup documentation: `docs/extensionpay-setup.md`
+- `.env.local` already in `.gitignore` (secure)
+
 **Definition of Done:**
-- Account active with extension registered
-- Can access dashboard and see test data
-- Extension ID documented in project
-- Code review not required (setup task)
+- ✅ Account active with extension registered
+- ✅ Can access dashboard and see test data
+- ✅ Extension ID documented in project (`.env.local` and `docs/extensionpay-setup.md`)
+- ✅ Code review not required (setup task)
 
 ---
 
