@@ -1,272 +1,205 @@
 # Chrome Web Store Listing Copy
 
-## Extension Name
-```
-GitHub Notification Manager
-```
+This document contains the marketing copy for the Chrome Web Store listing with freemium model information.
 
----
+## Extension Name
+GitHub Notification Manager
 
 ## Short Description (132 characters max)
-```
-Take control of GitHub notifications with smart filters, snooze, and keyboard shortcuts.
-```
-
-**Character count:** 95 / 132 ✅
-
----
+Manage GitHub notifications efficiently. Freemium with Pro features: snooze, custom rules, keyboard shortcuts.
 
 ## Detailed Description
 
-```markdown
-# Stay on Top of Your GitHub Notifications
+**GitHub Notification Manager** helps you stay on top of your GitHub notifications without the overwhelm.
 
-GitHub Notification Manager helps developers manage notification overload with powerful filtering, snoozing, and productivity features.
+### ✅ Free Features
 
-## ✨ Key Features
+Start using these powerful features immediately:
 
-### Smart Filtering
-- Filter by unread, participating, mentions, review requests, CI activity, and dependabot
-- Custom rules engine for advanced filtering
-- Quick filter switching with visual counts
+- **Smart Filtering**: View all notifications or filter by Mentions, Pull Requests, Issues, CI/CD, and Dependabot
+- **Bulk Actions**: Mark notifications as read or archive them (single or bulk)
+- **Auto-Refresh**: Automatic updates every 30 minutes (configurable)
+- **Badge Counter**: See unread count on extension icon
+- **GitHub Integration**: Seamless authentication with your GitHub account
+- **Multi-Repo Support**: Manage notifications across all your repositories
 
-### Snooze & Prioritize
-- Snooze notifications until later (30min, 1hr, 3hrs, tomorrow, next week, custom)
-- Archive notifications you've dealt with
-- Mark all as read with undo support
+### ⭐ Pro Features ($3/month or $30/year)
 
-### Keyboard Shortcuts
-- Navigate notifications with arrow keys (↑/↓)
-- Quick actions: j/k (navigation), m (mark read), s (snooze), a (archive), r (refresh)
-- Escape to close
+Upgrade to unlock advanced productivity features:
 
-### Clean Interface
-- 400px wide popup optimized for quick triage
-- Real-time sync with GitHub
-- Automatic refresh every 30 minutes
-- Notification badge shows unread count
+**Snooze Notifications**
+- Postpone notifications until you're ready
+- Quick options: 30min, 1hr, 3hrs, tomorrow, next week
+- Custom snooze with date/time picker
+- Never miss important updates
 
-## 🚀 Why Use This Extension?
+**Custom Auto-Archive Rules**
+- Create powerful automation rules
+- Match by repository, type, reason, or author
+- Combine multiple conditions with AND/OR logic
+- Keep your inbox focused on what matters
 
-**Problem:** GitHub sends a flood of notifications, making it hard to focus on what matters.
+**Keyboard Shortcuts**
+- Navigate: `j` (next), `k` (previous)
+- Quick actions: `d` (mark as done), `a` (archive), `s` (snooze), `o` (open)
+- Filters: `1` (all), `2` (mentions), `3` (reviews), `4` (assigned)
+- Bulk action: `Shift+D` (mark all as done)
+- Work at lightning speed
 
-**Solution:** This extension gives you powerful tools to filter, prioritize, and organize notifications—so you can stay productive without drowning in noise.
+### 💰 Pricing
 
-## 🔒 Privacy
+- **Monthly Plan**: $3/month
+- **Annual Plan**: $30/year (save 16%)
+- **Lifetime**: $100 one-time payment
+- **Free Tier**: No credit card required to start
+
+### 🔒 Privacy & Security
 
 - No data collection or tracking
-- Direct API connection to GitHub (no third-party servers)
-- Open source and transparent
-- Read full privacy policy: [privacy-policy-url]
+- All processing happens locally in your browser
+- We never store your GitHub token or notifications
+- Subscription data stored locally only
+- See our full [Privacy Policy](https://github.com/yourusername/github-notification-manager/blob/main/docs/privacy-policy.md)
 
-## 📖 How to Use
+### 🚀 Getting Started
 
-1. Click "Connect to GitHub" to authorize (uses device flow - no password required)
-2. Filter notifications by type (unread, mentions, PRs, etc.)
-3. Snooze notifications you want to handle later
-4. Archive notifications you've dealt with
-5. Use keyboard shortcuts for speed
+1. Install the extension
+2. Authenticate with GitHub
+3. Start managing notifications for free
+4. Upgrade to Pro when you're ready
 
-## 🛠️ Requirements
+### 📱 Open Source
 
-- GitHub account
-- Chrome or Edge browser
-- Notifications permissions (for browser notifications)
-
-## 📣 Feedback & Support
-
-Found a bug or have a feature request? Report issues on GitHub: [repository-url]
+GitHub Notification Manager is open source! Check out the code, report issues, or contribute:
+https://github.com/yourusername/github-notification-manager
 
 ---
 
-**Really useful for developers who want to stay on top of their GitHub workflow.**
-```
+**Perfect for:**
+- Software engineers managing multiple repositories
+- Open source maintainers with high notification volume
+- Team leads coordinating pull request reviews
+- Anyone who wants a cleaner GitHub notification experience
 
----
+Start for free today. Upgrade anytime to unlock Pro features!
 
 ## Category
-```
-Developer Tools
-```
-
----
+**Developer Tools**
 
 ## Language
-```
-English (United States)
-```
+English
+
+## Promotional Images Required
+
+### Small Tile (440x280px)
+- Show extension icon with "Free + Pro" badge
+- Tagline: "Manage GitHub Notifications"
+
+### Large Tile (920x680px)
+- Split screen showing Free vs Pro features
+- Left: Free features list
+- Right: Pro features with gold star badge
+
+### Marquee (1400x560px)
+- Full extension interface screenshot
+- Highlight key features with annotations
+- Show "Free to start, upgrade when ready" message
+
+### Screenshots (1280x800px or 640x400px)
+1. **Main interface**: Notification list with filters
+2. **Snooze feature** (Pro badge): Snooze modal with date picker
+3. **Custom rules** (Pro badge): Rules builder interface
+4. **Keyboard shortcuts** (Pro badge): Shortcuts overlay
+5. **Settings page**: Subscription management
+
+## Permissions Justification
+
+### Required Permissions:
+- **storage**: Save user preferences and notification cache locally
+- **alarms**: Schedule periodic notification refreshes
+- **notifications**: Show browser notifications for new items (optional)
+
+### Host Permissions:
+- **api.github.com**: Fetch notifications from GitHub API
+- **github.com**: OAuth authentication flow
+
+**Privacy Note**: All data is stored locally. We never transmit your data to external servers except GitHub API calls for fetching notifications.
+
+## Website URL
+https://github.com/yourusername/github-notification-manager
+
+## Support URL
+https://github.com/yourusername/github-notification-manager/issues
+
+## Privacy Policy URL
+https://yourusername.github.io/github-notification-manager/privacy-policy.html
+
+## Monetization Declaration
+
+**Business Model**: Freemium subscription model
+
+- Free tier with core features
+- Pro subscription via ExtensionPay (third-party payment processor)
+- Pricing: $3/month, $30/year, or $100 lifetime
+- Payment processing: Stripe (via ExtensionPay)
+- No ads, no data selling
+
+## Keywords (for Store Search)
+
+github, notifications, developer, productivity, open source, pull requests, issues, code review, freemium
+
+## Support Email
+
+support@yourdomain.com (or your GitHub email)
+
+## Updates & Changelog
+
+**Version 1.0.0** (Launch)
+- Complete notification management for GitHub
+- Free tier: Filtering, marking as read, archiving
+- Pro tier: Snooze, custom rules, keyboard shortcuts
+- ExtensionPay integration for subscriptions
+- Privacy-first design with local-only storage
 
 ---
 
-## Links
+## Publishing Checklist
 
-### Privacy Policy URL
-```
-https://[your-username].github.io/github-notification-manager/privacy-policy.html
-```
-*(Update after GitHub Pages is enabled)*
+Before submitting to Chrome Web Store:
 
-### Homepage URL (Optional)
-```
-https://github.com/[your-username]/github-notification-manager
-```
+- [ ] All screenshots prepared (show Pro badges on Pro features)
+- [ ] Promotional tiles created
+- [ ] Privacy policy deployed to GitHub Pages
+- [ ] Test extension with test mode payments
+- [ ] Verify all permissions listed with justifications
+- [ ] Update GitHub repository URL (replace `yourusername`)
+- [ ] Set support email
+- [ ] Complete monetization declaration
+- [ ] Test free tier thoroughly
+- [ ] Test Pro upgrade flow
+- [ ] Verify all links work (website, support, privacy policy)
 
-### Support URL (Optional)
-```
-https://github.com/[your-username]/github-notification-manager/issues
-```
+## Chrome Web Store Review Tips
 
----
+1. **Be transparent**: Clearly show which features are Free vs Pro
+2. **Screenshots**: Add "Pro" badges to screenshots of Pro features
+3. **Permissions**: Justify every permission in the listing
+4. **Privacy**: Emphasize local-only storage and no tracking
+5. **Demo video** (optional but recommended): Show free features and upgrade flow
 
-## Tags / Keywords (Optional)
+## Post-Launch Monitoring
 
-Suggested keywords for better discoverability:
-- GitHub
-- Notifications
-- Productivity
-- Developer Tools
-- Code Review
-- Pull Requests
-- Issue Tracking
-- Workflow
-- Keyboard Shortcuts
-- Filter
-
----
-
-## Notes for Submission
-
-### Before Submitting:
-- [ ] Replace `[privacy-policy-url]` with actual GitHub Pages URL
-- [ ] Replace `[repository-url]` with actual GitHub repository URL
-- [ ] Replace `[your-username]` with your GitHub username
-- [ ] Upload 5 screenshots (1280x800)
-- [ ] Upload promotional tile (440x280)
-- [ ] Upload demo GIF/video (optional but recommended)
-- [ ] Ensure privacy policy is live and accessible
-- [ ] Test extension one final time before submission
-
-### Submission Checklist:
-- [ ] Extension name: "GitHub Notification Manager"
-- [ ] Short description: 95 characters
-- [ ] Detailed description: Complete
-- [ ] Category: Developer Tools
-- [ ] Icons: 16x16, 32x32, 48x48, 128x128 (PNG)
-- [ ] Screenshots: 5 images (1280x800 PNG)
-- [ ] Privacy policy: Live URL provided
-- [ ] Homepage: GitHub repository URL
-- [ ] Support: GitHub Issues URL
-- [ ] Version: 1.0.0 (from manifest.json)
+After publishing:
+- Monitor Chrome Web Store reviews
+- Track conversion rate from free to Pro
+- Respond to user feedback quickly
+- Update listing based on user questions/confusion
+- Add more screenshots if needed
 
 ---
 
-## Alternative Detailed Descriptions (Choose One)
-
-### Option A: Feature-First (Current - Recommended)
-The description above focuses on features first, then benefits. Good for developers who want to see "what it does" immediately.
-
-### Option B: Problem-Solution-First
-```markdown
-# Drowning in GitHub Notifications?
-
-If you're tired of missing important PRs, mentions, and review requests buried in a flood of CI status updates and bot notifications, this extension is for you.
-
-## What It Does
-
-GitHub Notification Manager gives you powerful tools to triage, filter, and prioritize your GitHub notifications—so you can focus on what matters.
-
-[Rest of description follows...]
-```
-
-**Recommendation:** Stick with Option A (feature-first). Developers prefer seeing capabilities upfront.
-
----
-
-## Tone & Messaging
-
-**Current tone:**
-- Professional but approachable
-- Feature-focused
-- Emphasizes productivity and control
-- Ends with "really useful" tagline (as requested)
-
-**Alternative tones available:**
-1. **More casual:** "Say goodbye to notification overload..."
-2. **More technical:** "Advanced notification filtering and management..."
-3. **More urgent:** "Stop missing critical PRs and mentions..."
-
-**Recommendation:** Keep current tone. It's balanced and professional.
-
----
-
-## Version for Chrome Web Store Submission Form
-
-When you submit, you'll paste this into the "Detailed description" field:
-
-```
-Stay on Top of Your GitHub Notifications
-
-GitHub Notification Manager helps developers manage notification overload with powerful filtering, snoozing, and productivity features.
-
-KEY FEATURES
-
-Smart Filtering
-• Filter by unread, participating, mentions, review requests, CI activity, and dependabot
-• Custom rules engine for advanced filtering
-• Quick filter switching with visual counts
-
-Snooze & Prioritize
-• Snooze notifications until later (30min, 1hr, 3hrs, tomorrow, next week, custom)
-• Archive notifications you've dealt with
-• Mark all as read with undo support
-
-Keyboard Shortcuts
-• Navigate notifications with arrow keys (↑/↓)
-• Quick actions: j/k (navigation), m (mark read), s (snooze), a (archive), r (refresh)
-• Escape to close
-
-Clean Interface
-• 400px wide popup optimized for quick triage
-• Real-time sync with GitHub
-• Automatic refresh every 30 minutes
-• Notification badge shows unread count
-
-WHY USE THIS EXTENSION?
-
-Problem: GitHub sends a flood of notifications, making it hard to focus on what matters.
-
-Solution: This extension gives you powerful tools to filter, prioritize, and organize notifications—so you can stay productive without drowning in noise.
-
-PRIVACY
-
-• No data collection or tracking
-• Direct API connection to GitHub (no third-party servers)
-• Open source and transparent
-• Read full privacy policy: [your-privacy-policy-url]
-
-HOW TO USE
-
-1. Click "Connect to GitHub" to authorize (uses device flow - no password required)
-2. Filter notifications by type (unread, mentions, PRs, etc.)
-3. Snooze notifications you want to handle later
-4. Archive notifications you've dealt with
-5. Use keyboard shortcuts for speed
-
-REQUIREMENTS
-
-• GitHub account
-• Chrome or Edge browser
-• Notifications permissions (for browser notifications)
-
-FEEDBACK & SUPPORT
-
-Found a bug or have a feature request? Report issues on GitHub: [your-repository-url]
-
-Really useful for developers who want to stay on top of their GitHub workflow.
-```
-
-*(Note: Chrome Web Store form uses plain text, so markdown formatting will be converted to bullets/breaks)*
-
----
-
-**Ready to submit? Review this copy, make any edits, and let me know if you want changes!**
+**Notes:**
+- Replace `yourusername` with your actual GitHub username before publishing
+- Update privacy policy URL to GitHub Pages URL (not raw GitHub URL)
+- Ensure ExtensionPay test mode payments work before launch
+- Consider creating a demo video (increases conversion by ~30%)
