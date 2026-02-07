@@ -73,7 +73,112 @@ The Extension communicates with:
    - Privacy Policy: https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement
    - Data Sent: Your GitHub OAuth token (which you authorize)
 
-2. **No other third-party services**
+2. **No other third-party services** (except payment processing - see Payment Information below)
+
+## Payment Information
+
+### Payment Processing
+
+GitHub Notification Manager offers optional Pro features through a paid subscription. Payments are processed securely through **ExtensionPay** and **Stripe**:
+
+- **ExtensionPay** (extensionpay.com): Manages subscription billing and licensing
+- **Stripe** (stripe.com): Processes credit card payments securely
+
+**Important:** Your payment information (credit card details, billing address) is handled directly by Stripe and is **never** stored in the extension or on our servers.
+
+### What Payment Data We Collect
+
+When you purchase a Pro subscription:
+
+1. **Email Address** (Optional but recommended)
+   - Provided to ExtensionPay during checkout
+   - Used for: Receipts, subscription management, account recovery
+   - Stored by: ExtensionPay (not by us)
+   - You can: Use the extension without providing an email (but won't receive receipts)
+
+2. **Subscription Status**
+   - Stored locally in your browser (via chrome.storage.local)
+   - Used to: Enable/disable Pro features
+   - Contains: Pro status (true/false), plan type, subscription date
+   - Removal: Cleared when you uninstall the extension
+
+### What Payment Data We DON'T Collect
+
+We **never** collect or have access to:
+
+- ❌ Credit card numbers
+- ❌ CVV codes
+- ❌ Billing addresses
+- ❌ Bank account information
+- ❌ Full payment details
+
+All sensitive payment data is handled exclusively by Stripe (PCI DSS Level 1 certified).
+
+### Third-Party Payment Services
+
+When you upgrade to Pro:
+
+1. **ExtensionPay** (extensionpay.com)
+   - Purpose: Subscription and license management
+   - Privacy Policy: https://extensionpay.com/privacy
+   - Data Shared: Email (optional), browser extension ID
+   - Manages: Subscription status, billing, license keys
+
+2. **Stripe** (stripe.com)
+   - Purpose: Secure payment processing
+   - Privacy Policy: https://stripe.com/privacy
+   - Data Shared: Payment details you provide during checkout
+   - Processes: Credit card transactions, refunds
+
+### Subscription Data Handling
+
+**Local Storage (In Your Browser):**
+- Subscription status: `{ isPro: true, plan: "monthly", paidAt: "2026-02-07" }`
+- Purpose: Enable Pro features (snooze, custom rules, keyboard shortcuts)
+- Stored in: `chrome.storage.local` (never transmitted)
+- Cleared: On logout or uninstall
+
+**Multi-Device Access:**
+- You can use your Pro subscription on multiple devices
+- ExtensionPay Login: Enter your email to sync subscription across devices
+- No additional data collected for multi-device access
+
+### Payment Security
+
+- ✅ **PCI DSS Compliant:** Stripe handles all payment data (Level 1 certified)
+- ✅ **No Card Storage:** We never see or store your card details
+- ✅ **Secure Checkout:** ExtensionPay uses Stripe's secure payment forms
+- ✅ **HTTPS Only:** All payment pages use encrypted connections
+- ✅ **No Server Storage:** Subscription status stored only in your browser
+
+### Your Payment Rights
+
+**Subscription Management:**
+- View subscription: Settings → Account tab in the extension
+- Cancel anytime: Click "Manage Subscription" → ExtensionPay portal
+- Refunds: Contact support@extensionpay.com (ExtensionPay manages refunds)
+
+**Data Access:**
+- Email receipts: Provided by ExtensionPay (if you provided email)
+- Subscription history: Available in ExtensionPay management portal
+- Delete account: Contact support@extensionpay.com to delete ExtensionPay account
+
+**Questions About Payments:**
+- Payment/billing issues: support@extensionpay.com
+- Refund requests: support@extensionpay.com
+- Payment security: Stripe's security team (via Stripe Support)
+
+### Free vs Pro Data Collection
+
+**Free Users:**
+- No payment data collected (same as before monetization)
+- Only GitHub API access and local storage (see above sections)
+
+**Pro Users:**
+- Same GitHub API access and local storage
+- **Plus:** Email (optional) shared with ExtensionPay
+- **Plus:** Subscription status stored locally
+- **No additional tracking or data collection**
 
 ## Permissions Explained
 

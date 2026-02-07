@@ -427,6 +427,16 @@ export function SettingsPage() {
                 <p className="text-xs text-github-fg-subtle mt-1">
                   Manage your GitHub notifications with ease.
                 </p>
+                <div className="mt-4 pt-4 border-t border-github-border-default">
+                  <a
+                    href="https://github.com/yourusername/github-notification-manager/blob/main/docs/privacy-policy.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-github-accent-fg hover:underline"
+                  >
+                    Privacy Policy
+                  </a>
+                </div>
               </div>
             </div>
           )}
