@@ -2,6 +2,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useNotifications, useUnreadCount } from '../hooks/useNotifications'
 import { useNotificationStore } from '../store/notification-store'
 import { useSettingsStore } from '../store/settings-store'
+import { useProStatus } from '../hooks/useProStatus'
 import { FilterBar } from '../components/FilterBar'
 import { NotificationItem } from '../components/NotificationItem'
 import { SnoozedTab } from '../components/SnoozedTab'
@@ -10,10 +11,12 @@ import { BulkActionsBar } from '../components/BulkActionsBar'
 import { ToastContainer } from '../components/Toast'
 import { SettingsPage } from '../components/SettingsPage'
 import { ShortcutHelpModal } from '../components/ShortcutHelpModal'
+import { UpgradeModal } from '../components/UpgradeModal'
 import { useToast } from '../hooks/useToast'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { GitHubAPI } from '../utils/github-api'
 import { convertApiUrlToWebUrl } from '../utils/url-converter'
+import { extPayService } from '../utils/extpay-service'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { GearIcon, ArrowLeftIcon, CheckCircleIcon, CheckboxIcon, QuestionIcon } from '@primer/octicons-react'
 
@@ -50,6 +53,9 @@ function App() {
   // Get filter setter
   const setFilter = useNotificationStore(state => state.setFilter)
   
+  // Pro status
+  const { isPro, isLoading: proLoading } = useProStatus()
+  
   const [copied, setCopied] = useState(false)
   const [isPolling, setIsPolling] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('active')
@@ -57,6 +63,7 @@ function App() {
   const [selectionMode, setSelectionMode] = useState(false)
   const [focusedIndex, setFocusedIndex] = useState(-1) // -1 means no item focused
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   
   // Track if we've applied the initial default filter
   const hasAppliedInitialFilter = useRef(false)
@@ -491,6 +498,45 @@ function App() {
                 </h2>
               </div>
               <div className="flex items-center gap-2">
+                {/* Pro Status Button/Badge */}
+                {proLoading ? (
+                  <span 
+                    className="text-xs text-github-fg-muted"
+                    role="status"
+                    aria-live="polite"
+                    aria-label="Loading subscription status"
+                  >
+                    ...
+                  </span>
+                ) : isPro ? (
+                  <button
+                    onClick={async () => {
+                      try {
+                        await extPayService.openPaymentPage()
+                      } catch (error) {
+                        console.error('[App] Failed to open payment page:', error)
+                      }
+                    }}
+                    className="flex items-center gap-1 text-xs text-yellow-800 hover:text-yellow-900 transition-colors
+                             px-2 py-1 rounded-github bg-yellow-50 hover:bg-yellow-100"
+                    aria-label="Manage Pro subscription"
+                    title="Manage Pro subscription"
+                  >
+                    <span className="text-sm">⭐</span>
+                    <span className="font-semibold">Pro</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowUpgradeModal(true)}
+                    className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-full hover:bg-blue-700 
+                             transition-colors font-semibold"
+                    aria-label="Upgrade to Pro"
+                    title="Upgrade to Pro to unlock snooze, rules, and keyboard shortcuts"
+                  >
+                    Upgrade
+                  </button>
+                )}
+                
                 {viewMode === 'active' && !selectionMode && (
                   <button
                     onClick={handleMarkAllAsRead}
@@ -737,6 +783,12 @@ function App() {
         isOpen={isHelpModalOpen}
         onClose={() => setIsHelpModalOpen(false)}
         shortcuts={getShortcuts()}
+      />
+      
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
       />
     </div>
   )
