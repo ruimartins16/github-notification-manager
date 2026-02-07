@@ -179,6 +179,22 @@ function App() {
     }
   }, [deviceAuthInfo])
 
+  // Listen for payment success and show welcome toast
+  useEffect(() => {
+    const handleMessage = (message: any) => {
+      if (message.type === 'PRO_STATUS_CHANGED' && message.isPro) {
+        // User just upgraded to Pro!
+        addToast('Welcome to Pro! ⭐ All features unlocked.', {
+          variant: 'success',
+          duration: 5000,
+        })
+      }
+    }
+    
+    chrome.runtime.onMessage.addListener(handleMessage)
+    return () => chrome.runtime.onMessage.removeListener(handleMessage)
+  }, [addToast])
+
   const handleCopyCode = () => {
     if (deviceAuthInfo) {
       navigator.clipboard.writeText(deviceAuthInfo.userCode)
