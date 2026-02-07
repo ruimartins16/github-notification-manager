@@ -19,6 +19,8 @@
     "test:all": "npm run test:run && npm run test:e2e"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.9",
+    "@heroicons/react": "^2.2.0",
     "@octokit/rest": "^22.0.1",
     "@primer/octicons-react": "^19.21.2",
     "@tanstack/react-query": "^5.90.20",
