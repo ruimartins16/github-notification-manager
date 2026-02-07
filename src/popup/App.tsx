@@ -361,9 +361,22 @@ function App() {
           <h1 className="text-2xl font-bold text-github-fg-default mb-2">
             GitHub Notification Manager
           </h1>
-          <p className="text-sm text-github-fg-muted">
-            Take control of your GitHub notifications
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm text-github-fg-muted">
+              Take control of your GitHub notifications
+            </p>
+            {!proLoading && !isPro && (
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-full hover:bg-blue-700 
+                         transition-colors font-semibold whitespace-nowrap"
+                aria-label="Upgrade to Pro"
+                title="Upgrade to Pro to unlock snooze, rules, and keyboard shortcuts"
+              >
+                Upgrade
+              </button>
+            )}
+          </div>
         </header>
 
         {error && (
@@ -525,7 +538,7 @@ function App() {
                   >
                     ...
                   </span>
-                ) : isPro ? (
+                ) : isPro && (
                   <button
                     onClick={async () => {
                       try {
@@ -541,16 +554,6 @@ function App() {
                   >
                     <span className="text-sm">⭐</span>
                     <span className="font-semibold">Pro</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setShowUpgradeModal(true)}
-                    className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-full hover:bg-blue-700 
-                             transition-colors font-semibold"
-                    aria-label="Upgrade to Pro"
-                    title="Upgrade to Pro to unlock snooze, rules, and keyboard shortcuts"
-                  >
-                    Upgrade
                   </button>
                 )}
                 
