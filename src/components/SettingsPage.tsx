@@ -5,6 +5,8 @@ import { useNotificationStore } from '../store/notification-store'
 import { AutoArchiveRules } from '../components/AutoArchiveRules'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { FilterType } from '../types/storage'
+import { useProStatus } from '../hooks/useProStatus'
+import { extPayService } from '../utils/extpay-service'
 
 type SettingsSection = 'account' | 'notifications' | 'behavior' | 'advanced' | 'rules'
 
@@ -35,6 +37,9 @@ export function SettingsPage() {
     variant: 'default',
     onConfirm: () => {},
   })
+  
+  // Pro status
+  const { isPro, user: proUser, isLoading: isLoadingPro } = useProStatus()
   
   // Settings store
   const refreshInterval = useSettingsStore(state => state.refreshInterval)
@@ -225,52 +230,183 @@ export function SettingsPage() {
 
           {/* Account Section */}
           {activeSection === 'account' && (
-            <div className="bg-github-canvas-subtle rounded-github border border-github-border-default p-6 space-y-6">
-              <div>
-                <h2 className="text-base font-semibold text-github-fg-default mb-4">
-                  Account Information
-                </h2>
+            <div className="space-y-6">
+              {/* GitHub Account */}
+              <div className="bg-github-canvas-subtle rounded-github border border-github-border-default p-6 space-y-6">
+                <div>
+                  <h2 className="text-base font-semibold text-github-fg-default mb-4">
+                    GitHub Account
+                  </h2>
 
-                {userInfo ? (
-                  <div className="flex items-center gap-4 p-4 bg-github-canvas-default rounded-github border border-github-border-default">
-                    <img 
-                      src={userInfo.avatar_url} 
-                      alt={`${userInfo.login}'s avatar`}
-                      className="w-12 h-12 rounded-full"
-                    />
-                    <div>
-                      <p className="text-sm font-semibold text-github-fg-default">
-                        @{userInfo.login}
-                      </p>
-                      <p className="text-xs text-github-fg-muted">
-                        Connected to GitHub
+                  {userInfo ? (
+                    <div className="flex items-center gap-4 p-4 bg-github-canvas-default rounded-github border border-github-border-default">
+                      <img 
+                        src={userInfo.avatar_url} 
+                        alt={`${userInfo.login}'s avatar`}
+                        className="w-12 h-12 rounded-full"
+                      />
+                      <div>
+                        <p className="text-sm font-semibold text-github-fg-default">
+                          @{userInfo.login}
+                        </p>
+                        <p className="text-xs text-github-fg-muted">
+                          Connected to GitHub
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-github-canvas-default rounded-github border border-github-border-default">
+                      <p className="text-sm text-github-fg-muted">
+                        Logged in to GitHub
                       </p>
                     </div>
-                  </div>
-                ) : (
-                  <div className="p-4 bg-github-canvas-default rounded-github border border-github-border-default">
-                    <p className="text-sm text-github-fg-muted">
-                      Logged in to GitHub
-                    </p>
-                  </div>
-                )}
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-github-fg-default mb-2">
+                    Actions
+                  </h3>
+                  <button
+                    onClick={logout}
+                    className="px-4 py-2 text-sm font-medium text-white bg-github-danger-emphasis rounded-github 
+                             hover:bg-github-danger-fg transition-colors focus:outline-none focus:ring-2 
+                             focus:ring-github-danger-emphasis"
+                  >
+                    Logout
+                  </button>
+                </div>
               </div>
 
-              <div>
-                <h3 className="text-sm font-medium text-github-fg-default mb-2">
-                  Actions
-                </h3>
-                <button
-                  onClick={logout}
-                  className="px-4 py-2 text-sm font-medium text-white bg-github-danger-emphasis rounded-github 
-                           hover:bg-github-danger-fg transition-colors focus:outline-none focus:ring-2 
-                           focus:ring-github-danger-emphasis"
-                >
-                  Logout
-                </button>
+              {/* Subscription Status */}
+              <div className="bg-github-canvas-subtle rounded-github border border-github-border-default p-6 space-y-6">
+                <div>
+                  <h2 className="text-base font-semibold text-github-fg-default mb-4">
+                    Subscription
+                  </h2>
+
+                  {isLoadingPro ? (
+                    <div className="animate-pulse">
+                      <div className="h-20 bg-github-canvas-default rounded-github"></div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Status Badge */}
+                      <div className="flex items-center justify-between p-4 bg-github-canvas-default rounded-github border border-github-border-default">
+                        <div>
+                          <p className="text-sm font-medium text-github-fg-default mb-1">
+                            Plan Status
+                          </p>
+                          <p className="text-xs text-github-fg-muted">
+                            {isPro ? 'All Pro features unlocked' : 'Upgrade to unlock Pro features'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isPro ? (
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-950 rounded-full">
+                              <span className="text-base">⭐</span>
+                              <span className="text-sm font-semibold">Pro</span>
+                            </div>
+                          ) : (
+                            <span className="px-3 py-1.5 bg-github-canvas-subtle border border-github-border-default text-github-fg-muted text-sm font-medium rounded-full">
+                              Free
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Pro User Details */}
+                      {isPro && proUser && (
+                        <div className="p-4 bg-github-canvas-default rounded-github border border-github-border-default space-y-3">
+                          {proUser.email && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-github-fg-muted">Email</span>
+                              <span className="text-github-fg-default font-mono">{proUser.email}</span>
+                            </div>
+                          )}
+                          
+                          {proUser.paidAt && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-github-fg-muted">Member since</span>
+                              <span className="text-github-fg-default">
+                                {new Date(proUser.paidAt).toLocaleDateString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric', 
+                                  year: 'numeric' 
+                                })}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Action Button */}
+                      <button
+                        onClick={() => extPayService.openPaymentPage()}
+                        className={`w-full px-4 py-2.5 text-sm font-medium rounded-github transition-colors focus:outline-none focus:ring-2 ${
+                          isPro
+                            ? 'bg-github-canvas-default border border-github-border-default text-github-fg-default hover:bg-github-canvas-subtle focus:ring-github-accent-emphasis'
+                            : 'bg-github-accent-emphasis text-white hover:bg-github-accent-fg focus:ring-github-accent-emphasis'
+                        }`}
+                      >
+                        {isPro ? 'Manage Subscription' : 'Upgrade to Pro'}
+                      </button>
+
+                      {/* Pro Features List */}
+                      {!isPro && (
+                        <div className="pt-4 border-t border-github-border-default">
+                          <h3 className="text-sm font-medium text-github-fg-default mb-3">
+                            Pro Features
+                          </h3>
+                          <ul className="space-y-2">
+                            <li className="flex items-start gap-2 text-sm text-github-fg-muted">
+                              <span className="text-github-success-fg mt-0.5">✓</span>
+                              <span>Snooze notifications (30min, 1hr, 3hrs, tomorrow, next week)</span>
+                            </li>
+                            <li className="flex items-start gap-2 text-sm text-github-fg-muted">
+                              <span className="text-github-success-fg mt-0.5">✓</span>
+                              <span>Custom auto-archive rules for advanced filtering</span>
+                            </li>
+                            <li className="flex items-start gap-2 text-sm text-github-fg-muted">
+                              <span className="text-github-success-fg mt-0.5">✓</span>
+                              <span>Pro keyboard shortcuts (D, A, S, O, Shift+D)</span>
+                            </li>
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Pricing Info for Free Users */}
+                      {!isPro && (
+                        <div className="pt-4 border-t border-github-border-default">
+                          <h3 className="text-sm font-medium text-github-fg-default mb-3">
+                            Pricing
+                          </h3>
+                          <div className="grid grid-cols-3 gap-3 text-center text-xs">
+                            <div className="p-3 bg-github-canvas-default rounded-github border border-github-border-default">
+                              <p className="font-semibold text-github-fg-default mb-1">Monthly</p>
+                              <p className="text-github-fg-muted">$3/month</p>
+                            </div>
+                            <div className="p-3 bg-github-canvas-default rounded-github border-2 border-github-accent-emphasis relative">
+                              <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-github-accent-emphasis text-white rounded-full text-[10px] font-semibold whitespace-nowrap">
+                                Save 16%
+                              </div>
+                              <p className="font-semibold text-github-fg-default mb-1">Yearly</p>
+                              <p className="text-github-fg-muted">$30/year</p>
+                            </div>
+                            <div className="p-3 bg-github-canvas-default rounded-github border border-github-border-default">
+                              <p className="font-semibold text-github-fg-default mb-1">Lifetime</p>
+                              <p className="text-github-fg-muted">$100 once</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="pt-6 border-t border-github-border-default">
+              {/* About */}
+              <div className="bg-github-canvas-subtle rounded-github border border-github-border-default p-6">
                 <h3 className="text-sm font-medium text-github-fg-default mb-2">
                   About
                 </h3>

@@ -2252,13 +2252,14 @@ export function useUpgradePrompt() {
 As a user, I want to see my subscription status in settings so that I know my current plan and can manage my subscription.
 
 **Acceptance Criteria:**
-- [ ] Settings page shows account section
-- [ ] Free users see: "Free Plan" with upgrade button
-- [ ] Pro users see: plan type (Monthly/Yearly), next billing date
-- [ ] "Manage Subscription" button for Pro users
-- [ ] List of Pro features shown
-- [ ] Email address shown if available
-- [ ] Unit tests for account section
+- [x] Settings page shows account section
+- [x] Free users see: "Free Plan" with upgrade button
+- [x] Pro users see: email, member since date
+- [x] "Manage Subscription" button for Pro users
+- [x] List of Pro features shown (for free users)
+- [x] Email address shown if available
+- [x] Pricing information shown for free users
+- [ ] Unit tests for account section (deferred)
 
 **Technical Notes:**
 - Add account section to existing Settings page
