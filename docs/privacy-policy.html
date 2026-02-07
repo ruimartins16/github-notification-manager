@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - GitHub Notification Manager</title>
+  <meta name="description" content="Privacy policy for GitHub Notification Manager Chrome extension">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #24292f;
+      background: #ffffff;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 50px;
+      padding-bottom: 30px;
+      border-bottom: 2px solid #d0d7de;
+    }
+    h1 {
+      font-size: 2.5em;
+      color: #0969da;
+      margin-bottom: 10px;
+    }
+    .last-updated {
+      color: #57606a;
+      font-size: 0.9em;
+    }
+    h2 {
+      font-size: 1.8em;
+      margin-top: 40px;
+      margin-bottom: 15px;
+      color: #24292f;
+    }
+    h3 {
+      font-size: 1.3em;
+      margin-top: 30px;
+      margin-bottom: 10px;
+      color: #24292f;
+    }
+    p {
+      margin-bottom: 15px;
+      color: #57606a;
+    }
+    ul, ol {
+      margin: 15px 0;
+      padding-left: 30px;
+    }
+    li {
+      margin-bottom: 10px;
+      color: #57606a;
+    }
+    .tldr {
+      background: #ddf4ff;
+      border-left: 4px solid #0969da;
+      padding: 20px;
+      margin: 30px 0;
+      border-radius: 6px;
+    }
+    .tldr h2 {
+      margin-top: 0;
+      color: #0969da;
+    }
+    .tldr ul {
+      margin-top: 15px;
+    }
+    .tldr li {
+      color: #24292f;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #d0d7de;
+    }
+    th {
+      background: #f6f8fa;
+      font-weight: 600;
+    }
+    .summary {
+      background: #ddf4ff;
+      padding: 25px;
+      margin: 40px 0;
+      border-radius: 6px;
+      text-align: center;
+    }
+    .summary h2 {
+      margin-top: 0;
+      color: #0969da;
+    }
+    .checkmark {
+      color: #1a7f37;
+      font-size: 1.2em;
+    }
+    a {
+      color: #0969da;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    code {
+      background: #f6f8fa;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.9em;
+    }
+    strong {
+      color: #24292f;
+      font-weight: 600;
+    }
+    footer {
+      margin-top: 60px;
+      padding-top: 30px;
+      border-top: 2px solid #d0d7de;
+      text-align: center;
+      color: #57606a;
+    }
+    @media (max-width: 768px) {
+      .container {
+        padding: 20px 10px;
+      }
+      h1 {
+        font-size: 2em;
+      }
+      h2 {
+        font-size: 1.5em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🔔 Privacy Policy</h1>
+      <p style="font-size: 1.2em; margin-top: 10px;">GitHub Notification Manager</p>
+      <p class="last-updated">Last Updated: February 7, 2026</p>
+    </header>
+
+    <div class="tldr">
+      <h2>TL;DR (Too Long; Didn't Read)</h2>
+      <ul>
+        <li><span class="checkmark">✅</span> We don't collect, store, or transmit any of your personal data</li>
+        <li><span class="checkmark">✅</span> All data stays in your browser locally</li>
+        <li><span class="checkmark">✅</span> We only access GitHub APIs that you authorize</li>
+        <li><span class="checkmark">✅</span> No analytics, tracking, or third-party services</li>
+        <li><span class="checkmark">✅</span> Open source and transparent</li>
+      </ul>
+    </div>
+
+    <h2>Introduction</h2>
+    <p>GitHub Notification Manager ("the Extension") is a Chrome browser extension that helps you manage your GitHub notifications. This privacy policy explains how we handle your data.</p>
+
+    <h2>Data Collection</h2>
+    <p><strong>We do NOT collect any data.</strong> The Extension operates entirely within your browser and does not send any information to external servers (other than GitHub's API, which you authorize).</p>
+
+    <h3>What Data We Access</h3>
+    <p>The Extension requests access to:</p>
+    <ol>
+      <li>
+        <strong>GitHub Notifications</strong> (via GitHub API)
+        <ul>
+          <li>Purpose: To display and manage your GitHub notifications</li>
+          <li>Scope: Read-only access to your notifications</li>
+          <li>Authorization: You explicitly grant this via GitHub's OAuth device flow</li>
+        </ul>
+      </li>
+      <li>
+        <strong>GitHub User Information</strong> (via GitHub API)
+        <ul>
+          <li>Purpose: To display your username and avatar</li>
+          <li>Scope: Read-only access to your basic profile</li>
+          <li>Authorization: You explicitly grant this via GitHub's OAuth device flow</li>
+        </ul>
+      </li>
+    </ol>
+
+    <h3>What Data We Store Locally</h3>
+    <p>The Extension stores data <strong>only in your browser's local storage</strong> using Chrome's <code>chrome.storage</code> API:</p>
+    <ol>
+      <li>
+        <strong>Authentication Token</strong>
+        <ul>
+          <li>Purpose: To authenticate API requests to GitHub</li>
+          <li>Location: Browser local storage (never transmitted to third parties)</li>
+          <li>Removal: Deleted when you log out or uninstall the extension</li>
+        </ul>
+      </li>
+      <li>
+        <strong>Notification Data</strong>
+        <ul>
+          <li>Purpose: To display notifications and track read/unread status</li>
+          <li>Location: Browser local storage</li>
+          <li>Removal: Cleared when you log out or uninstall the extension</li>
+        </ul>
+      </li>
+      <li>
+        <strong>User Preferences</strong>
+        <ul>
+          <li>Purpose: To remember your filter settings, snooze preferences, etc.</li>
+          <li>Location: Browser sync storage (synced across your Chrome browsers if signed in)</li>
+          <li>Removal: Deleted when you uninstall the extension</li>
+        </ul>
+      </li>
+      <li>
+        <strong>Snoozed Notifications</strong>
+        <ul>
+          <li>Purpose: To remind you about notifications you've snoozed</li>
+          <li>Location: Browser local storage + Chrome alarms API</li>
+          <li>Removal: Cleared when you log out or uninstall the extension</li>
+        </ul>
+      </li>
+    </ol>
+
+    <h2>Data Sharing</h2>
+    <p><strong>We do NOT share any data with third parties.</strong> All communication happens directly between:</p>
+    <ul>
+      <li>Your browser ↔ GitHub's API (api.github.com)</li>
+      <li>Your browser ↔ GitHub's website (github.com)</li>
+    </ul>
+    <p>No intermediary servers, no analytics services, no tracking.</p>
+
+    <h2>Third-Party Services</h2>
+    <p>The Extension communicates with:</p>
+    <ol>
+      <li>
+        <strong>GitHub API</strong> (api.github.com)
+        <ul>
+          <li>Purpose: To fetch notifications and user data</li>
+          <li>Privacy Policy: <a href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement" target="_blank">GitHub Privacy Statement</a></li>
+          <li>Data Sent: Your GitHub OAuth token (which you authorize)</li>
+        </ul>
+      </li>
+      <li><strong>No other third-party services</strong></li>
+    </ol>
+
+    <h2>Permissions Explained</h2>
+    <p>The Extension requests the following Chrome permissions:</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Permission</th>
+          <th>Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>identity</code></td>
+          <td>To handle GitHub OAuth device flow authentication</td>
+        </tr>
+        <tr>
+          <td><code>notifications</code></td>
+          <td>To show browser notifications when new GitHub notifications arrive</td>
+        </tr>
+        <tr>
+          <td><code>storage</code></td>
+          <td>To store your preferences, auth token, and notification data locally</td>
+        </tr>
+        <tr>
+          <td><code>alarms</code></td>
+          <td>To wake up snoozed notifications at the scheduled time</td>
+        </tr>
+        <tr>
+          <td><code>https://api.github.com/*</code></td>
+          <td>To fetch notifications from GitHub API</td>
+        </tr>
+        <tr>
+          <td><code>https://github.com/*</code></td>
+          <td>To open notification links on GitHub</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Your Rights</h2>
+    <p>You have full control over your data:</p>
+
+    <h3>Right to Access</h3>
+    <ul>
+      <li>All data is stored locally in your browser</li>
+      <li>You can inspect stored data using Chrome DevTools → Application → Storage</li>
+    </ul>
+
+    <h3>Right to Delete</h3>
+    <ul>
+      <li><strong>Log out:</strong> Click "Logout" in the extension to clear all stored data</li>
+      <li><strong>Uninstall:</strong> Removing the extension deletes all local data</li>
+      <li><strong>Revoke access:</strong> Revoke OAuth token at <a href="https://github.com/settings/applications" target="_blank">github.com/settings/applications</a></li>
+    </ul>
+
+    <h3>Right to Export</h3>
+    <ul>
+      <li>Data is stored in your browser's local storage (JSON format)</li>
+      <li>You can export data manually via Chrome DevTools</li>
+    </ul>
+
+    <h2>Security</h2>
+    <p>We take security seriously:</p>
+    <ul>
+      <li><span class="checkmark">✅</span> <strong>OAuth Device Flow:</strong> No client secret exposed (secure authentication)</li>
+      <li><span class="checkmark">✅</span> <strong>No Backend:</strong> No servers to hack (data stays in your browser)</li>
+      <li><span class="checkmark">✅</span> <strong>Direct API Access:</strong> Communication only with GitHub's official API</li>
+      <li><span class="checkmark">✅</span> <strong>Open Source:</strong> Code is publicly auditable</li>
+      <li><span class="checkmark">✅</span> <strong>Minimal Permissions:</strong> Only requests necessary permissions</li>
+    </ul>
+
+    <h2>Open Source</h2>
+    <p>GitHub Notification Manager is open source and transparent. You can inspect the code to verify our privacy claims.</p>
+
+    <div class="summary">
+      <h2>Summary</h2>
+      <p style="font-size: 1.1em; margin-bottom: 20px;"><strong>GitHub Notification Manager is privacy-first:</strong></p>
+      <p><span class="checkmark">✅</span> No data collection</p>
+      <p><span class="checkmark">✅</span> No tracking or analytics</p>
+      <p><span class="checkmark">✅</span> No third-party services</p>
+      <p><span class="checkmark">✅</span> All data stays local</p>
+      <p><span class="checkmark">✅</span> Open source and transparent</p>
+      <p><span class="checkmark">✅</span> You're in full control</p>
+    </div>
+
+    <footer>
+      <p><strong>Questions?</strong> Contact us via GitHub Issues or email.</p>
+      <p style="margin-top: 10px; font-size: 0.9em;">© 2026 GitHub Notification Manager</p>
+    </footer>
+  </div>
+</body>
+</html>
