@@ -1491,15 +1491,35 @@ export async function validateLicense(): Promise<ProUser> {
 
 ## Sprint F2: UI & Feature Gating (Week 2)
 
-### [GNM-029] Create UpgradeModal Component
+### [GNM-029] Create UpgradeModal Component ✅
 **Priority:** P0 (Must Have)
 **Story Points:** 8
 **Dependencies:** GNM-027
+**Status:** COMPLETED
 
 **User Story:**
 As a free user, I want to see a compelling upgrade modal when I try a Pro feature so that I understand the value and can easily upgrade.
 
 **Acceptance Criteria:**
+- [x] Modal opens when locked feature is clicked
+- [x] Modal displays all Pro features with checkmarks
+- [x] Modal shows pricing: $3/mo, $30/yr, $100 lifetime with savings
+- [x] "Upgrade to Pro" CTA button opens payment page
+- [x] "Maybe Later" dismiss button closes modal
+- [x] Modal is accessible (keyboard nav, screen reader, focus trap)
+- [x] Responsive design (fits in 400px popup)
+- [x] Smooth animations (fade in/out with Transition)
+- [x] Error handling for payment page failures
+- [x] Code review completed with critical fixes applied
+
+**Implementation Summary:**
+- Created UpgradeModal.tsx with Headless UI Dialog
+- Uses Transition for smooth fade animations
+- Displays 3 pricing plans with savings indicators
+- Proper error handling with try/catch
+- Focus management handled by Headless UI
+- WCAG 2.1 AA compliant
+- Dependencies: @headlessui/react, @heroicons/react
 - [ ] Modal opens when locked feature is clicked
 - [ ] Modal displays all Pro features with checkmarks
 - [ ] Modal shows pricing: $3/mo or $30/yr with savings percentage
@@ -1655,15 +1675,32 @@ describe('UpgradeModal', () => {
 
 ---
 
-### [GNM-030] Create ProBadge Component
+### [GNM-030] Create ProBadge Component ✅
 **Priority:** P1 (Should Have)
 **Story Points:** 3
 **Dependencies:** None
+**Status:** COMPLETED
 
 **User Story:**
 As a user, I want to see a visual indicator on Pro features so that I know which features require an upgrade.
 
 **Acceptance Criteria:**
+- [x] Badge component shows "PRO" text
+- [x] Badge is visually distinct (yellow/gold gradient)
+- [x] Badge is small and doesn't obstruct UI
+- [x] Badge has tooltip explaining Pro features
+- [x] Badge is accessible (role="status", aria-label)
+- [x] WCAG AA color contrast compliance
+- [x] Code review completed with critical fixes applied
+
+**Implementation Summary:**
+- Created ProBadge.tsx with role="status" for accessibility
+- Yellow gradient (yellow-500 to yellow-600 background)
+- Yellow-950 text for proper contrast (WCAG AA compliant)
+- Native tooltip with title attribute
+- Dynamic aria-label with tooltip text
+- Customizable with className prop
+- Tiny component (~20 lines of code)
 - [ ] Badge component shows "PRO" text
 - [ ] Badge is visually distinct (yellow/gold color)
 - [ ] Badge is small and doesn't obstruct UI
