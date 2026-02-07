@@ -19,8 +19,28 @@ import { BadgeService } from '../utils/badge-service'
 import { applyRules } from '../utils/rule-matcher'
 import { AutoArchiveRule } from '../types/rules'
 import type { GitHubNotification } from '../types/github'
+import { extPayService } from '../utils/extpay-service'
+import { validateLicense, updateCacheOnPayment } from '../utils/license-validator'
 
 console.log('GitHub Notification Manager: Background service worker loaded')
+
+// Preload user license status on startup (fire and forget)
+extPayService.preloadUser().catch(console.error)
+
+// Listen for payment events and update cache
+extPayService.onPaid(async (user) => {
+  console.log('[ExtPay] User paid! Updating cache...', user.plan)
+  await updateCacheOnPayment(user)
+  
+  // Notify popup of Pro status change (if open)
+  chrome.runtime.sendMessage({
+    type: 'PRO_STATUS_CHANGED',
+    isPro: user.isPro,
+    plan: user.plan,
+  }).catch(() => {
+    // Popup not open - that's okay
+  })
+})
 
 // Track active polling
 let isPolling = false
@@ -50,6 +70,9 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 // Ensure alarm exists on browser startup
 chrome.runtime.onStartup.addListener(async () => {
+  // Preload license on startup
+  validateLicense().catch(console.error)
+  
   // Recreate notification fetch alarm if missing
   const alarm = await chrome.alarms.get(FETCH_ALARM_NAME)
   if (!alarm) {
