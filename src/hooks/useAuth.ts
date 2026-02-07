@@ -132,10 +132,12 @@ export function useAuth(): UseAuthReturn {
     const messageListener = (message: { type: string; success: boolean; token?: string; error?: string }) => {
       if (message.type === 'AUTH_COMPLETE') {
         if (message.success && message.token) {
-          setToken(message.token)
-          setIsAuthenticated(true)
-          setDeviceAuthInfo(null)
-          setError(null)
+          // Auth completed successfully - refresh auth state from storage
+          // This ensures popup state stays in sync with stored token
+          checkAuth().then(() => {
+            setDeviceAuthInfo(null)
+            setError(null)
+          })
         } else if (message.error) {
           setError(message.error)
           setDeviceAuthInfo(null)
@@ -148,7 +150,7 @@ export function useAuth(): UseAuthReturn {
     return () => {
       chrome.runtime.onMessage.removeListener(messageListener)
     }
-  }, [])
+  }, [checkAuth])
 
   return {
     isAuthenticated,

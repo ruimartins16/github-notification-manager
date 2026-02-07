@@ -173,6 +173,7 @@ describe('useAuth', () => {
   describe('AUTH_COMPLETE message handling', () => {
     it('should update state on successful auth completion', async () => {
       ;(AuthService.isAuthenticated as any).mockResolvedValue(false)
+      ;(AuthService.getStoredToken as any).mockResolvedValue(null)
 
       const { result } = renderHook(() => useAuth())
 
@@ -183,6 +184,10 @@ describe('useAuth', () => {
       // Get the message listener that was registered
       const addListenerCall = (chrome.runtime.onMessage.addListener as any).mock.calls[0]
       const messageListener = addListenerCall[0]
+
+      // Update mocks to simulate successful auth after message
+      ;(AuthService.isAuthenticated as any).mockResolvedValue(true)
+      ;(AuthService.getStoredToken as any).mockResolvedValue('gho_new_token')
 
       // Simulate receiving AUTH_COMPLETE message from service worker
       act(() => {
