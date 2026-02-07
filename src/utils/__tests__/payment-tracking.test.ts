@@ -91,35 +91,20 @@ describe('Payment and Subscription Tracking', () => {
       })
     })
 
-    it('should track payment_completed for annual plan', async () => {
-      const { trackEvent } = await import('../analytics')
-      
-      await trackEvent(ANALYTICS_EVENTS.PAYMENT_COMPLETED, {
-        plan: 'Pro Annual',
-        interval: 'year',
-        amount: 50,
-        currency: 'usd',
-      })
-      
-      const events = await getEventsByName(ANALYTICS_EVENTS.PAYMENT_COMPLETED)
-      expect(events).toHaveLength(1)
-      expect(events[0]?.properties?.interval).toBe('year')
-      expect(events[0]?.properties?.amount).toBe(50)
-    })
-
     it('should track payment_completed for lifetime plan', async () => {
       const { trackEvent } = await import('../analytics')
       
       await trackEvent(ANALYTICS_EVENTS.PAYMENT_COMPLETED, {
         plan: 'Lifetime',
         interval: 'once',
-        amount: 100,
+        amount: 30,
         currency: 'usd',
       })
       
       const events = await getEventsByName(ANALYTICS_EVENTS.PAYMENT_COMPLETED)
       expect(events).toHaveLength(1)
       expect(events[0]?.properties?.interval).toBe('once')
+      expect(events[0]?.properties?.amount).toBe(30)
     })
   })
 
@@ -265,8 +250,8 @@ describe('Payment and Subscription Tracking', () => {
       
       // Complete lifecycle: start -> cancel -> reactivate
       await trackEvent(ANALYTICS_EVENTS.SUBSCRIPTION_STARTED, {
-        plan: 'Pro Annual',
-        interval: 'year',
+        plan: 'Pro Monthly',
+        interval: 'month',
       })
       
       // Some time passes... user cancels
@@ -277,8 +262,8 @@ describe('Payment and Subscription Tracking', () => {
       
       // User reactivates before end date
       await trackEvent(ANALYTICS_EVENTS.SUBSCRIPTION_REACTIVATED, {
-        plan: 'Pro Annual',
-        interval: 'year',
+        plan: 'Pro Monthly',
+        interval: 'month',
       })
       
       const allEvents = await getEvents()
@@ -311,9 +296,9 @@ describe('Payment and Subscription Tracking', () => {
       })
       
       await trackEvent(ANALYTICS_EVENTS.PAYMENT_COMPLETED, {
-        plan: 'Pro Annual',
-        interval: 'year',
-        amount: 50,
+        plan: 'Lifetime',
+        interval: 'once',
+        amount: 30,
         currency: 'usd',
       })
       
@@ -354,25 +339,17 @@ describe('Payment and Subscription Tracking', () => {
       })
       
       await trackEvent(ANALYTICS_EVENTS.PAYMENT_COMPLETED, {
-        plan: 'Pro Annual',
-        interval: 'year',
-        amount: 50,
-        currency: 'usd',
-      })
-      
-      await trackEvent(ANALYTICS_EVENTS.PAYMENT_COMPLETED, {
         plan: 'Lifetime',
         interval: 'once',
-        amount: 100,
+        amount: 30,
         currency: 'usd',
       })
       
       const payments = await getEventsByName(ANALYTICS_EVENTS.PAYMENT_COMPLETED)
-      expect(payments).toHaveLength(3)
+      expect(payments).toHaveLength(2)
       
       const plans = payments.map(e => e.properties?.plan)
       expect(plans).toContain('Pro Monthly')
-      expect(plans).toContain('Pro Annual')
       expect(plans).toContain('Lifetime')
     })
   })

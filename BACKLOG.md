@@ -696,15 +696,14 @@ See detailed LANDING-PAGE.md document for full requirements.
 
 ### Pricing Model
 - **Monthly:** $3/month
-- **Annual:** $30/year (save 16%)
-- **Lifetime:** $100 one-time payment (pay once, use forever)
+- **Lifetime:** $30 one-time payment (pay once, use forever)
 - **Payment Processing:** Stripe via ExtensionPay
 - **Fee:** 5% per transaction (handled by ExtensionPay)
 
 ### Feature Tiers
 
-| Feature | FREE | PRO (Monthly/Annual/Lifetime) |
-|---------|------|-------------------------------|
+| Feature | FREE | PRO (Monthly/Lifetime) |
+|---------|------|------------------------|
 | View notifications | ✅ | ✅ |
 | Basic filters (Unread, Mentions, PRs, etc.) | ✅ | ✅ |
 | Mark as read (single + bulk) | ✅ | ✅ |
@@ -717,8 +716,7 @@ See detailed LANDING-PAGE.md document for full requirements.
 
 **Pro Plans:**
 - Monthly: $3/month
-- Annual: $30/year (save 16%)
-- Lifetime: $100 one-time (pay once, use forever)
+- Lifetime: $30 one-time (pay once, use forever)
 
 ---
 
@@ -837,8 +835,7 @@ As a developer, I want to configure the pricing plans so that users can subscrib
 
 **Acceptance Criteria:**
 - [x] Monthly plan created: $3/month
-- [x] Annual plan created: $30/year
-- [x] Lifetime plan created: $100 one-time payment
+- [x] Lifetime plan created: $30 one-time payment
 - [x] Plan descriptions written clearly
 - [x] Currency set to USD
 - [ ] Plans tested in test mode (will test during integration)
@@ -846,8 +843,7 @@ As a developer, I want to configure the pricing plans so that users can subscrib
 
 **Technical Notes:**
 - ExtensionPay supports multiple pricing tiers
-- Annual plan shows as "$2.50/month (billed yearly)" in UI
-- Lifetime plan added for users who prefer one-time payment
+- Lifetime plan for users who prefer one-time payment
 - Plans can be modified after launch (careful with existing subscribers)
 
 **Plan Configuration:**
@@ -858,22 +854,16 @@ Monthly Plan:
 - Interval: month
 - Description: "Pro features, billed monthly"
 
-Annual Plan:
-- ID: yearly  
-- Price: $30.00 USD
-- Interval: year
-- Description: "Pro features, save 16% (billed yearly)"
-
 Lifetime Plan:
 - ID: lifetime
-- Price: $100.00 USD
+- Price: $30.00 USD
 - Interval: one-time
 - Description: "Pro features forever, pay once"
 ```
 
 **Implementation Summary:**
-- Three pricing tiers configured in ExtensionPay dashboard
-- Monthly ($3), Annual ($30), and Lifetime ($100) plans active
+- Two pricing tiers configured in ExtensionPay dashboard
+- Monthly ($3) and Lifetime ($30) plans active
 - All plans provide full Pro feature access
 - Ready for technical integration
 
@@ -1589,14 +1579,14 @@ As a free user, I want to see a compelling upgrade modal when I try a Pro featur
 **Implementation Summary:**
 - Created UpgradeModal.tsx with Headless UI Dialog
 - Uses Transition for smooth fade animations
-- Displays 3 pricing plans with savings indicators
+- Displays 2 pricing plans (Monthly and Lifetime)
 - Proper error handling with try/catch
 - Focus management handled by Headless UI
 - WCAG 2.1 AA compliant
 - Dependencies: @headlessui/react, @heroicons/react
 - [ ] Modal opens when locked feature is clicked
 - [ ] Modal displays all Pro features with checkmarks
-- [ ] Modal shows pricing: $3/mo or $30/yr with savings percentage
+- [ ] Modal shows pricing: $3/mo or $30 lifetime
 - [ ] "Upgrade to Pro" CTA button opens payment page
 - [ ] "Maybe Later" dismiss button closes modal
 - [ ] Modal is accessible (keyboard nav, screen reader)
@@ -2744,7 +2734,7 @@ As a potential user, I want to see pricing information in the store listing so t
 ✓ Auto-refresh every 30 minutes
 ✓ Badge count
 
-## Pro Features ($3/month or $30/year)
+## Pro Features ($3/month or $30 lifetime)
 ⭐ Snooze notifications (30min, 1hr, 3hrs, tomorrow, next week, custom)
 ⭐ Custom rules engine for advanced filtering and automation
 ⭐ Keyboard shortcuts (j/k navigation, m, s, a, r quick actions)

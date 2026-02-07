@@ -43,12 +43,11 @@ The extension ID will be bundled into the production build via Vite environment 
 ### Pricing Plans (GNM-020)
 
 - **Monthly:** $3/month
-- **Annual:** $30/year (save 16%)
-- **Lifetime:** $100 one-time payment (pay once, use forever)
+- **Lifetime:** $30 one-time payment (pay once, use forever)
 - **Free Tier:** Basic features
 - **No Trial Period:** Users start on free tier
 
-All paid plans (Monthly, Annual, and Lifetime) provide full Pro feature access.
+All paid plans (Monthly and Lifetime) provide full Pro feature access.
 
 ### Feature Gates
 

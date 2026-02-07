@@ -34,8 +34,7 @@ const PRO_FEATURES = [
  */
 const PRICING_PLANS = [
   { name: 'Monthly', price: '$3/month', savings: null },
-  { name: 'Yearly', price: '$30/year', savings: 'Save 16%' },
-  { name: 'Lifetime', price: '$100 once', savings: 'Best Value' },
+  { name: 'Lifetime', price: '$30 once', savings: 'Best Value' },
 ]
 
 /**

@@ -58,7 +58,7 @@ console.log('ExtPay test mode:', extpay.test) // Should be true in dev
 Verify the upgrade modal displays:
 - [ ] "Upgrade to Pro" heading
 - [ ] Feature being gated (e.g., "Snooze notifications")
-- [ ] Pricing: $3/month, $30/year, $100 lifetime
+- [ ] Pricing: $3/month, $30 lifetime
 - [ ] "Upgrade Now" button that opens payment page
 - [ ] "Maybe Later" button to dismiss
 - [ ] Analytics tracked: `upgrade_modal_shown` with location
@@ -92,27 +92,17 @@ Verify the upgrade modal displays:
 
 **Expected**: Payment completes successfully, user is now Pro.
 
-#### 2.2 Annual Subscription (Test Mode)
+#### 2.2 Lifetime Purchase (Test Mode)
 - [ ] Reset test (cancel subscription if needed)
 - [ ] Open payment page
-- [ ] Select "Annual" plan ($30/year)
-- [ ] Use test card: `4242 4242 4242 4242`
-- [ ] Complete payment
-- [ ] Verify analytics tracked: `payment_completed`, `subscription_started`
-
-**Expected**: Annual subscription activates successfully.
-
-#### 2.3 Lifetime Purchase (Test Mode)
-- [ ] Reset test (cancel subscription if needed)
-- [ ] Open payment page
-- [ ] Select "Lifetime" plan ($100)
+- [ ] Select "Lifetime" plan ($30)
 - [ ] Use test card: `4242 4242 4242 4242`
 - [ ] Complete payment
 - [ ] Verify analytics tracked: `payment_completed` (no `subscription_started` for lifetime)
 
 **Expected**: Lifetime purchase activates, no subscription renewal.
 
-#### 2.4 Payment Errors
+#### 2.3 Payment Errors
 Test error handling:
 
 **Declined Card**:
@@ -328,7 +318,7 @@ After cancellation:
 **Expected**: Pro status syncs across devices via ExtensionPay.
 
 #### 5.5 Subscription Expired
-- [ ] Let annual subscription expire (or simulate)
+- [ ] Let monthly subscription expire (or simulate)
 - [ ] Verify Pro features become gated
 - [ ] Verify clear message about expiration
 - [ ] Verify "Renew Subscription" CTA

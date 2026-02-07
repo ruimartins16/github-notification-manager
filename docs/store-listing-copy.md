@@ -23,7 +23,7 @@ Start using these powerful features immediately:
 - **GitHub Integration**: Seamless authentication with your GitHub account
 - **Multi-Repo Support**: Manage notifications across all your repositories
 
-### ⭐ Pro Features ($3/month or $30/year)
+### ⭐ Pro Features ($3/month or $30 lifetime)
 
 Upgrade to unlock advanced productivity features:
 
@@ -49,8 +49,7 @@ Upgrade to unlock advanced productivity features:
 ### 💰 Pricing
 
 - **Monthly Plan**: $3/month
-- **Annual Plan**: $30/year (save 16%)
-- **Lifetime**: $100 one-time payment
+- **Lifetime**: $30 one-time payment (best value!)
 - **Free Tier**: No credit card required to start
 
 ### 🔒 Privacy & Security
@@ -140,7 +139,7 @@ https://yourusername.github.io/github-notification-manager/privacy-policy.html
 
 - Free tier with core features
 - Pro subscription via ExtensionPay (third-party payment processor)
-- Pricing: $3/month, $30/year, or $100 lifetime
+- Pricing: $3/month or $30 lifetime
 - Payment processing: Stripe (via ExtensionPay)
 - No ads, no data selling
 
