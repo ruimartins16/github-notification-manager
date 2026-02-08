@@ -36,8 +36,8 @@ function App() {
   } = useNotifications()
   const unreadCount = useUnreadCount()
   
-  // Theme management
-  const { isDark } = useTheme()
+  // Initialize theme (applies dark class to document)
+  useTheme()
   
   // Get filtered notifications from store
   const getFilteredNotifications = useNotificationStore(state => state.getFilteredNotifications)
@@ -371,7 +371,7 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className={`w-[400px] h-[600px] bg-github-canvas-default dark:bg-github-canvas-dark-default flex items-center justify-center ${isDark ? 'dark' : ''}`}>
+      <div className="w-[400px] h-[600px] bg-github-canvas-default dark:bg-github-canvas-dark-default flex items-center justify-center">
         <div className="text-center">
           <div 
             className="animate-spin rounded-full h-12 w-12 border-b-2 border-github-accent-emphasis dark:border-github-accent-dark-emphasis mx-auto mb-4"
@@ -385,7 +385,7 @@ function App() {
   }
 
   return (
-    <div className={`w-[400px] h-[600px] bg-github-canvas-default dark:bg-github-canvas-dark-default flex flex-col ${isDark ? 'dark' : ''}`}>
+    <div className="w-[400px] h-[600px] bg-github-canvas-default dark:bg-github-canvas-dark-default flex flex-col">
       <div className="p-4 flex-1 flex flex-col overflow-hidden">
         <header className="mb-4">
           <h1 className="text-2xl font-bold text-github-fg-default dark:text-github-fg-dark-default mb-2">
@@ -425,41 +425,41 @@ function App() {
         )}
 
         {deviceAuthInfo && (
-          <div className="mb-4 p-6 bg-github-accent-subtle border border-github-accent-emphasis rounded-github">
-            <h2 className="text-lg font-semibold text-github-fg-default mb-3 text-center">
+          <div className="mb-4 p-6 bg-github-accent-subtle dark:bg-github-accent-dark-subtle border border-github-accent-emphasis dark:border-github-accent-dark-emphasis rounded-github">
+            <h2 className="text-lg font-semibold text-github-fg-default dark:text-github-fg-dark-default mb-3 text-center">
               Step 1: Copy this code
             </h2>
-            <div className="my-4 p-4 bg-github-canvas-default rounded-github border border-github-border-default">
-              <p className="text-3xl font-mono font-bold text-center text-github-accent-fg tracking-widest">
+            <div className="my-4 p-4 bg-github-canvas-default dark:bg-github-canvas-dark-default rounded-github border border-github-border-default dark:border-github-border-dark-default">
+              <p className="text-3xl font-mono font-bold text-center text-github-accent-fg dark:text-github-accent-dark-fg tracking-widest">
                 {deviceAuthInfo.userCode}
               </p>
             </div>
             
             <button
               onClick={handleCopyCode}
-              className="w-full px-4 py-2 mb-3 bg-github-canvas-default border border-github-border-default
-                       rounded-github hover:bg-github-canvas-subtle transition-colors
-                       font-medium text-sm text-github-fg-default"
+              className="w-full px-4 py-2 mb-3 bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default
+                       rounded-github hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle transition-colors
+                       font-medium text-sm text-github-fg-default dark:text-github-fg-dark-default"
             >
               {copied ? '✓ Copied!' : '📋 Copy Code'}
             </button>
 
-            <h2 className="text-lg font-semibold text-github-fg-default mb-3 text-center mt-4">
+            <h2 className="text-lg font-semibold text-github-fg-default dark:text-github-fg-dark-default mb-3 text-center mt-4">
               Step 2: Authorize on GitHub
             </h2>
             
             <button
               onClick={handleOpenGitHub}
-              className="w-full px-4 py-2 bg-github-accent-emphasis text-white rounded-github 
-                       hover:bg-github-accent-fg transition-colors font-medium text-sm"
+              className="w-full px-4 py-2 bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis text-white rounded-github 
+                       hover:bg-github-accent-fg dark:hover:bg-github-accent-dark-fg transition-colors font-medium text-sm"
             >
               Open GitHub to Authorize
             </button>
 
-            <p className="text-xs text-github-fg-muted text-center mt-4">
+            <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted text-center mt-4">
               {isPolling ? (
                 <span className="flex items-center justify-center gap-2">
-                  <span className="inline-block w-2 h-2 bg-github-accent-emphasis rounded-full animate-pulse"></span>
+                  <span className="inline-block w-2 h-2 bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis rounded-full animate-pulse"></span>
                   <span>Waiting for authorization...</span>
                 </span>
               ) : (
@@ -471,10 +471,10 @@ function App() {
 
         {!isAuthenticated && !deviceAuthInfo ? (
           <div className="space-y-4">
-            <div className="p-6 bg-github-canvas-subtle rounded-github border border-github-border-default text-center">
+            <div className="p-6 bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle rounded-github border border-github-border-default dark:border-github-border-dark-default text-center">
               <div className="mb-4">
                 <svg
-                  className="mx-auto h-16 w-16 text-github-fg-muted"
+                  className="mx-auto h-16 w-16 text-github-fg-muted dark:text-github-fg-dark-muted"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                   role="img"
@@ -488,10 +488,10 @@ function App() {
                 </svg>
               </div>
               
-              <h2 className="text-lg font-semibold text-github-fg-default mb-2">
+              <h2 className="text-lg font-semibold text-github-fg-default dark:text-github-fg-dark-default mb-2">
                 Connect to GitHub
               </h2>
-              <p className="text-sm text-github-fg-muted mb-6">
+              <p className="text-sm text-github-fg-muted dark:text-github-fg-dark-muted mb-6">
                 Sign in with your GitHub account to manage your notifications
               </p>
 
@@ -499,19 +499,19 @@ function App() {
                 onClick={login}
                 disabled={isLoading}
                 aria-busy={isLoading}
-                className="px-6 py-3 bg-github-accent-emphasis text-white rounded-github 
-                         hover:bg-github-accent-fg transition-colors font-medium text-sm
+                className="px-6 py-3 bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis text-white rounded-github 
+                         hover:bg-github-accent-fg dark:hover:bg-github-accent-dark-fg transition-colors font-medium text-sm
                          disabled:opacity-50 disabled:cursor-not-allowed w-full"
               >
                 {isLoading ? 'Connecting...' : 'Connect GitHub'}
               </button>
             </div>
 
-            <div className="p-4 bg-github-attention-subtle rounded-github border border-github-border-default">
-              <h3 className="text-sm font-semibold text-github-fg-default mb-2">
+            <div className="p-4 bg-github-attention-subtle dark:bg-github-attention-dark-subtle rounded-github border border-github-border-default dark:border-github-border-dark-default">
+              <h3 className="text-sm font-semibold text-github-fg-default dark:text-github-fg-dark-default mb-2">
                 What you'll authorize:
               </h3>
-              <ul className="text-xs text-github-fg-muted space-y-1">
+              <ul className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted space-y-1">
                 <li>✓ Read your notifications</li>
                 <li>✓ View your profile information</li>
                 <li>✓ Mark notifications as read</li>
@@ -524,17 +524,17 @@ function App() {
           pageMode === 'settings' ? (
             /* Settings Page */
             <div className="h-full">
-              <div className="flex items-center justify-between mb-3 pb-3 border-b border-github-border-default">
+              <div className="flex items-center justify-between mb-3 pb-3 border-b border-github-border-default dark:border-github-border-dark-default">
                 <button
                   onClick={() => setPageMode('notifications')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-github-canvas-default border border-github-border-default
-                           rounded-github hover:bg-github-canvas-subtle transition-colors
-                           font-medium text-xs text-github-fg-default"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default
+                           rounded-github hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle transition-colors
+                           font-medium text-xs text-github-fg-default dark:text-github-fg-dark-default"
                 >
                   <ArrowLeftIcon size={14} />
                   Back
                 </button>
-                <h2 className="text-lg font-semibold text-github-fg-default">Settings</h2>
+                <h2 className="text-lg font-semibold text-github-fg-default dark:text-github-fg-dark-default">Settings</h2>
                 <div className="w-16" /> {/* Spacer for centering */}
               </div>
               <SettingsPage />
@@ -556,7 +556,7 @@ function App() {
               {/* Header with unread count, actions, and logout */}
             <div className="flex items-center justify-between gap-4 mb-3">
               <div>
-                <h2 className="text-lg font-semibold text-github-fg-default">
+                <h2 className="text-lg font-semibold text-github-fg-default dark:text-github-fg-dark-default">
                   Notifications
                 </h2>
               </div>
@@ -564,7 +564,7 @@ function App() {
                 {/* Pro Status Button/Badge */}
                 {proLoading ? (
                   <span 
-                    className="text-xs text-github-fg-muted"
+                    className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted"
                     role="status"
                     aria-live="polite"
                     aria-label="Loading subscription status"
@@ -586,8 +586,8 @@ function App() {
                         await chrome.storage.local.remove('extpay_payment_pending')
                       }
                     }}
-                    className="flex items-center gap-1 text-xs text-yellow-800 hover:text-yellow-900 transition-colors
-                             px-2 py-1 rounded-github bg-yellow-50 hover:bg-yellow-100"
+                    className="flex items-center gap-1 text-xs text-yellow-800 dark:text-yellow-200 hover:text-yellow-900 dark:hover:text-yellow-100 transition-colors
+                             px-2 py-1 rounded-github bg-yellow-50 dark:bg-yellow-900/30 hover:bg-yellow-100 dark:hover:bg-yellow-900/50"
                     aria-label="Manage Pro subscription"
                     title="Manage Pro subscription"
                   >
@@ -600,9 +600,9 @@ function App() {
                   <button
                     onClick={handleMarkAllAsRead}
                     disabled={notificationsLoading}
-                    className="px-3 py-1.5 bg-github-canvas-default border border-github-border-default
-                             rounded-github hover:bg-github-canvas-subtle transition-colors
-                             font-medium text-xs text-github-fg-default flex items-center gap-1.5
+                    className="px-3 py-1.5 bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default
+                             rounded-github hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle transition-colors
+                             font-medium text-xs text-github-fg-default dark:text-github-fg-dark-default flex items-center gap-1.5
                              disabled:opacity-50 disabled:cursor-not-allowed"
                     aria-label="Mark all as read"
                     title="Mark all as read"
@@ -615,8 +615,8 @@ function App() {
                     onClick={handleToggleSelectionMode}
                     className={`px-3 py-1.5 rounded-github font-medium text-xs transition-colors flex items-center gap-1.5
                              ${selectionMode 
-                               ? 'bg-github-accent-emphasis text-white hover:bg-github-accent-fg' 
-                               : 'bg-github-canvas-default border border-github-border-default text-github-fg-default hover:bg-github-canvas-subtle'
+                               ? 'bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis text-white hover:bg-github-accent-fg dark:hover:bg-github-accent-dark-fg' 
+                               : 'bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default text-github-fg-default dark:text-github-fg-dark-default hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle'
                              }`}
                     aria-label={selectionMode ? 'Exit selection mode' : 'Enter selection mode'}
                     title={selectionMode ? 'Exit selection mode' : 'Select notifications'}
@@ -627,9 +627,9 @@ function App() {
                 {isPro && (
                   <button
                     onClick={() => setIsHelpModalOpen(true)}
-                    className="px-3 py-1.5 bg-github-canvas-default border border-github-border-default
-                             rounded-github hover:bg-github-canvas-subtle transition-colors
-                             font-medium text-xs text-github-fg-default flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default
+                             rounded-github hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle transition-colors
+                             font-medium text-xs text-github-fg-default dark:text-github-fg-dark-default flex items-center gap-1.5"
                     aria-label="Keyboard shortcuts help"
                     title="Keyboard shortcuts (?)"
                   >
@@ -638,9 +638,9 @@ function App() {
                 )}
                 <button
                   onClick={() => setPageMode('settings')}
-                  className="px-3 py-1.5 bg-github-canvas-default border border-github-border-default
-                           rounded-github hover:bg-github-canvas-subtle transition-colors
-                           font-medium text-xs text-github-fg-default flex items-center gap-1.5"
+                  className="px-3 py-1.5 bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default
+                           rounded-github hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle transition-colors
+                           font-medium text-xs text-github-fg-default dark:text-github-fg-dark-default flex items-center gap-1.5"
                   aria-label="Settings"
                   title="Settings"
                   data-testid="settings-button"
@@ -658,8 +658,8 @@ function App() {
                   flex-1 px-3 py-2 rounded-github text-xs font-medium transition-colors
                   flex items-center justify-center gap-1.5
                   ${viewMode === 'active'
-                    ? 'bg-github-accent-emphasis text-white'
-                    : 'bg-github-canvas-default border border-github-border-default text-github-fg-default hover:bg-github-canvas-subtle'
+                    ? 'bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis text-white'
+                    : 'bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default text-github-fg-default dark:text-github-fg-dark-default hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle'
                   }
                 `}
               >
@@ -676,8 +676,8 @@ function App() {
                   flex-1 px-3 py-2 rounded-github text-xs font-medium transition-colors
                   flex items-center justify-center gap-1.5
                   ${viewMode === 'snoozed'
-                    ? 'bg-github-accent-emphasis text-white'
-                    : 'bg-github-canvas-default border border-github-border-default text-github-fg-default hover:bg-github-canvas-subtle'
+                    ? 'bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis text-white'
+                    : 'bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default text-github-fg-default dark:text-github-fg-dark-default hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle'
                   }
                 `}
               >
@@ -694,8 +694,8 @@ function App() {
                   flex-1 px-3 py-2 rounded-github text-xs font-medium transition-colors
                   flex items-center justify-center gap-1.5
                   ${viewMode === 'archived'
-                    ? 'bg-github-accent-emphasis text-white'
-                    : 'bg-github-canvas-default border border-github-border-default text-github-fg-default hover:bg-github-canvas-subtle'
+                    ? 'bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis text-white'
+                    : 'bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default text-github-fg-default dark:text-github-fg-dark-default hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle'
                   }
                 `}
               >
@@ -719,10 +719,10 @@ function App() {
                     type="checkbox"
                     checked={selectedCount === filteredNotifications.length && selectedCount > 0}
                     onChange={handleSelectAll}
-                    className="w-4 h-4 rounded border-github-border-default text-github-accent-emphasis 
-                             focus:ring-2 focus:ring-github-accent-emphasis cursor-pointer"
+                    className="w-4 h-4 rounded border-github-border-default dark:border-github-border-dark-default text-github-accent-emphasis dark:text-github-accent-dark-emphasis 
+                             focus:ring-2 focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis cursor-pointer"
                   />
-                  <span className="text-sm font-medium text-github-fg-default">
+                  <span className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default">
                     Select All ({filteredNotifications.length})
                   </span>
                 </label>
@@ -736,31 +736,31 @@ function App() {
             {notificationsLoading && (
               <div className="p-8 text-center">
                 <div 
-                  className="animate-spin rounded-full h-8 w-8 border-b-2 border-github-accent-emphasis mx-auto mb-3"
+                  className="animate-spin rounded-full h-8 w-8 border-b-2 border-github-accent-emphasis dark:border-github-accent-dark-emphasis mx-auto mb-3"
                   role="status"
                   aria-label="Loading notifications"
                 />
-                <p className="text-sm text-github-fg-muted">Loading notifications...</p>
+                <p className="text-sm text-github-fg-muted dark:text-github-fg-dark-muted">Loading notifications...</p>
               </div>
             )}
 
             {/* Notifications Error State */}
             {notificationsError && (
               <div 
-                className="p-4 bg-github-danger-subtle border border-github-danger-emphasis rounded-github"
+                className="p-4 bg-github-danger-subtle dark:bg-github-danger-dark-subtle border border-github-danger-emphasis dark:border-github-danger-dark-emphasis rounded-github"
                 role="alert"
               >
-                <p className="text-sm text-github-danger-fg font-medium mb-2">
+                <p className="text-sm text-github-danger-fg dark:text-github-danger-dark-fg font-medium mb-2">
                   Failed to load notifications
                 </p>
-                <p className="text-xs text-github-fg-muted mb-3">
+                <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted mb-3">
                   {notificationsError}
                 </p>
                 <button
                   onClick={() => refreshNotifications()}
-                  className="px-3 py-1.5 bg-github-canvas-default border border-github-border-default
-                           rounded-github hover:bg-github-canvas-subtle transition-colors
-                           font-medium text-xs text-github-fg-default"
+                  className="px-3 py-1.5 bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default
+                           rounded-github hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle transition-colors
+                           font-medium text-xs text-github-fg-default dark:text-github-fg-dark-default"
                 >
                   Retry
                 </button>
@@ -777,12 +777,12 @@ function App() {
               >
                 {filteredNotifications.length === 0 ? (
                   // Empty State
-                  <div className="p-8 text-center bg-github-canvas-subtle rounded-github border border-github-border-default">
+                  <div className="p-8 text-center bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle rounded-github border border-github-border-default dark:border-github-border-dark-default">
                     <div className="text-4xl mb-3">🎉</div>
-                    <h3 className="text-sm font-semibold text-github-fg-default mb-1">
+                    <h3 className="text-sm font-semibold text-github-fg-default dark:text-github-fg-dark-default mb-1">
                       All caught up!
                     </h3>
-                    <p className="text-xs text-github-fg-muted">
+                    <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted">
                       {notifications.length === 0 
                         ? 'You have no unread notifications'
                         : 'No notifications in this filter'}
@@ -801,7 +801,7 @@ function App() {
                         role="listitem"
                         data-notification-index={index}
                         className={`
-                          ${focusedIndex === index ? 'ring-2 ring-github-accent-emphasis ring-offset-2 rounded-github' : ''}
+                          ${focusedIndex === index ? 'ring-2 ring-github-accent-emphasis dark:ring-github-accent-dark-emphasis ring-offset-2 rounded-github' : ''}
                         `}
                       >
                         <NotificationItem

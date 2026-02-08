@@ -6,7 +6,7 @@
  * Pro feature - free users always get light theme.
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSettingsStore } from '../store/settings-store'
 import { useIsPro } from './useProStatus'
 import { ThemePreference } from '../types/storage'
@@ -98,7 +98,7 @@ export function useTheme(): UseThemeResult {
   }, [])
 
   // Calculate resolved theme
-  const resolvedTheme = useCallback((): 'light' | 'dark' => {
+  const resolvedTheme = useMemo((): 'light' | 'dark' => {
     // Free users always get light theme
     if (!isPro) {
       return 'light'
@@ -110,9 +110,22 @@ export function useTheme(): UseThemeResult {
     }
     
     return theme
-  }, [isPro, theme, systemTheme])()
+  }, [isPro, theme, systemTheme])
 
   const isDark = resolvedTheme === 'dark'
+
+  // Apply dark class to document element for Tailwind dark mode
+  useEffect(() => {
+    if (typeof document === 'undefined') return // Safety check for SSR/tests
+    
+    if (isDark) {
+      document.documentElement.classList.add('dark')
+      document.body.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+      document.body.classList.remove('dark')
+    }
+  }, [isDark])
 
   // Wrap setTheme to enforce Pro gating
   const setTheme = useCallback((newTheme: ThemePreference) => {

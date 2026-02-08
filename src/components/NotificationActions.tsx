@@ -125,7 +125,7 @@ export function NotificationActions({
         <button
           onClick={handleMarkAsRead}
           disabled={isProcessing}
-          className="p-1.5 rounded hover:bg-github-success-subtle hover:text-github-success-fg transition-colors disabled:opacity-50"
+          className="p-1.5 rounded text-github-fg-muted dark:text-github-fg-dark-muted hover:bg-github-success-subtle dark:hover:bg-github-success-dark-subtle hover:text-github-success-fg dark:hover:text-github-success-dark-fg transition-colors disabled:opacity-50"
           title="Mark as read"
           aria-label="Mark as read"
         >
@@ -136,7 +136,7 @@ export function NotificationActions({
         <button
           onClick={handleArchive}
           disabled={isProcessing}
-          className="p-1.5 rounded hover:bg-github-accent-subtle hover:text-github-accent-fg transition-colors disabled:opacity-50"
+          className="p-1.5 rounded text-github-fg-muted dark:text-github-fg-dark-muted hover:bg-github-accent-subtle dark:hover:bg-github-accent-dark-subtle hover:text-github-accent-fg dark:hover:text-github-accent-dark-fg transition-colors disabled:opacity-50"
           title="Archive"
           aria-label="Archive notification"
         >
@@ -147,7 +147,7 @@ export function NotificationActions({
         <button
           onClick={handleUnsubscribeClick}
           disabled={isProcessing}
-          className="p-1.5 rounded hover:bg-github-danger-subtle hover:text-github-danger-fg transition-colors disabled:opacity-50"
+          className="p-1.5 rounded text-github-fg-muted dark:text-github-fg-dark-muted hover:bg-github-danger-subtle dark:hover:bg-github-danger-dark-subtle hover:text-github-danger-fg dark:hover:text-github-danger-dark-fg transition-colors disabled:opacity-50"
           title="Unsubscribe"
           aria-label="Unsubscribe from thread"
         >
