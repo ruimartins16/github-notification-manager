@@ -1,121 +1,220 @@
 # GitHush
 
-> Quiet the noise. Snooze, filter, and prioritize your GitHub notifications.
+> **Quiet the noise.** Snooze, filter, and prioritize your GitHub notifications.
 
-**Status:** Ready for Launch 🚀  
-**Target Launch:** February 11, 2026  
-**Business Model:** Freemium (€3/mo or €15 lifetime)  
-**Goal:** $250-500 MRR by Month 6
+A Chrome extension that helps developers take back control of their GitHub notifications. Stop drowning in notification overwhelm and focus on what matters most.
 
-## 📋 Planning Documents
+[![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-blue?logo=google-chrome)](https://chrome.google.com/webstore)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This project was planned using our autonomous SaaS development workflow:
+---
 
-- **[TECHNICAL-ARCHITECTURE.md](./TECHNICAL-ARCHITECTURE.md)** - System Architect's technical design
-- **[UX-DESIGN.md](./UX-DESIGN.md)** - UX Designer's user flows and wireframes
-- **[SPRINT-PLAN.md](./SPRINT-PLAN.md)** - Scrum Master's 10-day MVP plan
-- **[LAUNCH-STRATEGY.md](./LAUNCH-STRATEGY.md)** - Business Analyst's growth strategy
+## ✨ Features
 
-## 🎯 MVP Features (7-10 Days)
+### 🔔 **Smart Filtering**
+- **All, Mentions, Reviews, Assigned** - Filter notifications by type
+- See what matters most, hide the rest
+- Stay focused on your priorities
 
-### Must Have
-- ✅ GitHub OAuth authentication
-- ✅ Priority filtering (All, Mentions, Reviews, Assigned)
-- ✅ Snooze notifications (1h, 4h, tomorrow, custom)
-- ✅ Mark all as read
-- ✅ Notification badge count
-- ✅ Basic auto-archive rules
-- ✅ Keyboard shortcuts (j/k, s, d, o)
-- ✅ Dark mode support (light/dark/system)
+### ⏰ **Snooze Notifications** (Pro)
+- Snooze for 30 minutes, 1 hour, 3 hours, tomorrow, or next week
+- Custom date picker for perfect timing
+- Notifications return when YOU'RE ready
 
-### Freemium Limits
-- **Free:** 3 snoozes/day, 3 repos, 1 auto-archive rule
-- **Pro (€3/mo or €15 lifetime):** Unlimited everything
+### ⚡ **Keyboard Shortcuts** (Pro)
+- Navigate with **J/K** (just like Gmail)
+- Quick actions: **D** (done), **A** (archive), **S** (snooze), **O** (open)
+- Filter switching with **1-4** keys
+- Power user? You'll feel at home
+- Press **?** to view all shortcuts
 
-### Pro Features
-Pro features are clearly indicated with a gradient yellow **PRO** badge:
-- **Homepage Header**: Badge appears next to the tagline when user is subscribed
-- **Settings Page**: Badge shown in Account section (plan status) and next to Dark Mode feature
-- **Keyboard Shortcuts Modal**: Single badge in modal title
-- **Feature Buttons**: Snooze button and auto-archive rules show Pro badge when gated
+### 🤖 **Auto-Archive Rules** (Pro)
+- Set custom rules per repository
+- Archive old notifications automatically
+- "Dependabot notifications after 7 days" - done!
+- Set it and forget it
 
-### Keyboard Shortcuts UX
-- **Help Modal**: Press `?` to view all available shortcuts (works for all users)
-- **Free Tier Behavior**: Pro keyboard shortcuts (J/K/D/A/S/O/1-4/Shift+D) are silently ignored for free users
-  - No upgrade modal popup on accidental keypresses
-  - Better UX - upgrade prompts only appear on intentional clicks
-- **Pro Tier**: All shortcuts active (navigation, actions, filters)
+### 🌙 **Beautiful Dark Mode** (Pro)
+- Easy on the eyes, day or night
+- Follows your system preference
+- Light, Dark, or System theme options
 
-## 🚀 Tech Stack
+### 📊 **Mark All as Read**
+- Inbox zero in one click
+- Bulk actions for efficiency
+- Take control when you need it
 
-- **Chrome Extension:** Manifest V3
-- **Frontend:** React 18 + TypeScript + Vite
-- **UI:** Tailwind CSS + Headless UI
-- **State:** Zustand
-- **GitHub API:** Octokit.js
-- **Storage:** chrome.storage.local (no backend!)
-- **Cost:** $0/month for MVP
+---
 
-## 📅 Timeline
+## 🎯 Perfect For
 
-- **Feb 6-7:** Foundation + OAuth
-- **Feb 8-9:** UI + Badge + Filtering
-- **Feb 10-11:** Snooze + Actions
-- **Feb 12-13:** Testing + Polish
-- **Feb 14-15:** Chrome Web Store Submission
+- **Developers** managing multiple projects
+- **Open source maintainers** overwhelmed by notifications
+- **Code reviewers** who need to prioritize
+- **Teams** collaborating on GitHub
+- **Power users** who love keyboard shortcuts
+- **Anyone** struggling with GitHub notification overload
 
-## 📈 Growth Strategy
+---
 
-**100% Organic (No Outreach/Sales):**
-1. ProductHunt launch (Day 0)
-2. Hacker News (Show HN)
-3. Reddit (r/github, r/webdev, r/SideProject)
-4. Twitter (building in public)
-5. Chrome Web Store SEO
-6. Content marketing (weekly blog posts)
+## 🚀 Installation
 
-**Viral Features:**
-- Referral program (both get 1 month free)
-- Share stats (social proof)
-- Review prompts (Chrome Web Store ranking)
+### From Chrome Web Store (Recommended)
+1. Visit the [Chrome Web Store](https://chrome.google.com/webstore) (link coming soon)
+2. Click "Add to Chrome"
+3. Click the GitHush icon in your extensions bar
+4. Sign in with GitHub
+5. Start managing notifications your way!
 
-## 🎯 Success Metrics
-
-### Month 1
-- 1,000 installs
-- 5 paying customers ($25 MRR)
-- 4.5+ star rating
-
-### Month 3
-- 6,000 installs
-- 50 paying customers (**$250 MRR** ✅)
-- 200+ reviews
-
-### Month 6
-- 15,000 installs
-- 100+ paying customers (**$500+ MRR** 🎯)
-- 500+ reviews
-
-## 🛠️ Setup (Coming Soon)
-
+### For Development
 ```bash
+# Clone the repository
+git clone https://github.com/ruimartins16/github-notification-manager.git
+cd github-notification-manager
+
 # Install dependencies
 npm install
-
-# Run development mode
-npm run dev
 
 # Build for production
 npm run build
 
 # Load unpacked extension in Chrome
-# chrome://extensions → Enable Developer Mode → Load Unpacked → build/
+# 1. Go to chrome://extensions
+# 2. Enable "Developer Mode"
+# 3. Click "Load unpacked"
+# 4. Select the `dist/` folder
 ```
-
-## 📝 License
-
-MIT
 
 ---
 
-**Built with the Autonomous SaaS Development Workflow** 🤖
+## 💎 Free vs Pro
+
+### Free Tier
+- ✅ Smart filtering (All, Mentions, Reviews, Assigned)
+- ✅ Mark all as read
+- ✅ View keyboard shortcuts (press `?`)
+- ⚠️ 3 snoozes per day
+- ⚠️ 1 auto-archive rule
+- ⚠️ 3 repositories for auto-archive
+
+### Pro Tier (€3/month or €15 lifetime)
+- ✅ **Unlimited snoozes**
+- ✅ **Unlimited auto-archive rules**
+- ✅ **Unlimited repositories**
+- ✅ **Full keyboard shortcuts** (navigation, actions, filters)
+- ✅ **Beautiful dark mode**
+- ✅ **Support independent development**
+
+[Upgrade to Pro](https://extensionpay.com) to unlock all features!
+
+---
+
+## 🔐 Privacy & Security
+
+GitHush is **privacy-first**:
+
+- ✅ **No data collection** - We don't collect, store, or transmit any of your personal data
+- ✅ **All data stays local** - Everything is stored in your browser only
+- ✅ **No tracking or analytics** - Zero third-party tracking services
+- ✅ **Open source** - Transparent and auditable code
+- ✅ **Secure GitHub OAuth** - Direct authentication with GitHub (no intermediaries)
+
+Read our full [Privacy Policy](https://github.com/ruimartins16/github-notification-manager/blob/main/docs/privacy-policy.md).
+
+---
+
+## 🛠️ Tech Stack
+
+- **Chrome Extension:** Manifest V3
+- **Frontend:** React 18 + TypeScript
+- **Build Tool:** Vite
+- **UI:** Tailwind CSS + GitHub Primer colors
+- **State Management:** Zustand
+- **GitHub API:** Octokit.js
+- **Storage:** Chrome Storage API (local + sync)
+- **Payments:** ExtensionPay + Stripe
+
+---
+
+## ⌨️ Keyboard Shortcuts
+
+Press **?** in the extension to view all shortcuts. Here are the main ones:
+
+**Navigation** (Pro)
+- `J` - Next notification
+- `K` - Previous notification
+
+**Actions** (Pro)
+- `D` - Mark as done
+- `A` - Archive notification
+- `S` - Snooze notification
+- `O` - Open in GitHub
+
+**Filters** (Pro)
+- `1` - All notifications
+- `2` - Mentions only
+- `3` - Review requests
+- `4` - Assigned issues
+
+**Global**
+- `?` - Show keyboard shortcuts help (Free & Pro)
+- `Shift + D` - Mark all as read (Pro)
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! This project is open source.
+
+### How to Contribute
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Setup
+```bash
+# Install dependencies
+npm install
+
+# Run development mode with hot reload
+npm run dev
+
+# Run tests
+npm run test
+
+# Build for production
+npm run build
+
+# Type check
+npm run type-check
+```
+
+---
+
+## 📝 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+## 📧 Contact & Support
+
+- **Issues & Feature Requests:** [GitHub Issues](https://github.com/ruimartins16/github-notification-manager/issues)
+- **Email:** r.martins@ua.pt
+- **Repository:** [github.com/ruimartins16/github-notification-manager](https://github.com/ruimartins16/github-notification-manager)
+
+---
+
+## 🌟 Show Your Support
+
+If GitHush helps you manage your GitHub notifications, please:
+- ⭐ Star this repository
+- 🐦 Share it on social media
+- ⭐ Leave a review on the Chrome Web Store
+- 💬 Tell your developer friends
+
+---
+
+**Made with ❤️ for developers who want to quiet the noise.**
