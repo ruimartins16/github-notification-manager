@@ -389,11 +389,11 @@ function App() {
       <div className="p-4 flex-1 flex flex-col overflow-hidden">
         <header className="mb-4">
           <h1 className="text-2xl font-bold text-github-fg-default dark:text-github-fg-dark-default mb-2">
-            GitHub Notification Manager
+            GitHush
           </h1>
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm text-github-fg-muted dark:text-github-fg-dark-muted">
-              Take control of your GitHub notifications
+              Quiet the noise
             </p>
             {isAuthenticated && !proLoading && (
               <>

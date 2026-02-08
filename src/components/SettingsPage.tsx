@@ -495,7 +495,7 @@ export function SettingsPage() {
                   About
                 </h3>
                 <p className="text-sm text-github-fg-muted dark:text-github-fg-dark-muted">
-                  GitHub Notification Manager v1.0.0
+                  GitHush v1.0.0
                 </p>
                 <p className="text-xs text-github-fg-subtle dark:text-github-fg-dark-subtle mt-1">
                   Manage your GitHub notifications with ease.

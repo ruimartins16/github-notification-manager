@@ -1,10 +1,10 @@
-# GitHub Notification Manager
+# GitHush
 
-> A Chrome extension to snooze, filter, and prioritize GitHub notifications
+> Quiet the noise. Snooze, filter, and prioritize your GitHub notifications.
 
-**Status:** Planning Phase  
-**Target Launch:** February 15, 2026  
-**Business Model:** Freemium ($5/mo Pro tier)  
+**Status:** Ready for Launch 🚀  
+**Target Launch:** February 11, 2026  
+**Business Model:** Freemium (€3/mo or €15 lifetime)  
 **Goal:** $250-500 MRR by Month 6
 
 ## 📋 Planning Documents
@@ -30,7 +30,7 @@ This project was planned using our autonomous SaaS development workflow:
 
 ### Freemium Limits
 - **Free:** 3 snoozes/day, 3 repos, 1 auto-archive rule
-- **Pro ($5/mo):** Unlimited everything
+- **Pro (€3/mo or €15 lifetime):** Unlimited everything
 
 ### Pro Features
 Pro features are clearly indicated with a gradient yellow **PRO** badge:

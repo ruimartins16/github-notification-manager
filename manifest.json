@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "GitHub Notification Manager",
+  "name": "GitHush",
   "version": "1.0.0",
-  "description": "Take control of GitHub notifications with smart filters, snooze, and keyboard shortcuts.",
+  "description": "Quiet the noise. Snooze, filter, and prioritize your GitHub notifications with ease.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",

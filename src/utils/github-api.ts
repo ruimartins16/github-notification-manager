@@ -58,7 +58,7 @@ export class GitHubAPI {
     this.currentToken = token
     this.octokit = new Octokit({ 
       auth: token,
-      userAgent: 'GitHub Notification Manager v1.0.0',
+      userAgent: 'GitHush v1.0.0',
     })
   }
 
