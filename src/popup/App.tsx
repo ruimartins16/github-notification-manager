@@ -381,8 +381,8 @@ function App() {
   }
 
   return (
-    <div className="w-[400px] h-[600px] bg-github-canvas-default">
-      <div className="p-4">
+    <div className="w-[400px] h-[600px] bg-github-canvas-default flex flex-col">
+      <div className="p-4 flex-1 flex flex-col overflow-hidden">
         <header className="mb-4">
           <h1 className="text-2xl font-bold text-github-fg-default mb-2">
             GitHub Notification Manager
@@ -537,7 +537,7 @@ function App() {
             </div>
           ) : (
             /* Notifications Page */
-            <div>
+            <div className="flex-1 flex flex-col overflow-hidden">
               {/* ARIA Live Regions for Screen Readers */}
               <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
                 {unreadCount} unread notification{unreadCount === 1 ? '' : 's'}
@@ -768,7 +768,7 @@ function App() {
               <div 
                 ref={listRef}
                 id="notification-list"
-                className="mt-2"
+                className="mt-2 flex-1 flex flex-col overflow-hidden"
                 role="tabpanel"
               >
                 {filteredNotifications.length === 0 ? (
@@ -787,7 +787,7 @@ function App() {
                 ) : (
                   // Notification Items
                   <div 
-                    className="space-y-2 max-h-[400px] overflow-y-auto"
+                    className="space-y-2 flex-1 overflow-y-auto"
                     role="list"
                     aria-label="GitHub notifications"
                   >

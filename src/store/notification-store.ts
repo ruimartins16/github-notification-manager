@@ -6,16 +6,6 @@ import { NOTIFICATIONS_STORAGE_KEY } from '../utils/notification-service'
 import { applyRules } from '../utils/rule-matcher'
 import { useSettingsStore } from './settings-store'
 
-/**
- * Time to keep notification IDs in recentlyMarkedAsRead Map.
- * Set to 60 seconds to handle GitHub API eventual consistency.
- * 
- * GitHub's API returns 205 success for markAsRead, but the notification
- * still appears in GET /notifications with unread:true for 5-60 seconds
- * due to caching. We filter these out client-side during this window.
- */
-const MARKED_AS_READ_TTL_MS = 60 * 1000 // 60 seconds
-
 // Filter types based on notification reasons
 export type NotificationFilter = 'all' | 'mentions' | 'reviews' | 'assigned'
 
@@ -35,7 +25,7 @@ interface NotificationState {
   activeFilter: NotificationFilter
   markAllBackup: GitHubNotification[] | null
   selectedNotificationIds: Set<string>
-  recentlyMarkedAsRead: Map<string, number> // Map of notification ID -> timestamp when marked
+  dismissedNotificationIds: string[] // IDs user explicitly marked as read (persisted)
   
   // Actions
   setNotifications: (notifications: GitHubNotification[]) => void
@@ -80,9 +70,6 @@ interface NotificationState {
   getArchivedCount: () => number
   getSelectedCount: () => number
   getSelectedNotifications: () => GitHubNotification[]
-  
-  // Recently marked tracking
-  cleanupStaleMarkedIds: () => void
 }
 
 // Chrome storage adapter for Zustand persist middleware
@@ -137,27 +124,27 @@ export const useNotificationStore = create<NotificationState>()(
       activeFilter: useSettingsStore.getState().defaultFilter,
       markAllBackup: null,
       selectedNotificationIds: new Set<string>(),
-      recentlyMarkedAsRead: new Map<string, number>(),
+      dismissedNotificationIds: [],
 
       // Actions
       setNotifications: (notifications) => {
         const state = get()
         
-        // Filter out notifications that were recently marked as read
-        // This handles GitHub API eventual consistency issues
-        const filteredNotifications = notifications.filter(n => {
-          const markedTimestamp = state.recentlyMarkedAsRead.get(n.id)
-          if (markedTimestamp) {
-            const timeSinceMarked = Date.now() - markedTimestamp
-            // Keep filtering for MARKED_AS_READ_TTL_MS after marking as read
-            if (timeSinceMarked < MARKED_AS_READ_TTL_MS) {
-              return false
-            }
-          }
-          return true
-        })
+        // Filter out notifications that user explicitly dismissed (marked as read)
+        // GitHub's API inconsistently returns marked-as-read notifications with unread:true
+        const dismissedSet = new Set(state.dismissedNotificationIds)
+        const filteredNotifications = notifications.filter(n => !dismissedSet.has(n.id))
         
-        set({ notifications: filteredNotifications, error: null })
+        // Cleanup: Remove dismissed IDs that are no longer in the API response
+        // This prevents unbounded growth of the dismissed list
+        const currentIds = new Set(notifications.map(n => n.id))
+        const cleanedDismissedIds = state.dismissedNotificationIds.filter(id => currentIds.has(id))
+        
+        set({ 
+          notifications: filteredNotifications, 
+          dismissedNotificationIds: cleanedDismissedIds,
+          error: null 
+        })
       },
 
       setLoading: (isLoading) =>
@@ -170,18 +157,12 @@ export const useNotificationStore = create<NotificationState>()(
         set({ notifications: [], error: null, lastFetched: null }),
 
       markAsRead: (notificationId) =>
-        set((state) => {
-          // Track this notification as recently marked
-          const updatedMap = new Map(state.recentlyMarkedAsRead)
-          updatedMap.set(notificationId, Date.now())
-          
-          return {
-            notifications: state.notifications.filter(
-              (n) => n.id !== notificationId
-            ),
-            recentlyMarkedAsRead: updatedMap,
-          }
-        }),
+        set((state) => ({
+          notifications: state.notifications.filter(
+            (n) => n.id !== notificationId
+          ),
+          dismissedNotificationIds: [...state.dismissedNotificationIds, notificationId],
+        })),
 
       markAllAsRead: () => {
         const state = get()
@@ -191,22 +172,18 @@ export const useNotificationStore = create<NotificationState>()(
         const backup = [...state.notifications]
         
         // Get IDs of filtered notifications to mark as read
-        const idsToMarkAsRead = new Set(filteredNotifications.map(n => n.id))
-        
-        // Track all marked IDs in recentlyMarkedAsRead Map
-        const updatedMap = new Map(state.recentlyMarkedAsRead)
-        const now = Date.now()
-        idsToMarkAsRead.forEach(id => updatedMap.set(id, now))
+        const idsToMarkAsRead = filteredNotifications.map(n => n.id)
+        const idsToMarkAsReadSet = new Set(idsToMarkAsRead)
         
         // Remove marked notifications from the list (consistent with individual markAsRead)
         const updatedNotifications = state.notifications.filter(n => 
-          !idsToMarkAsRead.has(n.id)
+          !idsToMarkAsReadSet.has(n.id)
         )
         
         set({ 
           notifications: updatedNotifications,
           markAllBackup: backup,
-          recentlyMarkedAsRead: updatedMap,
+          dismissedNotificationIds: [...state.dismissedNotificationIds, ...idsToMarkAsRead],
         })
         
         return filteredNotifications
@@ -219,15 +196,14 @@ export const useNotificationStore = create<NotificationState>()(
             return state
           }
           
-          // Clear recently marked IDs for undone notifications
+          // Remove restored notification IDs from dismissed list
           const restoredIds = new Set(state.markAllBackup.map(n => n.id))
-          const updatedMap = new Map(state.recentlyMarkedAsRead)
-          restoredIds.forEach(id => updatedMap.delete(id))
+          const updatedDismissedIds = state.dismissedNotificationIds.filter(id => !restoredIds.has(id))
           
           return {
             notifications: state.markAllBackup,
             markAllBackup: null,
-            recentlyMarkedAsRead: updatedMap,
+            dismissedNotificationIds: updatedDismissedIds,
           }
         }),
 
@@ -478,18 +454,13 @@ export const useNotificationStore = create<NotificationState>()(
         const state = get()
         const selectedIds = Array.from(state.selectedNotificationIds)
         
-        // Track all bulk marked IDs in recentlyMarkedAsRead Map
-        const updatedMap = new Map(state.recentlyMarkedAsRead)
-        const now = Date.now()
-        selectedIds.forEach(id => updatedMap.set(id, now))
-        
-        // Remove selected notifications from active list
+        // Remove selected notifications from active list and add to dismissed
         set((state) => ({
           notifications: state.notifications.filter(
             n => !selectedIds.includes(n.id)
           ),
           selectedNotificationIds: new Set<string>(),
-          recentlyMarkedAsRead: updatedMap,
+          dismissedNotificationIds: [...state.dismissedNotificationIds, ...selectedIds],
         }))
         
         // Return selected IDs for API calls
@@ -568,71 +539,11 @@ export const useNotificationStore = create<NotificationState>()(
         const { notifications, selectedNotificationIds } = state
         return notifications.filter(n => selectedNotificationIds.has(n.id))
       },
-      
-      // Recently marked tracking cleanup
-      cleanupStaleMarkedIds: () =>
-        set((state) => {
-          // Early exit if Map is empty
-          if (state.recentlyMarkedAsRead.size === 0) {
-            return state
-          }
-          
-          const now = Date.now()
-          const updatedMap = new Map(state.recentlyMarkedAsRead)
-          let cleaned = 0
-          
-          // Remove entries older than MARKED_AS_READ_TTL_MS
-          for (const [id, timestamp] of updatedMap.entries()) {
-            if (now - timestamp > MARKED_AS_READ_TTL_MS) {
-              updatedMap.delete(id)
-              cleaned++
-            }
-          }
-          
-          if (cleaned > 0) {
-            console.log('[NotificationStore] Cleaned up', cleaned, 'stale marked IDs')
-          }
-          
-          return { recentlyMarkedAsRead: updatedMap }
-        }),
     }),
     {
       name: 'zustand-notifications', // Use different key from NotificationService
-      storage: createJSONStorage(() => chromeStorage, {
-        // Custom serializer/deserializer for Map
-        reviver: (key, value) => {
-          // Deserialize recentlyMarkedAsRead from array back to Map
-          if (key === 'recentlyMarkedAsRead') {
-            // Handle arrays (serialized Maps)
-            if (Array.isArray(value)) {
-              try {
-                return new Map(value)
-              } catch (err) {
-                console.error('[Store] Failed to deserialize recentlyMarkedAsRead:', err)
-                return new Map() // Fallback to empty Map
-              }
-            }
-            // Handle already deserialized Maps (shouldn't happen but defensive)
-            if (value instanceof Map) {
-              return value
-            }
-            // Handle invalid values
-            if (value != null) {
-              console.warn('[Store] Invalid recentlyMarkedAsRead value:', value)
-            }
-            return new Map()
-          }
-          return value
-        },
-        replacer: (key, value) => {
-          // Serialize recentlyMarkedAsRead Map to array
-          if (key === 'recentlyMarkedAsRead' && value instanceof Map) {
-            return Array.from(value.entries())
-          }
-          return value
-        },
-      }),
-      // Persist notifications, snoozed notifications, archived notifications, rules, selected filter, and recently marked
+      storage: createJSONStorage(() => chromeStorage),
+      // Persist notifications, snoozed notifications, archived notifications, rules, selected filter, dismissed IDs
       partialize: (state) => ({
         notifications: state.notifications,
         snoozedNotifications: state.snoozedNotifications,
@@ -640,7 +551,7 @@ export const useNotificationStore = create<NotificationState>()(
         autoArchiveRules: state.autoArchiveRules,
         lastFetched: state.lastFetched,
         activeFilter: state.activeFilter,
-        recentlyMarkedAsRead: state.recentlyMarkedAsRead,
+        dismissedNotificationIds: state.dismissedNotificationIds,
       }),
     }
   )
@@ -699,12 +610,4 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
       })
     }
   }, 0)
-}
-
-// Auto-cleanup stale marked IDs every 60 seconds
-// This prevents unbounded Map growth if user doesn't fetch for a while
-if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
-    useNotificationStore.getState().cleanupStaleMarkedIds()
-  }, MARKED_AS_READ_TTL_MS)
 }

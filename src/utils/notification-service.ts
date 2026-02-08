@@ -31,14 +31,15 @@ export class NotificationService {
    * Fetch notifications from GitHub API
    * 
    * @param token - GitHub access token
-   * @returns Array of unread notifications
+   * @returns Array of unread notifications (dismissed IDs filtered by store)
    * @throws Error if API request fails
    */
   static async fetchNotifications(token: string): Promise<GitHubNotification[]> {
     const api = GitHubAPI.getInstance()
     await api.initialize(token)
 
-    // Fetch only unread notifications (all=false)
+    // Fetch only unread notifications (all=false is default)
+    // Store's setNotifications will filter out dismissed notification IDs
     const notifications = await api.fetchNotifications({
       all: false,
       participating: false,

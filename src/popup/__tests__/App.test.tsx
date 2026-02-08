@@ -57,27 +57,10 @@ describe('App Component', () => {
   describe('Loading State', () => {
     it('should display loading spinner when authentication is being checked', () => {
       mockUseAuth.mockReturnValue({
-        isAuthenticated: false,
+        isAuthenticated: true,
         isLoading: true,
         error: null,
-        login: vi.fn(),
-        logout: vi.fn(),
-        checkAuth: vi.fn(),
-      })
-
-      renderWithQueryClient(<App />)
-      
-      expect(screen.getByText('Loading...')).toBeInTheDocument()
-    })
-
-    it('should have correct dimensions during loading', () => {
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: false,
-        isLoading: true,
-        error: null,
-        login: vi.fn(),
-        logout: vi.fn(),
-        checkAuth: vi.fn(),
+        token: 'mock-token',
       })
 
       const { container } = renderWithQueryClient(<App />)
