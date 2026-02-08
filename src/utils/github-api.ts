@@ -101,8 +101,10 @@ export class GitHubAPI {
       throw new Error('GitHubAPI not initialized. Call initialize() first.')
     }
 
+    const numericId = parseInt(threadId, 10)
+
     await this.octokit.rest.activity.markThreadAsRead({
-      thread_id: parseInt(threadId, 10),
+      thread_id: numericId,
     })
   }
 

@@ -33,15 +33,18 @@ export function NotificationActions({
       if (isProcessing) return
 
       setIsProcessing(true)
+      
       try {
         // Call GitHub API first (not optimistic to avoid rollback complexity)
         const token = await AuthService.getStoredToken()
+        
         if (!token) {
           throw new Error('Not authenticated. Please log in again.')
         }
 
         const api = GitHubAPI.getInstance()
         await api.initialize(token)
+        
         await api.markAsRead(notificationId)
 
         // Update UI after API success
@@ -53,14 +56,14 @@ export function NotificationActions({
         
         onActionComplete?.('read')
       } catch (error) {
-        console.error('Failed to mark notification as read:', error)
+        console.error('[NotificationActions] Failed to mark notification as read:', error)
         const errorObj = error instanceof Error ? error : new Error('Failed to mark as read')
         onError?.('read', errorObj)
       } finally {
         setIsProcessing(false)
       }
     },
-    [notificationId, markAsRead, onActionComplete, onError]
+    [notificationId, notificationTitle, markAsRead, onActionComplete, onError]
   )
 
   // Archive handler

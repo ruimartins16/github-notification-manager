@@ -66,6 +66,7 @@ export function useNotifications(options?: UseNotificationsOptions): UseNotifica
     setError,
     markAsRead,
     updateLastFetched,
+    cleanupStaleMarkedIds,
   } = useNotificationStore()
 
   // React Query for manual refresh capability
@@ -79,6 +80,9 @@ export function useNotifications(options?: UseNotificationsOptions): UseNotifica
       setLoading(true)
 
       try {
+        // Clean up stale marked IDs before fetching
+        cleanupStaleMarkedIds()
+        
         const api = GitHubAPI.getInstance()
         await api.initialize(token)
         
@@ -90,6 +94,7 @@ export function useNotifications(options?: UseNotificationsOptions): UseNotifica
         const typedNotifications = fetchedNotifications as unknown as GitHubNotification[]
         
         // Update Zustand store (which persists to chrome.storage)
+        // setNotifications will automatically filter out recently marked notifications
         setNotifications(typedNotifications)
         updateLastFetched()
         

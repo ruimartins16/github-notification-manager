@@ -27,12 +27,14 @@ export const FilterBar = memo(() => {
   const notifications = useNotificationStore(state => state.notifications)
   
   // Compute filter counts from notifications array
-  const filterCounts = useMemo(() => ({
-    all: notifications.length,
-    mentions: notifications.filter(n => MENTION_REASONS.includes(n.reason)).length,
-    reviews: notifications.filter(n => REVIEW_REASONS.includes(n.reason)).length,
-    assigned: notifications.filter(n => ASSIGNED_REASONS.includes(n.reason)).length,
-  }), [notifications])
+  const filterCounts = useMemo(() => {
+    return {
+      all: notifications.length,
+      mentions: notifications.filter(n => MENTION_REASONS.includes(n.reason)).length,
+      reviews: notifications.filter(n => REVIEW_REASONS.includes(n.reason)).length,
+      assigned: notifications.filter(n => ASSIGNED_REASONS.includes(n.reason)).length,
+    }
+  }, [notifications])
 
   const handleFilterClick = useCallback((filter: NotificationFilter) => {
     setFilter(filter)
