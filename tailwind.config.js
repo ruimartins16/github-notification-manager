@@ -59,7 +59,7 @@ export default {
               fg: '#3fb950',
               emphasis: '#238636',
               muted: '#2ea043',
-              subtle: '#0d1117',
+              subtle: '#161b22',
             },
           },
           attention: {
