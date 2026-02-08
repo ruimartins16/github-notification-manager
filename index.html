@@ -5,11 +5,11 @@
     <link rel="icon" type="image/png" href="/icons/icon48.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GitHub Notification Manager</title>
-    
-    <!-- CRITICAL: Load theme BEFORE React to prevent flash (external script for CSP compliance) -->
-    <script src="/theme-loader.js"></script>
   </head>
   <body>
+    <!-- CRITICAL: Apply theme IMMEDIATELY (before React) to prevent flash -->
+    <script src="/theme-loader.js"></script>
+    
     <div id="root"></div>
     <script type="module" src="/src/popup/main.tsx"></script>
   </body>
