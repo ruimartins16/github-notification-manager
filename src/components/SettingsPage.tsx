@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useSettingsStore } from '../store/settings-store'
 import { useNotificationStore } from '../store/notification-store'
+import { useTheme } from '../hooks/useTheme'
+import { useProStatus } from '../hooks/useProStatus'
 import { AutoArchiveRules } from '../components/AutoArchiveRules'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { SubscriptionStatus } from '../components/SubscriptionStatus'
 import { RefreshStatusButton } from '../components/RefreshStatusButton'
 import { FilterType } from '../types/storage'
-import { useProStatus } from '../hooks/useProStatus'
 import { extPayService } from '../utils/extpay-service'
 import { trackEvent, ANALYTICS_EVENTS } from '../utils/analytics'
 import { GitHubAPI } from '../utils/github-api'
@@ -47,6 +48,9 @@ export function SettingsPage() {
   
   // Pro status
   const { isPro, user: proUser, isLoading: isLoadingPro } = useProStatus()
+  
+  // Theme management
+  const { theme, setTheme: setThemePreference } = useTheme()
   
   // Settings store
   const refreshInterval = useSettingsStore(state => state.refreshInterval)
@@ -655,6 +659,98 @@ export function SettingsPage() {
                                     after:h-5 after:w-5 after:transition-all border border-github-border-default
                                     peer-checked:bg-github-accent-emphasis"></div>
                     </label>
+                  </div>
+
+                  {/* Dark Mode (Pro Feature) */}
+                  <div className="py-3 border-t border-github-border-default">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <label className="text-sm font-medium text-github-fg-default flex items-center gap-2">
+                          Dark Mode
+                          {!isPro && (
+                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-semibold">
+                              Pro
+                            </span>
+                          )}
+                        </label>
+                        <p className="text-xs text-github-fg-muted mt-1">
+                          {isPro 
+                            ? 'Choose your preferred theme'
+                            : 'Upgrade to Pro to unlock dark mode'}
+                        </p>
+                      </div>
+                      {!isPro && (
+                        <button
+                          onClick={async () => {
+                            trackEvent(ANALYTICS_EVENTS.UPGRADE_BUTTON_CLICKED, { location: 'settings_dark_mode' })
+                            try {
+                              const { triggerStatusRefresh } = await import('../utils/status-refresh-helper')
+                              await triggerStatusRefresh('payment')
+                              await extPayService.openPaymentPage()
+                            } catch (error) {
+                              console.error('[SettingsPage] Failed to open payment page:', error)
+                              await chrome.storage.local.remove('extpay_payment_pending')
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-github 
+                                   hover:bg-blue-700 transition-colors"
+                        >
+                          Upgrade
+                        </button>
+                      )}
+                    </div>
+                    
+                    {isPro && (
+                      <div className="grid grid-cols-3 gap-2">
+                        {/* Light Theme */}
+                        <button
+                          onClick={() => setThemePreference('light')}
+                          className={`px-3 py-2 rounded-github border-2 transition-all flex flex-col items-center gap-1.5
+                                   ${theme === 'light'
+                                     ? 'border-github-accent-emphasis bg-github-accent-subtle'
+                                     : 'border-github-border-default hover:border-github-border-muted'
+                                   }`}
+                        >
+                          <svg className="w-5 h-5 text-github-fg-default" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                  d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                          </svg>
+                          <span className="text-xs font-medium">Light</span>
+                        </button>
+                        
+                        {/* Dark Theme */}
+                        <button
+                          onClick={() => setThemePreference('dark')}
+                          className={`px-3 py-2 rounded-github border-2 transition-all flex flex-col items-center gap-1.5
+                                   ${theme === 'dark'
+                                     ? 'border-github-accent-emphasis bg-github-accent-subtle'
+                                     : 'border-github-border-default hover:border-github-border-muted'
+                                   }`}
+                        >
+                          <svg className="w-5 h-5 text-github-fg-default" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                          </svg>
+                          <span className="text-xs font-medium">Dark</span>
+                        </button>
+                        
+                        {/* System Theme */}
+                        <button
+                          onClick={() => setThemePreference('system')}
+                          className={`px-3 py-2 rounded-github border-2 transition-all flex flex-col items-center gap-1.5
+                                   ${theme === 'system'
+                                     ? 'border-github-accent-emphasis bg-github-accent-subtle'
+                                     : 'border-github-border-default hover:border-github-border-muted'
+                                   }`}
+                        >
+                          <svg className="w-5 h-5 text-github-fg-default" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                  d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                          <span className="text-xs font-medium">System</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

@@ -40,9 +40,11 @@ export interface UserSettings {
   soundEnabled: boolean
   defaultFilter: FilterType
   openLinksInNewTab: boolean
+  theme: ThemePreference // Pro feature: light, dark, or system
 }
 
 export type FilterType = 'all' | 'mentions' | 'reviews' | 'assigned'
+export type ThemePreference = 'light' | 'dark' | 'system'
 
 // Default values
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -51,4 +53,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
   soundEnabled: false,
   defaultFilter: 'all',
   openLinksInNewTab: true,
+  theme: 'system', // Default to system preference for Pro users
 }

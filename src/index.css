@@ -34,6 +34,24 @@ body {
   background: #afb8c1;
 }
 
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-thumb {
+  background: #30363d;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #484f58;
+}
+
+/* Smooth transitions for theme switching */
+.dark {
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.dark * {
+  transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
 /* Screen reader only - accessibility utility */
 .sr-only {
   position: absolute;

@@ -3,6 +3,7 @@ import { useNotifications, useUnreadCount } from '../hooks/useNotifications'
 import { useNotificationStore } from '../store/notification-store'
 import { useSettingsStore } from '../store/settings-store'
 import { useProStatus } from '../hooks/useProStatus'
+import { useTheme } from '../hooks/useTheme'
 import { FilterBar } from '../components/FilterBar'
 import { NotificationItem } from '../components/NotificationItem'
 import { SnoozedTab } from '../components/SnoozedTab'
@@ -34,6 +35,9 @@ function App() {
     refresh: refreshNotifications 
   } = useNotifications()
   const unreadCount = useUnreadCount()
+  
+  // Theme management
+  const { isDark } = useTheme()
   
   // Get filtered notifications from store
   const getFilteredNotifications = useNotificationStore(state => state.getFilteredNotifications)
@@ -367,28 +371,28 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className="w-[400px] h-[600px] bg-github-canvas-default flex items-center justify-center">
+      <div className={`w-[400px] h-[600px] bg-github-canvas-default dark:bg-github-canvas-dark-default flex items-center justify-center ${isDark ? 'dark' : ''}`}>
         <div className="text-center">
           <div 
-            className="animate-spin rounded-full h-12 w-12 border-b-2 border-github-accent-emphasis mx-auto mb-4"
+            className="animate-spin rounded-full h-12 w-12 border-b-2 border-github-accent-emphasis dark:border-github-accent-dark-emphasis mx-auto mb-4"
             role="status"
             aria-label="Loading authentication status"
           />
-          <p className="text-sm text-github-fg-muted">Loading...</p>
+          <p className="text-sm text-github-fg-muted dark:text-github-fg-dark-muted">Loading...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="w-[400px] h-[600px] bg-github-canvas-default flex flex-col">
+    <div className={`w-[400px] h-[600px] bg-github-canvas-default dark:bg-github-canvas-dark-default flex flex-col ${isDark ? 'dark' : ''}`}>
       <div className="p-4 flex-1 flex flex-col overflow-hidden">
         <header className="mb-4">
-          <h1 className="text-2xl font-bold text-github-fg-default mb-2">
+          <h1 className="text-2xl font-bold text-github-fg-default dark:text-github-fg-dark-default mb-2">
             GitHub Notification Manager
           </h1>
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm text-github-fg-muted">
+            <p className="text-sm text-github-fg-muted dark:text-github-fg-dark-muted">
               Take control of your GitHub notifications
             </p>
             {isAuthenticated && !proLoading && !isPro && (
@@ -410,11 +414,11 @@ function App() {
 
         {error && (
           <div 
-            className="mb-4 p-4 bg-github-danger-subtle border border-github-danger-emphasis rounded-github"
+            className="mb-4 p-4 bg-github-danger-subtle dark:bg-github-danger-dark-subtle border border-github-danger-emphasis dark:border-github-danger-dark-emphasis rounded-github"
             role="alert"
             aria-live="assertive"
           >
-            <p className="text-sm text-github-danger-fg font-medium">
+            <p className="text-sm text-github-danger-fg dark:text-github-danger-dark-fg font-medium">
               {error}
             </p>
           </div>

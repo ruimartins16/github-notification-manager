@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware'
-import { UserSettings, DEFAULT_SETTINGS, FilterType } from '../types/storage'
+import { UserSettings, DEFAULT_SETTINGS, FilterType, ThemePreference } from '../types/storage'
 
 interface SettingsState extends UserSettings {
   // Actions
@@ -9,6 +9,7 @@ interface SettingsState extends UserSettings {
   setSoundEnabled: (enabled: boolean) => void
   setDefaultFilter: (filter: FilterType) => void
   setOpenLinksInNewTab: (enabled: boolean) => void
+  setTheme: (theme: ThemePreference) => void
   resetSettings: () => void
   
   // Derived state
@@ -92,6 +93,9 @@ export const useSettingsStore = create<SettingsState>()(
       setOpenLinksInNewTab: (enabled) =>
         set({ openLinksInNewTab: enabled }),
 
+      setTheme: (theme) =>
+        set({ theme }),
+
       resetSettings: () =>
         set(DEFAULT_SETTINGS),
 
@@ -103,7 +107,8 @@ export const useSettingsStore = create<SettingsState>()(
           state.badgeEnabled === DEFAULT_SETTINGS.badgeEnabled &&
           state.soundEnabled === DEFAULT_SETTINGS.soundEnabled &&
           state.defaultFilter === DEFAULT_SETTINGS.defaultFilter &&
-          state.openLinksInNewTab === DEFAULT_SETTINGS.openLinksInNewTab
+          state.openLinksInNewTab === DEFAULT_SETTINGS.openLinksInNewTab &&
+          state.theme === DEFAULT_SETTINGS.theme
         )
       },
     }),

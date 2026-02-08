@@ -24,6 +24,7 @@ interface UpgradeModalProps {
  * List of Pro features to display in the modal
  */
 const PRO_FEATURES = [
+  'Dark Mode - Choose light, dark, or system theme',
   'Snooze notifications (30min, 1hr, 3hrs, tomorrow, next week)',
   'Custom rules engine for advanced filtering',
   'All keyboard shortcuts (J/K navigation, D/A/S/O actions, 1-4 filters, Shift+D mark all)',
