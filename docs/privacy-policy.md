@@ -1,10 +1,10 @@
-# Privacy Policy for GitHub Notification Manager
+# Privacy Policy for GitHush
 
-**Last Updated:** February 7, 2026
+**Last Updated:** February 8, 2026
 
 ## Introduction
 
-GitHub Notification Manager ("the Extension") is a Chrome browser extension that helps you manage your GitHub notifications. This privacy policy explains how we handle your data.
+GitHush ("the Extension") is a Chrome browser extension that helps you manage your GitHub notifications. This privacy policy explains how we handle your data.
 
 ## TL;DR (Too Long; Didn't Read)
 
@@ -79,7 +79,7 @@ The Extension communicates with:
 
 ### Payment Processing
 
-GitHub Notification Manager offers optional Pro features through a paid subscription. Payments are processed securely through **ExtensionPay** and **Stripe**:
+GitHush offers optional Pro features through a paid subscription. Payments are processed securely through **ExtensionPay** and **Stripe**:
 
 - **ExtensionPay** (extensionpay.com): Manages subscription billing and licensing
 - **Stripe** (stripe.com): Processes credit card payments securely
@@ -224,14 +224,14 @@ We take security seriously:
 - ✅ **OAuth Device Flow:** No client secret exposed (secure authentication)
 - ✅ **No Backend:** No servers to hack (data stays in your browser)
 - ✅ **Direct API Access:** Communication only with GitHub's official API
-- ✅ **Open Source:** Code is publicly auditable at [repository URL]
+- ✅ **Open Source:** Code is publicly auditable at https://github.com/ruimartins16/github-notification-manager
 - ✅ **Minimal Permissions:** Only requests necessary permissions
 
 ### In Case of Security Issues
 
 If you discover a security vulnerability, please report it to:
-- **Email:** [your-email]
-- **GitHub Issues:** [repository URL]/security
+- **Email:** r.martins@ua.pt
+- **GitHub Issues:** https://github.com/ruimartins16/github-notification-manager/security
 
 ## Children's Privacy
 
@@ -246,8 +246,8 @@ We may update this privacy policy from time to time. Changes will be posted at t
 
 ## Open Source
 
-GitHub Notification Manager is open source:
-- **Repository:** [repository URL]
+GitHush is open source:
+- **Repository:** https://github.com/ruimartins16/github-notification-manager
 - **License:** MIT License
 - **Transparency:** You can inspect the code to verify our privacy claims
 
@@ -255,9 +255,9 @@ GitHub Notification Manager is open source:
 
 Questions about privacy or data handling?
 
-- **GitHub Issues:** [repository URL]/issues
-- **Email:** [your-email]
-- **Repository:** [repository URL]
+- **GitHub Issues:** https://github.com/ruimartins16/github-notification-manager/issues
+- **Email:** r.martins@ua.pt
+- **Repository:** https://github.com/ruimartins16/github-notification-manager
 
 ## Compliance
 
@@ -279,7 +279,7 @@ This extension complies with:
 
 ## Summary
 
-**GitHub Notification Manager is privacy-first:**
+**GitHush is privacy-first:**
 
 ✅ No data collection  
 ✅ No tracking or analytics  
@@ -290,4 +290,4 @@ This extension complies with:
 
 ---
 
-**Questions?** Open an issue at [repository URL] or email [your-email].
+**Questions?** Open an issue at https://github.com/ruimartins16/github-notification-manager or email r.martins@ua.pt.
