@@ -251,7 +251,7 @@ export function SettingsPage() {
     <div className="flex flex-col flex-1 min-h-0 bg-github-canvas-default dark:bg-github-canvas-dark-default">
       {/* Content */}
       <div className="flex-1 overflow-auto">
-        <div className="max-w-2xl mx-auto py-4 px-4">
+        <div className="max-w-2xl mx-auto pt-2 pb-4 px-4">
           {/* Section Tabs */}
           <div className="flex gap-1 mb-4 border-b border-github-border-default dark:border-github-border-dark-default overflow-x-auto">
             {[
