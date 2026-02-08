@@ -15,6 +15,7 @@ import { UpgradeModal } from '../components/UpgradeModal'
 import { useToast } from '../hooks/useToast'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { GitHubAPI } from '../utils/github-api'
+import { AuthService } from '../utils/auth-service'
 import { convertApiUrlToWebUrl } from '../utils/url-converter'
 import { extPayService } from '../utils/extpay-service'
 import { trackEvent, ANALYTICS_EVENTS } from '../utils/analytics'
@@ -114,20 +115,23 @@ function App() {
     const notification = filteredNotifications[focusedIndex]
     if (!notification) return
     
-    markAsRead(notification.id)
-    addToast('Marked as read', { variant: 'success', duration: 2000 })
-    
     // Mark as read on GitHub
     try {
-      const token = await chrome.storage.local.get('github_token')
-      if (token.github_token) {
-        const api = GitHubAPI.getInstance()
-        await api.initialize(token.github_token)
-        // Note: API doesn't expose markThreadAsRead, uses markAllAsRead instead
-        // Individual thread marking is handled by NotificationActions component
+      const token = await AuthService.getStoredToken()
+      if (!token) {
+        throw new Error('Not authenticated')
       }
+
+      const api = GitHubAPI.getInstance()
+      await api.initialize(token)
+      await api.markAsRead(notification.id)
+
+      // Update UI after API success
+      markAsRead(notification.id)
+      addToast('Marked as read', { variant: 'success', duration: 2000 })
     } catch (error) {
       console.error('Failed to mark as read on GitHub:', error)
+      addToast('Failed to mark as read', { variant: 'error', duration: 3000 })
     }
   }, [focusedIndex, filteredNotifications, markAsRead, addToast])
 
@@ -231,6 +235,23 @@ function App() {
     [addToast]
   )
 
+  // Handle action errors
+  const handleActionError = useCallback(
+    (action: 'read' | 'archive' | 'unsubscribe', error: Error) => {
+      const messages = {
+        read: 'mark as read',
+        archive: 'archive',
+        unsubscribe: 'unsubscribe from thread',
+      }
+
+      addToast(`Failed to ${messages[action]}: ${error.message}`, {
+        variant: 'error',
+        duration: 3000,
+      })
+    },
+    [addToast]
+  )
+
   // Handle bulk actions
   const handleBulkActionComplete = useCallback(
     (action: 'read' | 'archive', count: number) => {
@@ -287,12 +308,14 @@ function App() {
 
     // Call GitHub API to actually mark as read (runs in background)
     try {
-      const token = await chrome.storage.local.get('github_token')
-      if (token.github_token) {
-        const api = GitHubAPI.getInstance()
-        await api.initialize(token.github_token)
-        await api.markAllAsRead()
+      const token = await AuthService.getStoredToken()
+      if (!token) {
+        throw new Error('Not authenticated')
       }
+
+      const api = GitHubAPI.getInstance()
+      await api.initialize(token)
+      await api.markAllAsRead()
     } catch (error) {
       console.error('Failed to mark notifications as read on GitHub:', error)
       
@@ -304,13 +327,15 @@ function App() {
           label: 'Retry',
           onClick: async () => {
             try {
-              const token = await chrome.storage.local.get('github_token')
-              if (token.github_token) {
-                const api = GitHubAPI.getInstance()
-                await api.initialize(token.github_token)
-                await api.markAllAsRead()
-                addToast('Synced with GitHub', { variant: 'success', duration: 3000 })
+              const token = await AuthService.getStoredToken()
+              if (!token) {
+                throw new Error('Not authenticated')
               }
+
+              const api = GitHubAPI.getInstance()
+              await api.initialize(token)
+              await api.markAllAsRead()
+              addToast('Synced with GitHub', { variant: 'success', duration: 3000 })
             } catch (retryError) {
               console.error('Retry failed:', retryError)
               addToast('Retry failed. Please try again later.', { 
@@ -781,6 +806,7 @@ function App() {
                           showActions={!selectionMode}
                           showSnoozeButton={!selectionMode}
                           onActionComplete={handleActionComplete}
+                          onError={handleActionError}
                         />
                       </div>
                     ))}

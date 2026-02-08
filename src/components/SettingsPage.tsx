@@ -11,6 +11,7 @@ import { useProStatus } from '../hooks/useProStatus'
 import { extPayService } from '../utils/extpay-service'
 import { trackEvent, ANALYTICS_EVENTS } from '../utils/analytics'
 import { GitHubAPI } from '../utils/github-api'
+import { AuthService } from '../utils/auth-service'
 
 type SettingsSection = 'account' | 'notifications' | 'behavior' | 'advanced' | 'rules'
 
@@ -89,13 +90,13 @@ export function SettingsPage() {
         }
 
         // If not cached, fetch from GitHub API
-        const tokenResult = await chrome.storage.local.get('github_token')
-        if (!tokenResult.github_token) {
-          throw new Error('No GitHub token found')
+        const token = await AuthService.getStoredToken()
+        if (!token) {
+          throw new Error('Not authenticated. Please log in again.')
         }
         
         const api = GitHubAPI.getInstance()
-        await api.initialize(tokenResult.github_token)
+        await api.initialize(token)
         const userData = await api.getAuthenticatedUser()
         
         // Cache the user data

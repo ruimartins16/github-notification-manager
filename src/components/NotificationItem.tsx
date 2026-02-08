@@ -102,6 +102,7 @@ interface NotificationItemProps {
   showActions?: boolean
   showCheckbox?: boolean
   onActionComplete?: (action: 'read' | 'archive' | 'unsubscribe' | 'snooze') => void
+  onError?: (action: 'read' | 'archive' | 'unsubscribe', error: Error) => void
 }
 
 export const NotificationItem = memo(({ 
@@ -109,7 +110,8 @@ export const NotificationItem = memo(({
   showSnoozeButton = true,
   showActions = true,
   showCheckbox = false,
-  onActionComplete
+  onActionComplete,
+  onError
 }: NotificationItemProps) => {
   const [isSnoozeDialogOpen, setIsSnoozeDialogOpen] = useState(false)
   
@@ -250,6 +252,7 @@ export const NotificationItem = memo(({
                 notificationId={notification.id}
                 notificationTitle={notification.subject.title}
                 onActionComplete={handleActionComplete}
+                onError={onError}
               />
             </div>
           )}

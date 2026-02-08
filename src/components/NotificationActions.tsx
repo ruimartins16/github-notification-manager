@@ -4,18 +4,21 @@ import { useNotificationStore } from '../store/notification-store'
 import { ConfirmationDialog } from './ConfirmationDialog'
 import { GitHubAPI } from '../utils/github-api'
 import { BadgeService } from '../utils/badge-service'
+import { AuthService } from '../utils/auth-service'
 import { Spinner } from './Spinner'
 
 interface NotificationActionsProps {
   notificationId: string
   notificationTitle: string
   onActionComplete?: (action: 'read' | 'archive' | 'unsubscribe') => void
+  onError?: (action: 'read' | 'archive' | 'unsubscribe', error: Error) => void
 }
 
 export function NotificationActions({
   notificationId,
   notificationTitle,
   onActionComplete,
+  onError,
 }: NotificationActionsProps) {
   const [showUnsubscribeConfirm, setShowUnsubscribeConfirm] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -32,12 +35,14 @@ export function NotificationActions({
       setIsProcessing(true)
       try {
         // Call GitHub API first (not optimistic to avoid rollback complexity)
-        const token = await chrome.storage.local.get('github_token')
-        if (token.github_token) {
-          const api = GitHubAPI.getInstance()
-          await api.initialize(token.github_token)
-          await api.markAsRead(notificationId)
+        const token = await AuthService.getStoredToken()
+        if (!token) {
+          throw new Error('Not authenticated. Please log in again.')
         }
+
+        const api = GitHubAPI.getInstance()
+        await api.initialize(token)
+        await api.markAsRead(notificationId)
 
         // Update UI after API success
         markAsRead(notificationId)
@@ -49,13 +54,13 @@ export function NotificationActions({
         onActionComplete?.('read')
       } catch (error) {
         console.error('Failed to mark notification as read:', error)
-        // Re-throw to let parent handle error toast
-        throw error
+        const errorObj = error instanceof Error ? error : new Error('Failed to mark as read')
+        onError?.('read', errorObj)
       } finally {
         setIsProcessing(false)
       }
     },
-    [notificationId, markAsRead, onActionComplete]
+    [notificationId, markAsRead, onActionComplete, onError]
   )
 
   // Archive handler
@@ -87,21 +92,24 @@ export function NotificationActions({
       archiveNotification(notificationId)
 
       // Call GitHub API to unsubscribe in background
-      const token = await chrome.storage.local.get('github_token')
-      if (token.github_token) {
-        const api = GitHubAPI.getInstance()
-        await api.initialize(token.github_token)
-        await api.unsubscribe(notificationId)
+      const token = await AuthService.getStoredToken()
+      if (!token) {
+        throw new Error('Not authenticated. Please log in again.')
       }
+
+      const api = GitHubAPI.getInstance()
+      await api.initialize(token)
+      await api.unsubscribe(notificationId)
 
       onActionComplete?.('unsubscribe')
     } catch (error) {
       console.error('Failed to unsubscribe from notification:', error)
-      // Toast will be shown by parent component
+      const errorObj = error instanceof Error ? error : new Error('Failed to unsubscribe')
+      onError?.('unsubscribe', errorObj)
     } finally {
       setIsProcessing(false)
     }
-  }, [notificationId, archiveNotification, onActionComplete])
+  }, [notificationId, archiveNotification, onActionComplete, onError])
 
   const handleUnsubscribeCancel = useCallback(() => {
     setShowUnsubscribeConfirm(false)
