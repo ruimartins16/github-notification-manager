@@ -26,10 +26,25 @@ This project was planned using our autonomous SaaS development workflow:
 - ✅ Notification badge count
 - ✅ Basic auto-archive rules
 - ✅ Keyboard shortcuts (j/k, s, d, o)
+- ✅ Dark mode support (light/dark/system)
 
 ### Freemium Limits
 - **Free:** 3 snoozes/day, 3 repos, 1 auto-archive rule
 - **Pro ($5/mo):** Unlimited everything
+
+### Pro Features
+Pro features are clearly indicated with a gradient yellow **PRO** badge:
+- **Homepage Header**: Badge appears next to the tagline when user is subscribed
+- **Settings Page**: Badge shown in Account section (plan status) and next to Dark Mode feature
+- **Keyboard Shortcuts Modal**: Single badge in modal title
+- **Feature Buttons**: Snooze button and auto-archive rules show Pro badge when gated
+
+### Keyboard Shortcuts UX
+- **Help Modal**: Press `?` to view all available shortcuts (works for all users)
+- **Free Tier Behavior**: Pro keyboard shortcuts (J/K/D/A/S/O/1-4/Shift+D) are silently ignored for free users
+  - No upgrade modal popup on accidental keypresses
+  - Better UX - upgrade prompts only appear on intentional clicks
+- **Pro Tier**: All shortcuts active (navigation, actions, filters)
 
 ## 🚀 Tech Stack
 
