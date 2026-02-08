@@ -46,7 +46,7 @@ export function RuleList({ rules, onToggle, onDelete, isPro, proLoading }: RuleL
                       rule.type === 'repository'
                         ? 'bg-github-accent-subtle dark:bg-github-accent-dark-subtle text-github-accent-fg dark:text-github-accent-dark-fg'
                         : rule.type === 'age'
-                        ? 'bg-github-done-subtle dark:bg-github-done-dark-subtle text-github-done-fg dark:text-github-done-dark-fg'
+                        ? 'bg-github-success-subtle dark:bg-github-success-dark-subtle text-github-success-fg dark:text-github-success-dark-fg'
                         : 'bg-github-attention-subtle dark:bg-github-attention-dark-subtle text-github-attention-fg dark:text-github-attention-dark-fg'
                     }
                   `}
