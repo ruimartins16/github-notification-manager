@@ -247,12 +247,12 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-github-canvas-default">
+    <div className="flex flex-col flex-1 min-h-0 bg-github-canvas-default dark:bg-github-canvas-dark-default">
       {/* Content */}
       <div className="flex-1 overflow-auto">
         <div className="max-w-2xl mx-auto py-4 px-4">
           {/* Section Tabs */}
-          <div className="flex gap-1 mb-4 border-b border-github-border-default overflow-x-auto">
+          <div className="flex gap-1 mb-4 border-b border-github-border-default dark:border-github-border-dark-default overflow-x-auto">
             {[
               { id: 'account' as const, label: 'Account' },
               { id: 'notifications' as const, label: 'Notifications' },
@@ -265,8 +265,8 @@ export function SettingsPage() {
                 onClick={() => setActiveSection(tab.id)}
                 className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
                   activeSection === tab.id
-                    ? 'border-github-accent-emphasis text-github-accent-fg'
-                    : 'border-transparent text-github-fg-muted hover:text-github-fg-default'
+                    ? 'border-github-accent-emphasis dark:border-github-accent-dark-emphasis text-github-accent-fg dark:text-github-accent-dark-fg'
+                    : 'border-transparent text-github-fg-muted dark:text-github-fg-dark-muted hover:text-github-fg-default dark:hover:text-github-fg-dark-default'
                 }`}
               >
                 {tab.label}
@@ -278,51 +278,51 @@ export function SettingsPage() {
           {activeSection === 'account' && (
             <div className="space-y-6">
               {/* GitHub Account */}
-              <div className="bg-github-canvas-subtle rounded-github border border-github-border-default p-6 space-y-6">
+              <div className="bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle rounded-github border border-github-border-default dark:border-github-border-dark-default p-6 space-y-6">
                 <div>
-                  <h2 className="text-base font-semibold text-github-fg-default mb-4">
+                  <h2 className="text-base font-semibold text-github-fg-default dark:text-github-fg-dark-default mb-4">
                     GitHub Account
                   </h2>
 
                   {isLoadingUser ? (
-                    <div className="p-4 bg-github-canvas-default rounded-github border border-github-border-default">
-                      <p className="text-sm text-github-fg-muted">
+                    <div className="p-4 bg-github-canvas-default dark:bg-github-canvas-dark-default rounded-github border border-github-border-default dark:border-github-border-dark-default">
+                      <p className="text-sm text-github-fg-muted dark:text-github-fg-dark-muted">
                         Loading...
                       </p>
                     </div>
                   ) : userError ? (
-                    <div className="p-4 bg-github-danger-subtle rounded-github border border-github-danger-emphasis">
-                      <p className="text-sm text-github-danger-fg mb-2">
+                    <div className="p-4 bg-github-danger-subtle dark:bg-github-danger-dark-subtle rounded-github border border-github-danger-emphasis dark:border-github-danger-dark-emphasis">
+                      <p className="text-sm text-github-danger-fg dark:text-github-danger-dark-fg mb-2">
                         {userError}
                       </p>
                       <button
                         onClick={() => window.location.reload()}
-                        className="px-3 py-1.5 text-xs font-medium bg-github-canvas-default border 
-                                 border-github-border-default text-github-fg-default rounded-github 
-                                 hover:bg-github-canvas-subtle transition-colors"
+                        className="px-3 py-1.5 text-xs font-medium bg-github-canvas-default dark:bg-github-canvas-dark-default border 
+                                 border-github-border-default dark:border-github-border-dark-default text-github-fg-default dark:text-github-fg-dark-default rounded-github 
+                                 hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle transition-colors"
                       >
                         Retry
                       </button>
                     </div>
                   ) : userInfo ? (
-                    <div className="flex items-center gap-4 p-4 bg-github-canvas-default rounded-github border border-github-border-default">
+                    <div className="flex items-center gap-4 p-4 bg-github-canvas-default dark:bg-github-canvas-dark-default rounded-github border border-github-border-default dark:border-github-border-dark-default">
                       <img 
                         src={userInfo.avatar_url} 
                         alt={`${userInfo.login}'s avatar`}
                         className="w-12 h-12 rounded-full"
                       />
                       <div>
-                        <p className="text-sm font-semibold text-github-fg-default">
+                        <p className="text-sm font-semibold text-github-fg-default dark:text-github-fg-dark-default">
                           @{userInfo.login}
                         </p>
-                        <p className="text-xs text-github-fg-muted">
+                        <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted">
                           Connected to GitHub
                         </p>
                       </div>
                     </div>
                   ) : (
-                    <div className="p-4 bg-github-canvas-default rounded-github border border-github-border-default">
-                      <p className="text-sm text-github-fg-muted">
+                    <div className="p-4 bg-github-canvas-default dark:bg-github-canvas-dark-default rounded-github border border-github-border-default dark:border-github-border-dark-default">
+                      <p className="text-sm text-github-fg-muted dark:text-github-fg-dark-muted">
                         Logged in to GitHub
                       </p>
                     </div>
@@ -330,14 +330,14 @@ export function SettingsPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-medium text-github-fg-default mb-2">
+                  <h3 className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default mb-2">
                     Actions
                   </h3>
                   <button
                     onClick={logout}
-                    className="px-4 py-2 text-sm font-medium text-white bg-github-danger-emphasis rounded-github 
-                             hover:bg-github-danger-fg transition-colors focus:outline-none focus:ring-2 
-                             focus:ring-github-danger-emphasis"
+                    className="px-4 py-2 text-sm font-medium text-white bg-github-danger-emphasis dark:bg-github-danger-dark-emphasis rounded-github 
+                             hover:bg-github-danger-fg dark:hover:bg-github-danger-dark-fg transition-colors focus:outline-none focus:ring-2 
+                             focus:ring-github-danger-emphasis dark:focus:ring-github-danger-dark-emphasis"
                   >
                     Logout
                   </button>
@@ -345,15 +345,15 @@ export function SettingsPage() {
               </div>
 
               {/* Subscription Status */}
-              <div className="bg-github-canvas-subtle rounded-github border border-github-border-default p-6 space-y-6">
+              <div className="bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle rounded-github border border-github-border-default dark:border-github-border-dark-default p-6 space-y-6">
                 <div>
-                  <h2 className="text-base font-semibold text-github-fg-default mb-4">
+                  <h2 className="text-base font-semibold text-github-fg-default dark:text-github-fg-dark-default mb-4">
                     Subscription
                   </h2>
 
                   {isLoadingPro ? (
                     <div className="animate-pulse">
-                      <div className="h-20 bg-github-canvas-default rounded-github"></div>
+                      <div className="h-20 bg-github-canvas-default dark:bg-github-canvas-dark-default rounded-github"></div>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -361,12 +361,12 @@ export function SettingsPage() {
                       <SubscriptionStatus user={proUser} />
                       
                       {/* Status Badge */}
-                      <div className="flex items-center justify-between p-4 bg-github-canvas-default rounded-github border border-github-border-default">
+                      <div className="flex items-center justify-between p-4 bg-github-canvas-default dark:bg-github-canvas-dark-default rounded-github border border-github-border-default dark:border-github-border-dark-default">
                         <div>
-                          <p className="text-sm font-medium text-github-fg-default mb-1">
+                          <p className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default mb-1">
                             Plan Status
                           </p>
-                          <p className="text-xs text-github-fg-muted">
+                          <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted">
                             {isPro ? 'All Pro features unlocked' : 'Upgrade to unlock Pro features'}
                           </p>
                         </div>
@@ -377,7 +377,7 @@ export function SettingsPage() {
                               <span className="text-sm font-semibold">Pro</span>
                             </div>
                           ) : (
-                            <span className="px-3 py-1.5 bg-github-canvas-subtle border border-github-border-default text-github-fg-muted text-sm font-medium rounded-full">
+                            <span className="px-3 py-1.5 bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle border border-github-border-default dark:border-github-border-dark-default text-github-fg-muted dark:text-github-fg-dark-muted text-sm font-medium rounded-full">
                               Free
                             </span>
                           )}
@@ -386,18 +386,18 @@ export function SettingsPage() {
 
                       {/* Pro User Details */}
                       {isPro && proUser && (
-                        <div className="p-4 bg-github-canvas-default rounded-github border border-github-border-default space-y-3">
+                        <div className="p-4 bg-github-canvas-default dark:bg-github-canvas-dark-default rounded-github border border-github-border-default dark:border-github-border-dark-default space-y-3">
                           {proUser.email && (
                             <div className="flex items-center justify-between text-sm">
-                              <span className="text-github-fg-muted">Email</span>
-                              <span className="text-github-fg-default font-mono">{proUser.email}</span>
+                              <span className="text-github-fg-muted dark:text-github-fg-dark-muted">Email</span>
+                              <span className="text-github-fg-default dark:text-github-fg-dark-default font-mono">{proUser.email}</span>
                             </div>
                           )}
                           
                           {proUser.paidAt && (
                             <div className="flex items-center justify-between text-sm">
-                              <span className="text-github-fg-muted">Member since</span>
-                              <span className="text-github-fg-default">
+                              <span className="text-github-fg-muted dark:text-github-fg-dark-muted">Member since</span>
+                              <span className="text-github-fg-default dark:text-github-fg-dark-default">
                                 {new Date(proUser.paidAt).toLocaleDateString('en-US', { 
                                   month: 'short', 
                                   day: 'numeric', 
@@ -424,8 +424,8 @@ export function SettingsPage() {
                         }}
                         className={`w-full px-4 py-2.5 text-sm font-medium rounded-github transition-colors focus:outline-none focus:ring-2 ${
                           isPro
-                            ? 'bg-github-canvas-default border border-github-border-default text-github-fg-default hover:bg-github-canvas-subtle focus:ring-github-accent-emphasis'
-                            : 'bg-github-accent-emphasis text-white hover:bg-github-accent-fg focus:ring-github-accent-emphasis'
+                            ? 'bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default text-github-fg-default dark:text-github-fg-dark-default hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis'
+                            : 'bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis text-white hover:bg-github-accent-fg dark:hover:bg-github-accent-dark-fg focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis'
                         }`}
                       >
                         {isPro ? 'Manage Subscription' : 'Upgrade to Pro'}
@@ -433,21 +433,21 @@ export function SettingsPage() {
 
                       {/* Pro Features List */}
                       {!isPro && (
-                        <div className="pt-4 border-t border-github-border-default">
-                          <h3 className="text-sm font-medium text-github-fg-default mb-3">
+                        <div className="pt-4 border-t border-github-border-default dark:border-github-border-dark-default">
+                          <h3 className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default mb-3">
                             Pro Features
                           </h3>
                           <ul className="space-y-2">
-                            <li className="flex items-start gap-2 text-sm text-github-fg-muted">
-                              <span className="text-github-success-fg mt-0.5">✓</span>
+                            <li className="flex items-start gap-2 text-sm text-github-fg-muted dark:text-github-fg-dark-muted">
+                              <span className="text-github-success-fg dark:text-github-success-dark-fg mt-0.5">✓</span>
                               <span>Snooze notifications (30min, 1hr, 3hrs, tomorrow, next week)</span>
                             </li>
-                            <li className="flex items-start gap-2 text-sm text-github-fg-muted">
-                              <span className="text-github-success-fg mt-0.5">✓</span>
+                            <li className="flex items-start gap-2 text-sm text-github-fg-muted dark:text-github-fg-dark-muted">
+                              <span className="text-github-success-fg dark:text-github-success-dark-fg mt-0.5">✓</span>
                               <span>Custom auto-archive rules for advanced filtering</span>
                             </li>
-                            <li className="flex items-start gap-2 text-sm text-github-fg-muted">
-                              <span className="text-github-success-fg mt-0.5">✓</span>
+                            <li className="flex items-start gap-2 text-sm text-github-fg-muted dark:text-github-fg-dark-muted">
+                              <span className="text-github-success-fg dark:text-github-success-dark-fg mt-0.5">✓</span>
                               <span>All keyboard shortcuts (J/K navigation, D/A/S/O actions, 1-4 filters, Shift+D mark all)</span>
                             </li>
                           </ul>
@@ -456,29 +456,29 @@ export function SettingsPage() {
 
                       {/* Pricing Info for Free Users */}
                       {!isPro && (
-                        <div className="pt-4 border-t border-github-border-default">
-                          <h3 className="text-sm font-medium text-github-fg-default mb-3">
+                        <div className="pt-4 border-t border-github-border-default dark:border-github-border-dark-default">
+                          <h3 className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default mb-3">
                             Pricing
                           </h3>
                           <div className="grid grid-cols-2 gap-3 text-center text-xs">
-                            <div className="p-3 bg-github-canvas-default rounded-github border border-github-border-default">
-                              <p className="font-semibold text-github-fg-default mb-1">Monthly</p>
-                              <p className="text-github-fg-muted">€3/month</p>
+                            <div className="p-3 bg-github-canvas-default dark:bg-github-canvas-dark-default rounded-github border border-github-border-default dark:border-github-border-dark-default">
+                              <p className="font-semibold text-github-fg-default dark:text-github-fg-dark-default mb-1">Monthly</p>
+                              <p className="text-github-fg-muted dark:text-github-fg-dark-muted">€3/month</p>
                             </div>
-                            <div className="p-3 bg-github-canvas-default rounded-github border-2 border-github-accent-emphasis relative">
-                              <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-github-accent-emphasis text-white rounded-full text-[10px] font-semibold whitespace-nowrap">
+                            <div className="p-3 bg-github-canvas-default dark:bg-github-canvas-dark-default rounded-github border-2 border-github-accent-emphasis dark:border-github-accent-dark-emphasis relative">
+                              <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis text-white rounded-full text-[10px] font-semibold whitespace-nowrap">
                                 Best Value
                               </div>
-                              <p className="font-semibold text-github-fg-default mb-1">Lifetime</p>
-                              <p className="text-github-fg-muted">€15 once</p>
+                              <p className="font-semibold text-github-fg-default dark:text-github-fg-dark-default mb-1">Lifetime</p>
+                              <p className="text-github-fg-muted dark:text-github-fg-dark-muted">€15 once</p>
                             </div>
                           </div>
                         </div>
                       )}
                       
                       {/* Manual Refresh Status Button */}
-                      <div className="pt-4 border-t border-github-border-default">
-                        <p className="text-xs text-github-fg-muted mb-3">
+                      <div className="pt-4 border-t border-github-border-default dark:border-github-border-dark-default">
+                        <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted mb-3">
                           Payment status not updating? Manually refresh to sync with ExtensionPay.
                         </p>
                         <RefreshStatusButton variant="default" />
@@ -489,22 +489,22 @@ export function SettingsPage() {
               </div>
 
               {/* About */}
-              <div className="bg-github-canvas-subtle rounded-github border border-github-border-default p-6">
-                <h3 className="text-sm font-medium text-github-fg-default mb-2">
+              <div className="bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle rounded-github border border-github-border-default dark:border-github-border-dark-default p-6">
+                <h3 className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default mb-2">
                   About
                 </h3>
-                <p className="text-sm text-github-fg-muted">
+                <p className="text-sm text-github-fg-muted dark:text-github-fg-dark-muted">
                   GitHub Notification Manager v1.0.0
                 </p>
-                <p className="text-xs text-github-fg-subtle mt-1">
+                <p className="text-xs text-github-fg-subtle dark:text-github-fg-dark-subtle mt-1">
                   Manage your GitHub notifications with ease.
                 </p>
-                <div className="mt-4 pt-4 border-t border-github-border-default">
+                <div className="mt-4 pt-4 border-t border-github-border-default dark:border-github-border-dark-default">
                   <a
                     href="https://github.com/yourusername/github-notification-manager/blob/main/docs/privacy-policy.md"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-github-accent-fg hover:underline"
+                    className="text-sm text-github-accent-fg dark:text-github-accent-dark-fg hover:underline"
                   >
                     Privacy Policy
                   </a>
@@ -515,24 +515,24 @@ export function SettingsPage() {
 
           {/* Notifications Section */}
           {activeSection === 'notifications' && (
-            <div className="bg-github-canvas-subtle rounded-github border border-github-border-default p-6 space-y-6">
+            <div className="bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle rounded-github border border-github-border-default dark:border-github-border-dark-default p-6 space-y-6">
               <div>
-                <h2 className="text-base font-semibold text-github-fg-default mb-4">
+                <h2 className="text-base font-semibold text-github-fg-default dark:text-github-fg-dark-default mb-4">
                   Notification Settings
                 </h2>
 
                 {/* Refresh Interval */}
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-github-fg-default mb-2">
+                    <label className="block text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default mb-2">
                       Refresh Interval
                     </label>
                     <select
                       value={refreshInterval}
                       onChange={(e) => setRefreshInterval(Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-github-canvas-default border border-github-border-default 
-                               rounded-github text-sm text-github-fg-default focus:outline-none focus:ring-2 
-                               focus:ring-github-accent-emphasis"
+                      className="w-full px-3 py-2 bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default 
+                               rounded-github text-sm text-github-fg-default dark:text-github-fg-dark-default focus:outline-none focus:ring-2 
+                               focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis"
                     >
                       <option value={10}>10 seconds</option>
                       <option value={30}>30 seconds (recommended)</option>
@@ -540,18 +540,18 @@ export function SettingsPage() {
                       <option value={300}>5 minutes</option>
                       <option value={600}>10 minutes</option>
                     </select>
-                    <p className="text-xs text-github-fg-muted mt-1">
+                    <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted mt-1">
                       How often to check for new notifications
                     </p>
                   </div>
 
                   {/* Badge Toggle */}
-                  <div className="flex items-center justify-between py-3 border-t border-github-border-default">
+                  <div className="flex items-center justify-between py-3 border-t border-github-border-default dark:border-github-border-dark-default">
                     <div>
-                      <label className="text-sm font-medium text-github-fg-default">
+                      <label className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default">
                         Show Badge Count
                       </label>
-                      <p className="text-xs text-github-fg-muted mt-1">
+                      <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted mt-1">
                         Display unread count on extension icon
                       </p>
                     </div>
@@ -562,23 +562,23 @@ export function SettingsPage() {
                         onChange={(e) => setBadgeEnabled(e.target.checked)}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-github-canvas-subtle peer-focus:outline-none peer-focus:ring-2 
-                                    peer-focus:ring-github-accent-emphasis rounded-full peer 
+                      <div className="w-11 h-6 bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle peer-focus:outline-none peer-focus:ring-2 
+                                    peer-focus:ring-github-accent-emphasis dark:peer-focus:ring-github-accent-dark-emphasis rounded-full peer 
                                     peer-checked:after:translate-x-full peer-checked:after:border-white 
                                     after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
                                     after:bg-white after:border-gray-300 after:border after:rounded-full 
-                                    after:h-5 after:w-5 after:transition-all border border-github-border-default
-                                    peer-checked:bg-github-accent-emphasis"></div>
+                                    after:h-5 after:w-5 after:transition-all border border-github-border-default dark:border-github-border-dark-default
+                                    peer-checked:bg-github-accent-emphasis dark:peer-checked:bg-github-accent-dark-emphasis"></div>
                     </label>
                   </div>
 
                   {/* Sound Toggle */}
-                  <div className="flex items-center justify-between py-3 border-t border-github-border-default">
+                  <div className="flex items-center justify-between py-3 border-t border-github-border-default dark:border-github-border-dark-default">
                     <div>
-                      <label className="text-sm font-medium text-github-fg-default">
+                      <label className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default">
                         Sound Notifications
                       </label>
-                      <p className="text-xs text-github-fg-muted mt-1">
+                      <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted mt-1">
                         Play a sound when new notifications arrive
                       </p>
                     </div>
@@ -589,13 +589,13 @@ export function SettingsPage() {
                         onChange={(e) => setSoundEnabled(e.target.checked)}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-github-canvas-subtle peer-focus:outline-none peer-focus:ring-2 
-                                    peer-focus:ring-github-accent-emphasis rounded-full peer 
+                      <div className="w-11 h-6 bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle peer-focus:outline-none peer-focus:ring-2 
+                                    peer-focus:ring-github-accent-emphasis dark:peer-focus:ring-github-accent-dark-emphasis rounded-full peer 
                                     peer-checked:after:translate-x-full peer-checked:after:border-white 
                                     after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
                                     after:bg-white after:border-gray-300 after:border after:rounded-full 
-                                    after:h-5 after:w-5 after:transition-all border border-github-border-default
-                                    peer-checked:bg-github-accent-emphasis"></div>
+                                    after:h-5 after:w-5 after:transition-all border border-github-border-default dark:border-github-border-dark-default
+                                    peer-checked:bg-github-accent-emphasis dark:peer-checked:bg-github-accent-dark-emphasis"></div>
                     </label>
                   </div>
                 </div>
@@ -605,42 +605,42 @@ export function SettingsPage() {
 
           {/* Behavior Section */}
           {activeSection === 'behavior' && (
-            <div className="bg-github-canvas-subtle rounded-github border border-github-border-default p-6 space-y-6">
+            <div className="bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle rounded-github border border-github-border-default dark:border-github-border-dark-default p-6 space-y-6">
               <div>
-                <h2 className="text-base font-semibold text-github-fg-default mb-4">
+                <h2 className="text-base font-semibold text-github-fg-default dark:text-github-fg-dark-default mb-4">
                   Behavior Settings
                 </h2>
 
                 <div className="space-y-4">
                   {/* Default Filter */}
                   <div>
-                    <label className="block text-sm font-medium text-github-fg-default mb-2">
+                    <label className="block text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default mb-2">
                       Default Filter
                     </label>
                     <select
                       value={defaultFilter}
                       onChange={(e) => setDefaultFilter(e.target.value as FilterType)}
-                      className="w-full px-3 py-2 bg-github-canvas-default border border-github-border-default 
-                               rounded-github text-sm text-github-fg-default focus:outline-none focus:ring-2 
-                               focus:ring-github-accent-emphasis"
+                      className="w-full px-3 py-2 bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default 
+                               rounded-github text-sm text-github-fg-default dark:text-github-fg-dark-default focus:outline-none focus:ring-2 
+                               focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis"
                     >
                       <option value="all">All Notifications</option>
                       <option value="mentions">Mentions Only</option>
                       <option value="reviews">Review Requests</option>
                       <option value="assigned">Assigned to Me</option>
                     </select>
-                    <p className="text-xs text-github-fg-muted mt-1">
+                    <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted mt-1">
                       Which filter to show when opening the extension
                     </p>
                   </div>
 
                   {/* Open Links Behavior */}
-                  <div className="flex items-center justify-between py-3 border-t border-github-border-default">
+                  <div className="flex items-center justify-between py-3 border-t border-github-border-default dark:border-github-border-dark-default">
                     <div>
-                      <label className="text-sm font-medium text-github-fg-default">
+                      <label className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default">
                         Open Links in New Tab
                       </label>
-                      <p className="text-xs text-github-fg-muted mt-1">
+                      <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted mt-1">
                         Open notification links in a new browser tab
                       </p>
                     </div>
@@ -651,21 +651,21 @@ export function SettingsPage() {
                         onChange={(e) => setOpenLinksInNewTab(e.target.checked)}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-github-canvas-subtle peer-focus:outline-none peer-focus:ring-2 
-                                    peer-focus:ring-github-accent-emphasis rounded-full peer 
+                      <div className="w-11 h-6 bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle peer-focus:outline-none peer-focus:ring-2 
+                                    peer-focus:ring-github-accent-emphasis dark:peer-focus:ring-github-accent-dark-emphasis rounded-full peer 
                                     peer-checked:after:translate-x-full peer-checked:after:border-white 
                                     after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
                                     after:bg-white after:border-gray-300 after:border after:rounded-full 
-                                    after:h-5 after:w-5 after:transition-all border border-github-border-default
-                                    peer-checked:bg-github-accent-emphasis"></div>
+                                    after:h-5 after:w-5 after:transition-all border border-github-border-default dark:border-github-border-dark-default
+                                    peer-checked:bg-github-accent-emphasis dark:peer-checked:bg-github-accent-dark-emphasis"></div>
                     </label>
                   </div>
 
                   {/* Dark Mode (Pro Feature) */}
-                  <div className="py-3 border-t border-github-border-default">
+                  <div className="py-3 border-t border-github-border-default dark:border-github-border-dark-default">
                     <div className="flex items-center justify-between mb-3">
                       <div>
-                        <label className="text-sm font-medium text-github-fg-default flex items-center gap-2">
+                        <label className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default flex items-center gap-2">
                           Dark Mode
                           {!isPro && (
                             <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-semibold">
@@ -673,7 +673,7 @@ export function SettingsPage() {
                             </span>
                           )}
                         </label>
-                        <p className="text-xs text-github-fg-muted mt-1">
+                        <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted mt-1">
                           {isPro 
                             ? 'Choose your preferred theme'
                             : 'Upgrade to Pro to unlock dark mode'}
@@ -707,15 +707,15 @@ export function SettingsPage() {
                           onClick={() => setThemePreference('light')}
                           className={`px-3 py-2 rounded-github border-2 transition-all flex flex-col items-center gap-1.5
                                    ${theme === 'light'
-                                     ? 'border-github-accent-emphasis bg-github-accent-subtle'
-                                     : 'border-github-border-default hover:border-github-border-muted'
+                                     ? 'border-github-accent-emphasis dark:border-github-accent-dark-emphasis bg-github-accent-subtle dark:bg-github-accent-dark-subtle'
+                                     : 'border-github-border-default dark:border-github-border-dark-default hover:border-github-border-muted dark:hover:border-github-border-dark-muted'
                                    }`}
                         >
-                          <svg className="w-5 h-5 text-github-fg-default" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-5 h-5 text-github-fg-default dark:text-github-fg-dark-default" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                                   d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                           </svg>
-                          <span className="text-xs font-medium">Light</span>
+                          <span className="text-xs font-medium text-github-fg-default dark:text-github-fg-dark-default">Light</span>
                         </button>
                         
                         {/* Dark Theme */}
@@ -723,15 +723,15 @@ export function SettingsPage() {
                           onClick={() => setThemePreference('dark')}
                           className={`px-3 py-2 rounded-github border-2 transition-all flex flex-col items-center gap-1.5
                                    ${theme === 'dark'
-                                     ? 'border-github-accent-emphasis bg-github-accent-subtle'
-                                     : 'border-github-border-default hover:border-github-border-muted'
+                                     ? 'border-github-accent-emphasis dark:border-github-accent-dark-emphasis bg-github-accent-subtle dark:bg-github-accent-dark-subtle'
+                                     : 'border-github-border-default dark:border-github-border-dark-default hover:border-github-border-muted dark:hover:border-github-border-dark-muted'
                                    }`}
                         >
-                          <svg className="w-5 h-5 text-github-fg-default" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-5 h-5 text-github-fg-default dark:text-github-fg-dark-default" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                                   d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                           </svg>
-                          <span className="text-xs font-medium">Dark</span>
+                          <span className="text-xs font-medium text-github-fg-default dark:text-github-fg-dark-default">Dark</span>
                         </button>
                         
                         {/* System Theme */}
@@ -739,15 +739,15 @@ export function SettingsPage() {
                           onClick={() => setThemePreference('system')}
                           className={`px-3 py-2 rounded-github border-2 transition-all flex flex-col items-center gap-1.5
                                    ${theme === 'system'
-                                     ? 'border-github-accent-emphasis bg-github-accent-subtle'
-                                     : 'border-github-border-default hover:border-github-border-muted'
+                                     ? 'border-github-accent-emphasis dark:border-github-accent-dark-emphasis bg-github-accent-subtle dark:bg-github-accent-dark-subtle'
+                                     : 'border-github-border-default dark:border-github-border-dark-default hover:border-github-border-muted dark:hover:border-github-border-dark-muted'
                                    }`}
                         >
-                          <svg className="w-5 h-5 text-github-fg-default" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-5 h-5 text-github-fg-default dark:text-github-fg-dark-default" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                                   d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                           </svg>
-                          <span className="text-xs font-medium">System</span>
+                          <span className="text-xs font-medium text-github-fg-default dark:text-github-fg-dark-default">System</span>
                         </button>
                       </div>
                     )}
@@ -759,27 +759,27 @@ export function SettingsPage() {
 
           {/* Auto-Archive Rules Section */}
           {activeSection === 'rules' && (
-            <div className="bg-github-canvas-subtle rounded-github border border-github-border-default p-6">
+            <div className="bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle rounded-github border border-github-border-default dark:border-github-border-dark-default p-6">
               <AutoArchiveRules />
             </div>
           )}
 
           {/* Advanced Section */}
           {activeSection === 'advanced' && (
-            <div className="bg-github-canvas-subtle rounded-github border border-github-border-default p-6 space-y-6">
+            <div className="bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle rounded-github border border-github-border-default dark:border-github-border-dark-default p-6 space-y-6">
               <div>
-                <h2 className="text-base font-semibold text-github-fg-default mb-4">
+                <h2 className="text-base font-semibold text-github-fg-default dark:text-github-fg-dark-default mb-4">
                   Advanced Settings
                 </h2>
 
                 <div className="space-y-4">
                   {/* GitHub API Rate Limit */}
                   {rateLimit && (
-                    <div className="p-4 bg-github-canvas-default rounded-github border border-github-border-default">
-                      <h3 className="text-sm font-medium text-github-fg-default mb-2">
+                    <div className="p-4 bg-github-canvas-default dark:bg-github-canvas-dark-default rounded-github border border-github-border-default dark:border-github-border-dark-default">
+                      <h3 className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default mb-2">
                         GitHub API Rate Limit
                       </h3>
-                      <div className="space-y-2 text-xs text-github-fg-muted">
+                      <div className="space-y-2 text-xs text-github-fg-muted dark:text-github-fg-dark-muted">
                         <div className="flex justify-between">
                           <span>Remaining:</span>
                           <span className="font-mono">{rateLimit.remaining} / {rateLimit.limit}</span>
@@ -788,9 +788,9 @@ export function SettingsPage() {
                           <span>Resets in:</span>
                           <span className="font-mono">{formatResetTime(rateLimit.reset)}</span>
                         </div>
-                        <div className="w-full bg-github-canvas-subtle rounded-full h-2 mt-2">
+                        <div className="w-full bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle rounded-full h-2 mt-2">
                           <div
-                            className="bg-github-accent-emphasis h-2 rounded-full transition-all"
+                            className="bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis h-2 rounded-full transition-all"
                             style={{ width: `${(rateLimit.remaining / rateLimit.limit) * 100}%` }}
                           ></div>
                         </div>
@@ -799,44 +799,44 @@ export function SettingsPage() {
                   )}
 
                   {/* Clear Cache */}
-                  <div className="pt-4 border-t border-github-border-default">
-                    <h3 className="text-sm font-medium text-github-fg-default mb-2">
+                  <div className="pt-4 border-t border-github-border-default dark:border-github-border-dark-default">
+                    <h3 className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default mb-2">
                       Clear Cache
                     </h3>
-                    <p className="text-xs text-github-fg-muted mb-3">
+                    <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted mb-3">
                       Remove all cached notifications from local storage
                     </p>
                     <button
                       onClick={handleClearCache}
-                      className="px-4 py-2 text-sm font-medium text-white bg-github-danger-emphasis 
-                               rounded-github hover:bg-github-danger-fg transition-colors"
+                      className="px-4 py-2 text-sm font-medium text-white bg-github-danger-emphasis dark:bg-github-danger-dark-emphasis 
+                               rounded-github hover:bg-github-danger-fg dark:hover:bg-github-danger-dark-fg transition-colors"
                     >
                       Clear Cache
                     </button>
                   </div>
 
                   {/* Export/Import Settings */}
-                  <div className="pt-4 border-t border-github-border-default">
-                    <h3 className="text-sm font-medium text-github-fg-default mb-2">
+                  <div className="pt-4 border-t border-github-border-default dark:border-github-border-dark-default">
+                    <h3 className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default mb-2">
                       Settings Backup
                     </h3>
-                    <p className="text-xs text-github-fg-muted mb-3">
+                    <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted mb-3">
                       Export or import your extension settings
                     </p>
                     <div className="flex gap-2">
                       <button
                         onClick={handleExportSettings}
-                        className="px-4 py-2 text-sm font-medium bg-github-canvas-default border 
-                                 border-github-border-default text-github-fg-default rounded-github 
-                                 hover:bg-github-canvas-subtle transition-colors"
+                        className="px-4 py-2 text-sm font-medium bg-github-canvas-default dark:bg-github-canvas-dark-default border 
+                                 border-github-border-default dark:border-github-border-dark-default text-github-fg-default dark:text-github-fg-dark-default rounded-github 
+                                 hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle transition-colors"
                       >
                         Export Settings
                       </button>
                       <button
                         onClick={handleImportSettings}
-                        className="px-4 py-2 text-sm font-medium bg-github-canvas-default border 
-                                 border-github-border-default text-github-fg-default rounded-github 
-                                 hover:bg-github-canvas-subtle transition-colors"
+                        className="px-4 py-2 text-sm font-medium bg-github-canvas-default dark:bg-github-canvas-dark-default border 
+                                 border-github-border-default dark:border-github-border-dark-default text-github-fg-default dark:text-github-fg-dark-default rounded-github 
+                                 hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle transition-colors"
                       >
                         Import Settings
                       </button>
@@ -844,11 +844,11 @@ export function SettingsPage() {
                   </div>
 
                   {/* Reset Settings */}
-                  <div className="pt-4 border-t border-github-border-default">
-                    <h3 className="text-sm font-medium text-github-fg-default mb-2">
+                  <div className="pt-4 border-t border-github-border-default dark:border-github-border-dark-default">
+                    <h3 className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default mb-2">
                       Reset Settings
                     </h3>
-                    <p className="text-xs text-github-fg-muted mb-3">
+                    <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted mb-3">
                       Restore all settings to their default values
                     </p>
                     <button
