@@ -391,7 +391,7 @@ function App() {
             <p className="text-sm text-github-fg-muted">
               Take control of your GitHub notifications
             </p>
-            {!proLoading && !isPro && (
+            {isAuthenticated && !proLoading && !isPro && (
               <button
                 onClick={() => {
                   trackEvent(ANALYTICS_EVENTS.UPGRADE_BUTTON_CLICKED, { location: 'header' })

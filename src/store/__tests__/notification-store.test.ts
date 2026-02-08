@@ -1159,11 +1159,11 @@ describe('useNotificationStore', () => {
         expect(markedNotifications).toHaveLength(1)
         expect(markedNotifications[0].id).toBe('1')
 
-        // Check that only mention notification was marked as read
-        const mention = result.current.notifications.find((n) => n.id === '1')!
+        // Check that only mention notification was removed (marked as read)
+        const mention = result.current.notifications.find((n) => n.id === '1')
         const review = result.current.notifications.find((n) => n.id === '2')!
-        expect(mention.unread).toBe(false)
-        expect(review.unread).toBe(true)
+        expect(mention).toBeUndefined() // Mention was removed
+        expect(review.unread).toBe(true) // Review remains unread
       })
 
       it('should create backup for undo', () => {
@@ -1215,8 +1215,8 @@ describe('useNotificationStore', () => {
 
         // Should still return the notification in marked list
         expect(markedNotifications).toHaveLength(1)
-        // Should remain marked as read
-        expect(result.current.notifications[0].unread).toBe(false)
+        // Notification should be removed from the array (even though already read)
+        expect(result.current.notifications).toHaveLength(0)
       })
     })
 
@@ -1347,10 +1347,10 @@ describe('useNotificationStore', () => {
         })
 
         counts = result.current.getFilterCounts()
-        // Counts should be 0 for unread notifications
-        // (Note: getFilterCounts may need adjustment based on your implementation)
-        expect(result.current.notifications).toHaveLength(2) // Notifications still exist
-        expect(result.current.notifications.filter((n) => n.unread)).toHaveLength(0) // But all are read
+        // Notifications should be removed from the array after marking as read
+        expect(result.current.notifications).toHaveLength(0) // All notifications removed
+        expect(counts.all).toBe(0) // Count should be 0
+        expect(counts.mentions).toBe(0) // Mention count should be 0
       })
     })
   })

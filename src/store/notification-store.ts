@@ -154,11 +154,9 @@ export const useNotificationStore = create<NotificationState>()(
         // Get IDs of filtered notifications to mark as read
         const idsToMarkAsRead = new Set(filteredNotifications.map(n => n.id))
         
-        // Mark filtered notifications as read by setting unread = false
-        const updatedNotifications = state.notifications.map(n => 
-          idsToMarkAsRead.has(n.id) 
-            ? { ...n, unread: false }
-            : n
+        // Remove marked notifications from the list (consistent with individual markAsRead)
+        const updatedNotifications = state.notifications.filter(n => 
+          !idsToMarkAsRead.has(n.id)
         )
         
         set({ 
