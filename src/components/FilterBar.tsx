@@ -1,4 +1,4 @@
-import { memo, useCallback } from 'react'
+import { memo, useCallback, useMemo } from 'react'
 import { useNotificationStore, type NotificationFilter } from '../store/notification-store'
 
 interface FilterTab {
@@ -14,11 +14,25 @@ const FILTER_TABS: FilterTab[] = [
   { id: 'assigned', label: 'Assigned', shortcut: '4' },
 ]
 
+// Reason mappings for filters (must match notification-store.ts)
+const MENTION_REASONS = ['mention', 'team_mention', 'author']
+const REVIEW_REASONS = ['review_requested']
+const ASSIGNED_REASONS = ['assign']
+
 export const FilterBar = memo(() => {
   const activeFilter = useNotificationStore(state => state.activeFilter)
   const setFilter = useNotificationStore(state => state.setFilter)
-  const getFilterCounts = useNotificationStore(state => state.getFilterCounts)
-  const filterCounts = getFilterCounts() || { all: 0, mentions: 0, reviews: 0, assigned: 0 }
+  
+  // Subscribe to notifications array directly so component re-renders on changes
+  const notifications = useNotificationStore(state => state.notifications)
+  
+  // Compute filter counts from notifications array
+  const filterCounts = useMemo(() => ({
+    all: notifications.length,
+    mentions: notifications.filter(n => MENTION_REASONS.includes(n.reason)).length,
+    reviews: notifications.filter(n => REVIEW_REASONS.includes(n.reason)).length,
+    assigned: notifications.filter(n => ASSIGNED_REASONS.includes(n.reason)).length,
+  }), [notifications])
 
   const handleFilterClick = useCallback((filter: NotificationFilter) => {
     setFilter(filter)
