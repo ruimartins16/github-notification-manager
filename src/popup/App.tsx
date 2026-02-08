@@ -523,8 +523,8 @@ function App() {
         {isAuthenticated ? (
           pageMode === 'settings' ? (
             /* Settings Page */
-            <div className="h-full">
-              <div className="flex items-center justify-between mb-3 pb-3 border-b border-github-border-default dark:border-github-border-dark-default">
+            <div className="h-full flex flex-col overflow-hidden">
+              <div className="flex items-center justify-between mb-3 pb-3 border-b border-github-border-default dark:border-github-border-dark-default flex-shrink-0">
                 <button
                   onClick={() => setPageMode('notifications')}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default

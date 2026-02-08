@@ -85,15 +85,15 @@ export function AutoArchiveRules() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+            <h2 className="text-base font-semibold text-github-fg-default dark:text-github-fg-dark-default flex items-center gap-2">
               Auto-Archive Rules
               {!proLoading && !isPro && <ProBadge />}
             </h2>
-            <p className="text-xs text-gray-600 mt-1">
+            <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted mt-1">
               Automatically archive notifications based on repository, age, or
               reason
               {isApplying && (
-                <span className="ml-2 text-blue-600 font-medium">
+                <span className="ml-2 text-github-accent-fg dark:text-github-accent-dark-fg font-medium">
                   Applying rules...
                 </span>
               )}
@@ -105,11 +105,11 @@ export function AutoArchiveRules() {
               onClick={handleNewRuleClick}
               disabled={isApplying || proLoading}
               className={`
-                px-4 py-2 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500
+                px-4 py-2 text-sm font-medium rounded-github focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis
                 whitespace-nowrap transition-colors
                 ${isPro 
-                  ? 'text-white bg-blue-600 hover:bg-blue-700' 
-                  : 'text-blue-600 border-2 border-blue-600 hover:bg-blue-50'
+                  ? 'text-white bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis hover:bg-github-accent-fg dark:hover:bg-github-accent-dark-fg' 
+                  : 'text-github-accent-fg dark:text-github-accent-dark-fg border-2 border-github-accent-emphasis dark:border-github-accent-dark-emphasis hover:bg-github-accent-subtle dark:hover:bg-github-accent-dark-subtle'
                 }
                 ${isApplying || proLoading ? 'opacity-50 cursor-not-allowed' : ''}
               `}
@@ -142,10 +142,10 @@ export function AutoArchiveRules() {
 
         {/* Info Box */}
         {rules.length > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="bg-github-accent-subtle dark:bg-github-accent-dark-subtle border border-github-accent-emphasis dark:border-github-accent-dark-emphasis rounded-github p-3">
             <div className="flex gap-2">
               <svg
-                className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
+                className="w-5 h-5 text-github-accent-fg dark:text-github-accent-dark-fg flex-shrink-0 mt-0.5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -157,7 +157,7 @@ export function AutoArchiveRules() {
                   d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <div className="text-xs text-blue-900">
+              <div className="text-xs text-github-fg-default dark:text-github-fg-dark-default">
                 <p className="font-medium mb-1">How Auto-Archive Works</p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>Rules apply automatically when notifications are fetched</li>
@@ -165,7 +165,7 @@ export function AutoArchiveRules() {
                   <li>Disabled rules won't archive new notifications</li>
                   <li>Statistics show how many notifications each rule has archived</li>
                   {!isPro && (
-                    <li className="text-blue-700 font-medium">
+                    <li className="text-github-accent-fg dark:text-github-accent-dark-fg font-medium">
                       💎 Upgrade to Pro to create and manage custom rules
                     </li>
                   )}

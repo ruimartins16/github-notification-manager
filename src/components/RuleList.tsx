@@ -15,7 +15,7 @@ export function RuleList({ rules, onToggle, onDelete, isPro, proLoading }: RuleL
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   if (rules.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500 text-sm">
+      <div className="text-center py-8 text-github-fg-muted dark:text-github-fg-dark-muted text-sm">
         No auto-archive rules yet. Create one to get started!
       </div>
     )
@@ -27,11 +27,11 @@ export function RuleList({ rules, onToggle, onDelete, isPro, proLoading }: RuleL
         <div
           key={rule.id}
           className={`
-            border rounded-lg p-3 transition-all
+            border rounded-github p-3 transition-all
             ${
               rule.enabled
-                ? 'border-gray-200 bg-white'
-                : 'border-gray-100 bg-gray-50 opacity-60'
+                ? 'border-github-border-default dark:border-github-border-dark-default bg-github-canvas-default dark:bg-github-canvas-dark-default'
+                : 'border-github-border-muted dark:border-github-border-dark-muted bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle opacity-60'
             }
           `}
         >
@@ -44,26 +44,26 @@ export function RuleList({ rules, onToggle, onDelete, isPro, proLoading }: RuleL
                     px-2 py-0.5 text-xs font-medium rounded-full
                     ${
                       rule.type === 'repository'
-                        ? 'bg-blue-100 text-blue-700'
+                        ? 'bg-github-accent-subtle dark:bg-github-accent-dark-subtle text-github-accent-fg dark:text-github-accent-dark-fg'
                         : rule.type === 'age'
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'bg-orange-100 text-orange-700'
+                        ? 'bg-github-done-subtle dark:bg-github-done-dark-subtle text-github-done-fg dark:text-github-done-dark-fg'
+                        : 'bg-github-attention-subtle dark:bg-github-attention-dark-subtle text-github-attention-fg dark:text-github-attention-dark-fg'
                     }
                   `}
                 >
                   {rule.type}
                 </span>
                 {!rule.enabled && (
-                  <span className="text-xs text-gray-500">Disabled</span>
+                  <span className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted">Disabled</span>
                 )}
               </div>
 
-              <p className="text-sm text-gray-900 mb-1">
+              <p className="text-sm text-github-fg-default dark:text-github-fg-dark-default mb-1">
                 {getRuleDescription(rule)}
               </p>
 
               {/* Statistics */}
-              <div className="flex items-center gap-4 text-xs text-gray-500">
+              <div className="flex items-center gap-4 text-xs text-github-fg-muted dark:text-github-fg-dark-muted">
                 <span>
                   Archived: <strong>{rule.archivedCount}</strong>
                 </span>
@@ -90,14 +90,14 @@ export function RuleList({ rules, onToggle, onDelete, isPro, proLoading }: RuleL
                     : rule.enabled ? 'Disable rule' : 'Enable rule'
                 }
                 className={`
-                  p-2 rounded-md transition-colors
+                  p-2 rounded-github transition-colors
                   ${!isPro 
                     ? 'opacity-50 cursor-not-allowed'
                     : rule.enabled
-                      ? 'text-green-600 hover:bg-green-50'
-                      : 'text-gray-400 hover:bg-gray-100'
+                      ? 'text-github-success-fg dark:text-github-success-dark-fg hover:bg-github-success-subtle dark:hover:bg-github-success-dark-subtle'
+                      : 'text-github-fg-muted dark:text-github-fg-dark-muted hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle'
                   }
-                  ${!isPro && (rule.enabled ? 'text-green-600' : 'text-gray-400')}
+                  ${!isPro && (rule.enabled ? 'text-github-success-fg dark:text-github-success-dark-fg' : 'text-github-fg-muted dark:text-github-fg-dark-muted')}
                 `}
                 title={
                   !isPro 
@@ -144,10 +144,10 @@ export function RuleList({ rules, onToggle, onDelete, isPro, proLoading }: RuleL
                 disabled={proLoading || !isPro}
                 aria-label={!isPro ? 'Delete rule (Pro feature)' : 'Delete rule'}
                 className={`
-                  p-2 rounded-md transition-colors
+                  p-2 rounded-github transition-colors
                   ${!isPro 
-                    ? 'opacity-50 cursor-not-allowed text-red-400' 
-                    : 'text-red-600 hover:bg-red-50'
+                    ? 'opacity-50 cursor-not-allowed text-github-danger-fg dark:text-github-danger-dark-fg' 
+                    : 'text-github-danger-fg dark:text-github-danger-dark-fg hover:bg-github-danger-subtle dark:hover:bg-github-danger-dark-subtle'
                   }
                 `}
                 title={!isPro ? 'Upgrade to Pro to delete rules' : 'Delete rule'}

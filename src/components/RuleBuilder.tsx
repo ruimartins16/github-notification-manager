@@ -77,21 +77,23 @@ export function RuleBuilder({ onRuleCreated, onCancel }: RuleBuilderProps) {
   const hasRepositoryError = ruleType === 'repository' && repositoryName.trim().length > 0 && !/^[\w-]+\/[\w.-]+$/.test(repositoryName.trim())
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-      <h3 className="text-sm font-semibold text-gray-900 mb-3">
+    <div className="border border-github-border-default dark:border-github-border-dark-default rounded-github p-4 bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle">
+      <h3 className="text-sm font-semibold text-github-fg-default dark:text-github-fg-dark-default mb-3">
         Create Auto-Archive Rule
       </h3>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Rule Type Selection */}
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
+          <label className="block text-xs font-medium text-github-fg-default dark:text-github-fg-dark-default mb-1">
             Rule Type
           </label>
           <select
             value={ruleType}
             onChange={(e) => setRuleType(e.target.value as RuleType)}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 text-sm border border-github-border-default dark:border-github-border-dark-default rounded-github 
+                     bg-github-canvas-default dark:bg-github-canvas-dark-default text-github-fg-default dark:text-github-fg-dark-default 
+                     focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis"
           >
             <option value="repository">Repository</option>
             <option value="age">Age</option>
@@ -102,7 +104,7 @@ export function RuleBuilder({ onRuleCreated, onCancel }: RuleBuilderProps) {
         {/* Repository Rule Input */}
         {ruleType === 'repository' && (
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-medium text-github-fg-default dark:text-github-fg-dark-default mb-1">
               Repository (owner/repo)
             </label>
             <input
@@ -110,15 +112,18 @@ export function RuleBuilder({ onRuleCreated, onCancel }: RuleBuilderProps) {
               value={repositoryName}
               onChange={(e) => setRepositoryName(e.target.value)}
               placeholder="e.g., facebook/react"
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm border border-github-border-default dark:border-github-border-dark-default rounded-github 
+                       bg-github-canvas-default dark:bg-github-canvas-dark-default text-github-fg-default dark:text-github-fg-dark-default 
+                       placeholder:text-github-fg-muted dark:placeholder:text-github-fg-dark-muted
+                       focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis"
             />
             {hasRepositoryError && (
-              <p className="mt-1 text-xs text-red-600">
+              <p className="mt-1 text-xs text-github-danger-fg dark:text-github-danger-dark-fg">
                 Format should be owner/repo (e.g., facebook/react)
               </p>
             )}
             {!hasRepositoryError && (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-github-fg-muted dark:text-github-fg-dark-muted">
                 Archive all notifications from this repository
               </p>
             )}
@@ -128,7 +133,7 @@ export function RuleBuilder({ onRuleCreated, onCancel }: RuleBuilderProps) {
         {/* Age Rule Input */}
         {ruleType === 'age' && (
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-medium text-github-fg-default dark:text-github-fg-dark-default mb-1">
               Days Old
             </label>
             <input
@@ -136,9 +141,11 @@ export function RuleBuilder({ onRuleCreated, onCancel }: RuleBuilderProps) {
               min="1"
               value={ageDays}
               onChange={(e) => setAgeDays(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm border border-github-border-default dark:border-github-border-dark-default rounded-github 
+                       bg-github-canvas-default dark:bg-github-canvas-dark-default text-github-fg-default dark:text-github-fg-dark-default 
+                       focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis"
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-github-fg-muted dark:text-github-fg-dark-muted">
               Archive notifications older than this many days
             </p>
           </div>
@@ -147,7 +154,7 @@ export function RuleBuilder({ onRuleCreated, onCancel }: RuleBuilderProps) {
         {/* Reason Rule Input */}
         {ruleType === 'reason' && (
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-medium text-github-fg-default dark:text-github-fg-dark-default mb-2">
               Notification Reasons
             </label>
             <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -160,13 +167,14 @@ export function RuleBuilder({ onRuleCreated, onCancel }: RuleBuilderProps) {
                     type="checkbox"
                     checked={selectedReasons.includes(option.value)}
                     onChange={() => toggleReason(option.value)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-github-accent-emphasis dark:text-github-accent-dark-emphasis border-github-border-default dark:border-github-border-dark-default rounded 
+                             focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis"
                   />
-                  <span className="text-sm text-gray-700">{option.label}</span>
+                  <span className="text-sm text-github-fg-default dark:text-github-fg-dark-default">{option.label}</span>
                 </label>
               ))}
             </div>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-xs text-github-fg-muted dark:text-github-fg-dark-muted">
               Archive notifications with these reasons
             </p>
           </div>
@@ -177,14 +185,20 @@ export function RuleBuilder({ onRuleCreated, onCancel }: RuleBuilderProps) {
           <button
             type="submit"
             disabled={!isValid()}
-            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis rounded-github 
+                     hover:bg-github-accent-fg dark:hover:bg-github-accent-dark-fg 
+                     disabled:bg-github-fg-muted dark:disabled:bg-github-fg-dark-muted disabled:cursor-not-allowed 
+                     focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis"
           >
             Create Rule
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default 
+                     bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default 
+                     rounded-github hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle 
+                     focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis"
           >
             Cancel
           </button>
