@@ -137,7 +137,6 @@ export function useKeyboardShortcuts({
         if (filter) {
           e.preventDefault()
           if (!isPro) {
-            onShowUpgrade?.('Keyboard Shortcuts')
             return
           }
           setFilter(filter)
@@ -153,7 +152,6 @@ export function useKeyboardShortcuts({
       if (e.key === 'j' && !e.shiftKey) {
         e.preventDefault()
         if (!isPro) {
-          onShowUpgrade?.('Keyboard Shortcuts')
           return
         }
         navigateNext()
@@ -163,7 +161,6 @@ export function useKeyboardShortcuts({
       if (e.key === 'k' && !e.shiftKey) {
         e.preventDefault()
         if (!isPro) {
-          onShowUpgrade?.('Keyboard Shortcuts')
           return
         }
         navigatePrevious()
@@ -175,7 +172,6 @@ export function useKeyboardShortcuts({
         if (e.key === 'd' && !e.shiftKey) {
           e.preventDefault()
           if (!isPro) {
-            onShowUpgrade?.('Keyboard Shortcuts')
             return
           }
           onMarkFocusedDone?.()
@@ -185,7 +181,6 @@ export function useKeyboardShortcuts({
         if ((e.key === 'a' || e.key === 'A') && !e.shiftKey) {
           e.preventDefault()
           if (!isPro) {
-            onShowUpgrade?.('Keyboard Shortcuts')
             return
           }
           onArchiveFocused?.()
@@ -195,7 +190,6 @@ export function useKeyboardShortcuts({
         if ((e.key === 's' || e.key === 'S') && !e.shiftKey) {
           e.preventDefault()
           if (!isPro) {
-            onShowUpgrade?.('Keyboard Shortcuts')
             return
           }
           onSnoozeFocused?.()
@@ -205,7 +199,6 @@ export function useKeyboardShortcuts({
         if ((e.key === 'o' || e.key === 'O') && !e.shiftKey) {
           e.preventDefault()
           if (!isPro) {
-            onShowUpgrade?.('Keyboard Shortcuts')
             return
           }
           onOpenFocused?.()
@@ -217,7 +210,6 @@ export function useKeyboardShortcuts({
       if (e.key === 'D' && e.shiftKey) {
         e.preventDefault()
         if (!isPro) {
-          onShowUpgrade?.('Keyboard Shortcuts')
           return
         }
         onMarkAllRead?.()
