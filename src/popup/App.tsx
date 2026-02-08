@@ -388,53 +388,52 @@ function App() {
     <div className="w-[400px] h-[600px] bg-github-canvas-default dark:bg-github-canvas-dark-default flex flex-col">
       <div className="p-4 flex-1 flex flex-col overflow-hidden">
         <header className="mb-4">
-          <h1 className="text-2xl font-bold text-github-fg-default dark:text-github-fg-dark-default mb-2">
-            GitHush
-          </h1>
+          <div className="flex items-center gap-2 mb-2">
+            <h1 className="text-2xl font-bold text-github-fg-default dark:text-github-fg-dark-default">
+              GitHush
+            </h1>
+            {isAuthenticated && !proLoading && isPro && (
+              <button
+                onClick={async () => {
+                  try {
+                    // Import helper dynamically
+                    const { triggerStatusRefresh } = await import('../utils/status-refresh-helper')
+                    // Trigger refresh (sets flag + broadcasts message)
+                    await triggerStatusRefresh('payment')
+                    await extPayService.openPaymentPage()
+                  } catch (error) {
+                    console.error('[App] Failed to open payment page:', error)
+                    // Clear flag on error
+                    await chrome.storage.local.remove('extpay_payment_pending')
+                  }
+                }}
+                className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold leading-none
+                         bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-950 rounded-full
+                         hover:from-yellow-600 hover:to-yellow-700 transition-all"
+                aria-label="Manage Pro subscription"
+                title="Manage Pro subscription"
+              >
+                PRO
+              </button>
+            )}
+          </div>
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm text-github-fg-muted dark:text-github-fg-dark-muted">
               Quiet the noise
             </p>
-            {isAuthenticated && !proLoading && (
-              <>
-                {!isPro ? (
-                  <button
-                    onClick={() => {
-                      trackEvent(ANALYTICS_EVENTS.UPGRADE_BUTTON_CLICKED, { location: 'header' })
-                      setShowUpgradeModal(true)
-                    }}
-                    className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-full hover:bg-blue-700 
-                             transition-colors font-semibold whitespace-nowrap"
-                    aria-label="Upgrade to Pro"
-                    title="Upgrade to Pro to unlock snooze, rules, and keyboard shortcuts"
-                  >
-                    Upgrade
-                  </button>
-                ) : (
-                  <button
-                    onClick={async () => {
-                      try {
-                        // Import helper dynamically
-                        const { triggerStatusRefresh } = await import('../utils/status-refresh-helper')
-                        // Trigger refresh (sets flag + broadcasts message)
-                        await triggerStatusRefresh('payment')
-                        await extPayService.openPaymentPage()
-                      } catch (error) {
-                        console.error('[App] Failed to open payment page:', error)
-                        // Clear flag on error
-                        await chrome.storage.local.remove('extpay_payment_pending')
-                      }
-                    }}
-                    className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold leading-none
-                             bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-950 rounded-full
-                             hover:from-yellow-600 hover:to-yellow-700 transition-all"
-                    aria-label="Manage Pro subscription"
-                    title="Manage Pro subscription"
-                  >
-                    PRO
-                  </button>
-                )}
-              </>
+            {isAuthenticated && !proLoading && !isPro && (
+              <button
+                onClick={() => {
+                  trackEvent(ANALYTICS_EVENTS.UPGRADE_BUTTON_CLICKED, { location: 'header' })
+                  setShowUpgradeModal(true)
+                }}
+                className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-full hover:bg-blue-700 
+                         transition-colors font-semibold whitespace-nowrap"
+                aria-label="Upgrade to Pro"
+                title="Upgrade to Pro to unlock snooze, rules, and keyboard shortcuts"
+              >
+                Upgrade
+              </button>
             )}
           </div>
         </header>
