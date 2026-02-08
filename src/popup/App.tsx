@@ -425,13 +425,13 @@ function App() {
                         await chrome.storage.local.remove('extpay_payment_pending')
                       }
                     }}
-                    className="flex items-center gap-1 text-xs text-yellow-800 dark:text-yellow-200 hover:text-yellow-900 dark:hover:text-yellow-100 transition-colors
-                             px-2 py-1 rounded-github bg-yellow-50 dark:bg-yellow-900/30 hover:bg-yellow-100 dark:hover:bg-yellow-900/50"
+                    className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold leading-none
+                             bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-950 rounded-full
+                             hover:from-yellow-600 hover:to-yellow-700 transition-all"
                     aria-label="Manage Pro subscription"
                     title="Manage Pro subscription"
                   >
-                    <span className="text-sm">⭐</span>
-                    <span className="font-semibold">Pro</span>
+                    PRO
                   </button>
                 )}
               </>

@@ -60,6 +60,7 @@ export const ShortcutHelpModal = memo(({ isOpen, onClose, shortcuts }: ShortcutH
           >
             <span>⌨️</span>
             Keyboard Shortcuts
+            <ProBadge showTooltip={false} />
           </h2>
           <button
             onClick={onClose}
@@ -91,12 +92,9 @@ export const ShortcutHelpModal = memo(({ isOpen, onClose, shortcuts }: ShortcutH
                                bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle border border-github-border-default dark:border-github-border-dark-default
                                hover:bg-github-canvas-default dark:hover:bg-github-canvas-dark-default transition-colors"
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-github-fg-default dark:text-github-fg-dark-default">
-                          {shortcut.description}
-                        </span>
-                        {shortcut.isPro && <ProBadge />}
-                      </div>
+                      <span className="text-sm text-github-fg-default dark:text-github-fg-dark-default">
+                        {shortcut.description}
+                      </span>
                       <kbd
                         className="px-2.5 py-1 text-xs font-mono font-semibold
                                  bg-github-canvas-default dark:bg-github-canvas-dark-default text-github-fg-default dark:text-github-fg-dark-default
