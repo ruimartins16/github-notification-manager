@@ -395,19 +395,46 @@ function App() {
             <p className="text-sm text-github-fg-muted dark:text-github-fg-dark-muted">
               Take control of your GitHub notifications
             </p>
-            {isAuthenticated && !proLoading && !isPro && (
-              <button
-                onClick={() => {
-                  trackEvent(ANALYTICS_EVENTS.UPGRADE_BUTTON_CLICKED, { location: 'header' })
-                  setShowUpgradeModal(true)
-                }}
-                className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-full hover:bg-blue-700 
-                         transition-colors font-semibold whitespace-nowrap"
-                aria-label="Upgrade to Pro"
-                title="Upgrade to Pro to unlock snooze, rules, and keyboard shortcuts"
-              >
-                Upgrade
-              </button>
+            {isAuthenticated && !proLoading && (
+              <>
+                {!isPro ? (
+                  <button
+                    onClick={() => {
+                      trackEvent(ANALYTICS_EVENTS.UPGRADE_BUTTON_CLICKED, { location: 'header' })
+                      setShowUpgradeModal(true)
+                    }}
+                    className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-full hover:bg-blue-700 
+                             transition-colors font-semibold whitespace-nowrap"
+                    aria-label="Upgrade to Pro"
+                    title="Upgrade to Pro to unlock snooze, rules, and keyboard shortcuts"
+                  >
+                    Upgrade
+                  </button>
+                ) : (
+                  <button
+                    onClick={async () => {
+                      try {
+                        // Import helper dynamically
+                        const { triggerStatusRefresh } = await import('../utils/status-refresh-helper')
+                        // Trigger refresh (sets flag + broadcasts message)
+                        await triggerStatusRefresh('payment')
+                        await extPayService.openPaymentPage()
+                      } catch (error) {
+                        console.error('[App] Failed to open payment page:', error)
+                        // Clear flag on error
+                        await chrome.storage.local.remove('extpay_payment_pending')
+                      }
+                    }}
+                    className="flex items-center gap-1 text-xs text-yellow-800 dark:text-yellow-200 hover:text-yellow-900 dark:hover:text-yellow-100 transition-colors
+                             px-2 py-1 rounded-github bg-yellow-50 dark:bg-yellow-900/30 hover:bg-yellow-100 dark:hover:bg-yellow-900/50"
+                    aria-label="Manage Pro subscription"
+                    title="Manage Pro subscription"
+                  >
+                    <span className="text-sm">⭐</span>
+                    <span className="font-semibold">Pro</span>
+                  </button>
+                )}
+              </>
             )}
           </div>
         </header>
@@ -561,41 +588,6 @@ function App() {
                 </h2>
               </div>
               <div className="flex items-center gap-2">
-                {/* Pro Status Button/Badge */}
-                {proLoading ? (
-                  <span 
-                    className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted"
-                    role="status"
-                    aria-live="polite"
-                    aria-label="Loading subscription status"
-                  >
-                    ...
-                  </span>
-                ) : isPro && (
-                  <button
-                    onClick={async () => {
-                      try {
-                        // Import helper dynamically
-                        const { triggerStatusRefresh } = await import('../utils/status-refresh-helper')
-                        // Trigger refresh (sets flag + broadcasts message)
-                        await triggerStatusRefresh('payment')
-                        await extPayService.openPaymentPage()
-                      } catch (error) {
-                        console.error('[App] Failed to open payment page:', error)
-                        // Clear flag on error
-                        await chrome.storage.local.remove('extpay_payment_pending')
-                      }
-                    }}
-                    className="flex items-center gap-1 text-xs text-yellow-800 dark:text-yellow-200 hover:text-yellow-900 dark:hover:text-yellow-100 transition-colors
-                             px-2 py-1 rounded-github bg-yellow-50 dark:bg-yellow-900/30 hover:bg-yellow-100 dark:hover:bg-yellow-900/50"
-                    aria-label="Manage Pro subscription"
-                    title="Manage Pro subscription"
-                  >
-                    <span className="text-sm">⭐</span>
-                    <span className="font-semibold">Pro</span>
-                  </button>
-                )}
-                
                 {viewMode === 'active' && !selectionMode && (
                   <button
                     onClick={handleMarkAllAsRead}
