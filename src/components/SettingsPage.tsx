@@ -502,7 +502,7 @@ export function SettingsPage() {
                 </p>
                 <div className="mt-4 pt-4 border-t border-github-border-default dark:border-github-border-dark-default">
                   <a
-                    href="https://github.com/yourusername/github-notification-manager/blob/main/docs/privacy-policy.md"
+                    href="https://github.com/ruimartins16/github-notification-manager/blob/main/docs/privacy-policy.md"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-github-accent-fg dark:text-github-accent-dark-fg hover:underline"

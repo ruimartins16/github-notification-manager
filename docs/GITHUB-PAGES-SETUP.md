@@ -28,10 +28,10 @@ You can check the status:
 Once deployed, your privacy policy will be available at:
 
 ```
-https://yourusername.github.io/github-notification-manager/privacy-policy.html
+https://ruimartins16.github.io/github-notification-manager/privacy-policy.html
 ```
 
-Replace `yourusername` with your actual GitHub username.
+Replace `ruimartins16` with your actual GitHub username.
 
 ### Step 4: Update Privacy Policy Link in Extension
 
@@ -39,12 +39,12 @@ After deployment, update the link in `src/components/SettingsPage.tsx`:
 
 **Before:**
 ```tsx
-href="https://github.com/yourusername/github-notification-manager/blob/main/docs/privacy-policy.md"
+href="https://github.com/ruimartins16/github-notification-manager/blob/main/docs/privacy-policy.md"
 ```
 
 **After:**
 ```tsx
-href="https://yourusername.github.io/github-notification-manager/privacy-policy.html"
+href="https://ruimartins16.github.io/github-notification-manager/privacy-policy.html"
 ```
 
 This ensures users see the rendered HTML version instead of raw markdown.
@@ -53,7 +53,7 @@ This ensures users see the rendered HTML version instead of raw markdown.
 
 To verify it's working:
 
-1. Visit: `https://yourusername.github.io/github-notification-manager/privacy-policy.html`
+1. Visit: `https://ruimartins16.github.io/github-notification-manager/privacy-policy.html`
 2. You should see your privacy policy rendered as a web page
 3. Verify all sections are visible (scroll to "Payment Information" section)
 
@@ -83,12 +83,12 @@ To verify it's working:
 
 **Solution**: Use the GitHub Pages URL format:
 ```
-https://yourusername.github.io/github-notification-manager/privacy-policy.html
+https://ruimartins16.github.io/github-notification-manager/privacy-policy.html
 ```
 
 NOT:
 ```
-https://github.com/yourusername/github-notification-manager/blob/main/docs/privacy-policy.md
+https://github.com/ruimartins16/github-notification-manager/blob/main/docs/privacy-policy.md
 ```
 
 ## Updating the Privacy Policy
@@ -110,7 +110,7 @@ If you want to use a custom domain like `privacy.yourdomain.com`:
    ```
 
 2. Configure DNS records at your domain provider:
-   - Add a CNAME record pointing to `yourusername.github.io`
+   - Add a CNAME record pointing to `ruimartins16.github.io`
 
 3. In GitHub Settings > Pages:
    - Enter your custom domain

@@ -222,7 +222,7 @@ Whether you're a solo developer or part of a large team, GitHush helps you stay 
 📖 OPEN SOURCE
 
 GitHush is open source! Check out the code, report issues, or contribute:
-https://github.com/yourusername/github-notification-manager
+https://github.com/ruimartins16/github-notification-manager
 
 💡 SUPPORT
 
@@ -266,7 +266,7 @@ github tools
 
 ## 📜 **Privacy Policy URL**
 ```
-https://yourusername.github.io/github-notification-manager/docs/privacy-policy.html
+https://ruimartins16.github.io/github-notification-manager/docs/privacy-policy.html
 ```
 (Or use the GitHub Pages URL once you set it up)
 

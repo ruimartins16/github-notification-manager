@@ -58,7 +58,7 @@ Upgrade to unlock advanced productivity features:
 - All processing happens locally in your browser
 - We never store your GitHub token or notifications
 - Subscription data stored locally only
-- See our full [Privacy Policy](https://github.com/yourusername/github-notification-manager/blob/main/docs/privacy-policy.md)
+- See our full [Privacy Policy](https://github.com/ruimartins16/github-notification-manager/blob/main/docs/privacy-policy.md)
 
 ### 🚀 Getting Started
 
@@ -70,7 +70,7 @@ Upgrade to unlock advanced productivity features:
 ### 📱 Open Source
 
 GitHub Notification Manager is open source! Check out the code, report issues, or contribute:
-https://github.com/yourusername/github-notification-manager
+https://github.com/ruimartins16/github-notification-manager
 
 ---
 
@@ -125,13 +125,13 @@ English
 **Privacy Note**: All data is stored locally. We never transmit your data to external servers except GitHub API calls for fetching notifications.
 
 ## Website URL
-https://github.com/yourusername/github-notification-manager
+https://github.com/ruimartins16/github-notification-manager
 
 ## Support URL
-https://github.com/yourusername/github-notification-manager/issues
+https://github.com/ruimartins16/github-notification-manager/issues
 
 ## Privacy Policy URL
-https://yourusername.github.io/github-notification-manager/privacy-policy.html
+https://ruimartins16.github.io/github-notification-manager/privacy-policy.html
 
 ## Monetization Declaration
 
@@ -171,7 +171,7 @@ Before submitting to Chrome Web Store:
 - [ ] Privacy policy deployed to GitHub Pages
 - [ ] Test extension with test mode payments
 - [ ] Verify all permissions listed with justifications
-- [ ] Update GitHub repository URL (replace `yourusername`)
+- [ ] Update GitHub repository URL (replace `ruimartins16`)
 - [ ] Set support email
 - [ ] Complete monetization declaration
 - [ ] Test free tier thoroughly
@@ -198,7 +198,7 @@ After publishing:
 ---
 
 **Notes:**
-- Replace `yourusername` with your actual GitHub username before publishing
+- Replace `ruimartins16` with your actual GitHub username before publishing
 - Update privacy policy URL to GitHub Pages URL (not raw GitHub URL)
 - Ensure ExtensionPay test mode payments work before launch
 - Consider creating a demo video (increases conversion by ~30%)
