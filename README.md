@@ -93,9 +93,6 @@ npm run build
 - ✅ Smart filtering (All, Mentions, Reviews, Assigned)
 - ✅ Mark all as read
 - ✅ View keyboard shortcuts (press `?`)
-- ⚠️ 3 snoozes per day
-- ⚠️ 1 auto-archive rule
-- ⚠️ 3 repositories for auto-archive
 
 ### Pro Tier (€3/month or €15 lifetime)
 - ✅ **Unlimited snoozes**
