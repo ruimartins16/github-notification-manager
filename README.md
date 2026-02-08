@@ -102,7 +102,7 @@ npm run build
 - ✅ **Beautiful dark mode**
 - ✅ **Support independent development**
 
-[Upgrade to Pro](https://extensionpay.com) to unlock all features!
+**Upgrade to Pro** to unlock all features!
 
 ---
 
