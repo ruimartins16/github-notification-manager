@@ -8,6 +8,7 @@ import { AutoArchiveRules } from '../components/AutoArchiveRules'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { SubscriptionStatus } from '../components/SubscriptionStatus'
 import { RefreshStatusButton } from '../components/RefreshStatusButton'
+import { ProBadge } from '../components/ProBadge'
 import { FilterType } from '../types/storage'
 import { extPayService } from '../utils/extpay-service'
 import { trackEvent, ANALYTICS_EVENTS } from '../utils/analytics'
@@ -372,10 +373,10 @@ export function SettingsPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           {isPro ? (
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-950 rounded-full">
-                              <span className="text-base">⭐</span>
-                              <span className="text-sm font-semibold">Pro</span>
-                            </div>
+                            <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold leading-none
+                                           bg-gradient-to-r from-yellow-500 to-yellow-600 text-yellow-950 rounded-full">
+                              PRO
+                            </span>
                           ) : (
                             <span className="px-3 py-1.5 bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle border border-github-border-default dark:border-github-border-dark-default text-github-fg-muted dark:text-github-fg-dark-muted text-sm font-medium rounded-full">
                               Free
@@ -667,11 +668,7 @@ export function SettingsPage() {
                       <div>
                         <label className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default flex items-center gap-2">
                           Dark Mode
-                          {!isPro && (
-                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-semibold">
-                              Pro
-                            </span>
-                          )}
+                          {!isPro && <ProBadge />}
                         </label>
                         <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted mt-1">
                           {isPro 
