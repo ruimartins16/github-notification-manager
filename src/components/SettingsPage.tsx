@@ -5,10 +5,12 @@ import { useNotificationStore } from '../store/notification-store'
 import { AutoArchiveRules } from '../components/AutoArchiveRules'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { SubscriptionStatus } from '../components/SubscriptionStatus'
+import { RefreshStatusButton } from '../components/RefreshStatusButton'
 import { FilterType } from '../types/storage'
 import { useProStatus } from '../hooks/useProStatus'
 import { extPayService } from '../utils/extpay-service'
 import { trackEvent, ANALYTICS_EVENTS } from '../utils/analytics'
+import { GitHubAPI } from '../utils/github-api'
 
 type SettingsSection = 'account' | 'notifications' | 'behavior' | 'advanced' | 'rules'
 
@@ -24,6 +26,8 @@ export function SettingsPage() {
   const { logout } = useAuth()
   const [activeSection, setActiveSection] = useState<SettingsSection>('account')
   const [userInfo, setUserInfo] = useState<{ login: string; avatar_url: string } | null>(null)
+  const [isLoadingUser, setIsLoadingUser] = useState(true)
+  const [userError, setUserError] = useState<string | null>(null)
   const [rateLimit, setRateLimit] = useState<{ limit: number; remaining: number; reset: number } | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -71,11 +75,46 @@ export function SettingsPage() {
 
   // Load user info
   useEffect(() => {
-    chrome.storage.local.get(['github_user']).then((result) => {
-      if (result.github_user) {
-        setUserInfo(result.github_user)
+    const fetchUserInfo = async () => {
+      try {
+        setIsLoadingUser(true)
+        setUserError(null)
+        
+        // First check if user info is cached in storage
+        const result = await chrome.storage.local.get(['github_user'])
+        if (result.github_user) {
+          setUserInfo(result.github_user)
+          setIsLoadingUser(false)
+          return
+        }
+
+        // If not cached, fetch from GitHub API
+        const tokenResult = await chrome.storage.local.get('github_token')
+        if (!tokenResult.github_token) {
+          throw new Error('No GitHub token found')
+        }
+        
+        const api = GitHubAPI.getInstance()
+        await api.initialize(tokenResult.github_token)
+        const userData = await api.getAuthenticatedUser()
+        
+        // Cache the user data
+        const userInfoData = {
+          login: userData.login,
+          avatar_url: userData.avatar_url,
+        }
+        
+        await chrome.storage.local.set({ github_user: userInfoData })
+        setUserInfo(userInfoData)
+      } catch (error) {
+        console.error('Failed to fetch user info:', error)
+        setUserError(error instanceof Error ? error.message : 'Failed to load user info')
+      } finally {
+        setIsLoadingUser(false)
       }
-    })
+    }
+
+    fetchUserInfo()
   }, [])
 
   // Load rate limit info
@@ -240,7 +279,27 @@ export function SettingsPage() {
                     GitHub Account
                   </h2>
 
-                  {userInfo ? (
+                  {isLoadingUser ? (
+                    <div className="p-4 bg-github-canvas-default rounded-github border border-github-border-default">
+                      <p className="text-sm text-github-fg-muted">
+                        Loading...
+                      </p>
+                    </div>
+                  ) : userError ? (
+                    <div className="p-4 bg-github-danger-subtle rounded-github border border-github-danger-emphasis">
+                      <p className="text-sm text-github-danger-fg mb-2">
+                        {userError}
+                      </p>
+                      <button
+                        onClick={() => window.location.reload()}
+                        className="px-3 py-1.5 text-xs font-medium bg-github-canvas-default border 
+                                 border-github-border-default text-github-fg-default rounded-github 
+                                 hover:bg-github-canvas-subtle transition-colors"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : userInfo ? (
                     <div className="flex items-center gap-4 p-4 bg-github-canvas-default rounded-github border border-github-border-default">
                       <img 
                         src={userInfo.avatar_url} 
@@ -347,12 +406,16 @@ export function SettingsPage() {
 
                       {/* Action Button */}
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           trackEvent(
                             isPro ? ANALYTICS_EVENTS.PAYMENT_PAGE_OPENED : ANALYTICS_EVENTS.UPGRADE_BUTTON_CLICKED,
                             { location: 'settings', isPro }
                           )
-                          extPayService.openPaymentPage()
+                          // Import helper dynamically
+                          const { triggerStatusRefresh } = await import('../utils/status-refresh-helper')
+                          // Trigger refresh (sets flag + broadcasts message)
+                          await triggerStatusRefresh('payment')
+                          await extPayService.openPaymentPage()
                         }}
                         className={`w-full px-4 py-2.5 text-sm font-medium rounded-github transition-colors focus:outline-none focus:ring-2 ${
                           isPro
@@ -407,6 +470,14 @@ export function SettingsPage() {
                           </div>
                         </div>
                       )}
+                      
+                      {/* Manual Refresh Status Button */}
+                      <div className="pt-4 border-t border-github-border-default">
+                        <p className="text-xs text-github-fg-muted mb-3">
+                          Payment status not updating? Manually refresh to sync with ExtensionPay.
+                        </p>
+                        <RefreshStatusButton variant="default" />
+                      </div>
                     </div>
                   )}
                 </div>

@@ -63,7 +63,13 @@ export function SubscriptionStatus({ user }: SubscriptionStatusProps) {
               Your payment method couldn't be charged. Please update it to keep Pro features active.
             </p>
             <button
-              onClick={() => extPayService.openPaymentPage()}
+              onClick={async () => {
+                // Import helper dynamically
+                const { triggerStatusRefresh } = await import('../utils/status-refresh-helper')
+                // Trigger refresh (sets flag + broadcasts message)
+                await triggerStatusRefresh('payment')
+                await extPayService.openPaymentPage()
+              }}
               className="px-3 py-1.5 text-sm font-medium bg-github-accent-emphasis text-white 
                        rounded-github hover:bg-github-accent-fg transition-colors 
                        focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis"
@@ -109,7 +115,13 @@ export function SubscriptionStatus({ user }: SubscriptionStatusProps) {
               You'll still have Pro features until then.
             </p>
             <button
-              onClick={() => extPayService.openPaymentPage()}
+              onClick={async () => {
+                // Import helper dynamically
+                const { triggerStatusRefresh } = await import('../utils/status-refresh-helper')
+                // Trigger refresh (sets flag + broadcasts message)
+                await triggerStatusRefresh('payment')
+                await extPayService.openPaymentPage()
+              }}
               className="px-3 py-1.5 text-sm font-medium bg-github-accent-emphasis text-white 
                        rounded-github hover:bg-github-accent-fg transition-colors 
                        focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis"

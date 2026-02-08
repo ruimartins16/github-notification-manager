@@ -142,15 +142,32 @@ export class AuthService {
    * Removes auth token, user data, and all application data from storage
    * Then reloads the extension to reset state
    * 
+   * Note: Explicitly clears ExtPay cache to ensure fresh Pro status check on next login
+   * 
    * @returns Promise<void>
    */
   static async logout(): Promise<void> {
     try {
-      // Clear all chrome.storage.local data (auth, notifications, zustand stores)
+      console.log('[AuthService] Logging out - clearing all caches and storage...')
+      
+      // Fix #5: Explicitly clear ExtPay cache before general storage clear
+      // This ensures fresh Pro status check when user logs back in
+      try {
+        const { clearCache } = await import('./license-validator')
+        await clearCache()
+        console.log('[AuthService] ExtPay cache cleared successfully')
+      } catch (cacheError) {
+        console.warn('[AuthService] Failed to clear ExtPay cache explicitly:', cacheError)
+        // Continue with general clear anyway
+      }
+      
+      // Clear all chrome.storage.local data (auth, notifications, zustand stores, ExtPay cache)
       await chrome.storage.local.clear()
       
       // Clear chrome.storage.sync data (settings)
       await chrome.storage.sync.clear()
+      
+      console.log('[AuthService] All storage cleared, reloading extension...')
       
       // Reload the extension to reset all state
       if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.reload) {
@@ -160,7 +177,7 @@ export class AuthService {
         window.location.reload()
       }
     } catch (error) {
-      console.error('Error clearing storage during logout:', error)
+      console.error('[AuthService] Error clearing storage during logout:', error)
       // Even if storage clear fails, try to reload
       try {
         if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.reload) {
@@ -169,7 +186,7 @@ export class AuthService {
           window.location.reload()
         }
       } catch (reloadError) {
-        console.error('Error reloading after logout:', reloadError)
+        console.error('[AuthService] Error reloading after logout:', reloadError)
       }
     }
   }

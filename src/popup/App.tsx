@@ -546,9 +546,15 @@ function App() {
                   <button
                     onClick={async () => {
                       try {
+                        // Import helper dynamically
+                        const { triggerStatusRefresh } = await import('../utils/status-refresh-helper')
+                        // Trigger refresh (sets flag + broadcasts message)
+                        await triggerStatusRefresh('payment')
                         await extPayService.openPaymentPage()
                       } catch (error) {
                         console.error('[App] Failed to open payment page:', error)
+                        // Clear flag on error
+                        await chrome.storage.local.remove('extpay_payment_pending')
                       }
                     }}
                     className="flex items-center gap-1 text-xs text-yellow-800 hover:text-yellow-900 transition-colors

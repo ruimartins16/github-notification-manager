@@ -33,13 +33,18 @@ extPayService.onPaid(async (user) => {
   console.log('[ExtPay] User paid! Updating cache...', user.plan)
   await updateCacheOnPayment(user)
   
+  // Set payment pending flag for popup to detect on next open
+  await chrome.storage.local.set({ payment_pending: true })
+  console.log('[ExtPay] Payment pending flag set')
+  
   // Notify popup of Pro status change (if open)
   chrome.runtime.sendMessage({
     type: 'PRO_STATUS_CHANGED',
     isPro: user.isPro,
     plan: user.plan,
   }).catch(() => {
-    // Popup not open - that's okay
+    // Popup not open - payment_pending flag will handle it
+    console.log('[ExtPay] Popup not open, payment_pending flag will notify on next open')
   })
 })
 
@@ -289,9 +294,14 @@ async function checkSubscriptionStatus() {
     // Track subscription status changes (only if we have a previous status to compare)
     if (previousUser) {
       const statusChanged = previousUser.subscriptionStatus !== user.subscriptionStatus
+      const proStatusChanged = previousUser.isPro !== user.isPro
       
-      if (statusChanged) {
+      if (statusChanged || proStatusChanged) {
         console.log('[SubStatus] Status changed:', previousUser.subscriptionStatus, '->', user.subscriptionStatus)
+        
+        // Set status changed flag for popup to detect on next open
+        await chrome.storage.local.set({ status_changed: true })
+        console.log('[SubStatus] Status changed flag set')
         
         if (user.subscriptionStatus === 'canceled') {
           trackEvent(ANALYTICS_EVENTS.SUBSCRIPTION_CANCELED, {
@@ -330,10 +340,8 @@ async function checkSubscriptionStatus() {
       status: user.subscriptionStatus,
       needsAttention,
     }).catch(() => {
-      // Popup not open - that's okay
-      if (needsAttention) {
-        console.warn('[SubStatus] Subscription needs attention:', user.subscriptionStatus)
-      }
+      // Popup not open - status_changed flag will handle it
+      console.log('[SubStatus] Popup not open, status_changed flag will notify on next open')
     })
   } catch (error) {
     console.error('[SubStatus] Failed to check subscription status:', error)

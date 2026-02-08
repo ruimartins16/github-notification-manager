@@ -13,8 +13,8 @@ import { isOnline, isNetworkError } from './network-handler'
 /** Cache key for storing user data in chrome.storage.local */
 const CACHE_KEY = 'extpay_user_cache'
 
-/** Cache TTL: 24 hours for normal refresh */
-const CACHE_TTL = 24 * 60 * 60 * 1000
+/** Cache TTL: 5 minutes for faster updates (especially for downgrades) */
+const CACHE_TTL = 5 * 60 * 1000
 
 /** Extended cache TTL: 7 days for offline fallback */
 const EXTENDED_CACHE_TTL = 7 * 24 * 60 * 60 * 1000

@@ -18,6 +18,7 @@
  */
 
 import { Octokit } from '@octokit/rest'
+import type { GitHubUser } from '../types/github'
 
 export class GitHubAPI {
   private static instance: GitHubAPI | null = null
@@ -133,6 +134,21 @@ export class GitHubAPI {
       thread_id: parseInt(threadId, 10),
       ignored: true,
     })
+  }
+
+  /**
+   * Get authenticated user information
+   * 
+   * @returns Promise<GitHubUser> - User profile data (login, avatar_url, etc.)
+   * @throws Error if not initialized or request fails
+   */
+  async getAuthenticatedUser(): Promise<GitHubUser> {
+    if (!this.octokit) {
+      throw new Error('GitHubAPI not initialized. Call initialize() first.')
+    }
+
+    const { data } = await this.octokit.rest.users.getAuthenticated()
+    return data
   }
 
   /**

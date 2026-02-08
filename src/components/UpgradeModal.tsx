@@ -71,11 +71,20 @@ export function UpgradeModal({ isOpen, onClose, feature }: UpgradeModalProps) {
 
   const handleUpgrade = async () => {
     try {
+      // Import helper dynamically
+      const { triggerStatusRefresh } = await import('../utils/status-refresh-helper')
+      
+      // Trigger refresh (sets flag + broadcasts message)
+      await triggerStatusRefresh('payment')
+      console.log('[UpgradeModal] Payment flow started, refresh triggered')
+      
       trackEvent(ANALYTICS_EVENTS.PAYMENT_PAGE_OPENED, { source: 'upgrade_modal', feature })
       await extPayService.openPaymentPage()
       onClose()
     } catch (error) {
       console.error('[UpgradeModal] Failed to open payment page:', error)
+      // Clear flag on error
+      await chrome.storage.local.remove('extpay_payment_pending')
       // Keep modal open so user can retry
     }
   }

@@ -209,12 +209,22 @@ class ExtPayService {
 
   /**
    * Open the login page for users who have already paid
+   * Triggers status refresh so popup updates immediately after login
    */
   async openLoginPage(): Promise<void> {
     try {
+      // Import helper dynamically to avoid circular dependencies
+      const { triggerStatusRefresh } = await import('./status-refresh-helper')
+      
+      // Trigger refresh (sets flag + broadcasts message)
+      await triggerStatusRefresh('login')
+      console.log('[ExtPayService] Login flow started, refresh triggered')
+      
       await extpay.openLoginPage()
     } catch (error) {
       console.error('[ExtPayService] Failed to open login page:', error)
+      // Clear flag on error
+      await chrome.storage.local.remove('extpay_login_pending')
       throw error
     }
   }

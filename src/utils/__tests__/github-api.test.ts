@@ -5,6 +5,7 @@ import { GitHubAPI } from '../github-api'
 const mockListNotifications = vi.fn()
 const mockMarkThreadAsRead = vi.fn()
 const mockMarkNotificationsAsRead = vi.fn()
+const mockGetAuthenticated = vi.fn()
 
 // Mock Octokit to return the same mock instance
 vi.mock('@octokit/rest', () => ({
@@ -14,6 +15,9 @@ vi.mock('@octokit/rest', () => ({
         listNotificationsForAuthenticatedUser: mockListNotifications,
         markThreadAsRead: mockMarkThreadAsRead,
         markNotificationsAsRead: mockMarkNotificationsAsRead,
+      },
+      users: {
+        getAuthenticated: mockGetAuthenticated,
       },
     },
   })),
@@ -148,6 +152,39 @@ describe('GitHubAPI', () => {
       await api.markAllAsRead()
 
       expect(mockMarkNotificationsAsRead).toHaveBeenCalled()
+    })
+  })
+
+  describe('getAuthenticatedUser', () => {
+    it('should throw error if not initialized', async () => {
+      await expect(api.getAuthenticatedUser()).rejects.toThrow(
+        'GitHubAPI not initialized. Call initialize() first.'
+      )
+    })
+
+    it('should get authenticated user information', async () => {
+      const mockUser = {
+        login: 'testuser',
+        avatar_url: 'https://avatars.githubusercontent.com/u/123456',
+        id: 123456,
+        name: 'Test User',
+      }
+
+      mockGetAuthenticated.mockResolvedValueOnce({ data: mockUser })
+
+      await api.initialize('gho_test_token')
+      const result = await api.getAuthenticatedUser()
+
+      expect(result).toEqual(mockUser)
+      expect(mockGetAuthenticated).toHaveBeenCalled()
+    })
+
+    it('should handle API errors', async () => {
+      mockGetAuthenticated.mockRejectedValueOnce(new Error('API Error'))
+
+      await api.initialize('gho_test_token')
+      
+      await expect(api.getAuthenticatedUser()).rejects.toThrow('API Error')
     })
   })
 

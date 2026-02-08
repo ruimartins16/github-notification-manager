@@ -78,11 +78,13 @@ export function useProStatus(): UseProStatusResult {
    * Uses cache when available, otherwise fetches from ExtPay
    */
   const fetchUser = useCallback(async (forceRefresh = false) => {
+    console.log(`[useProStatus] 🔄 Fetching user (forceRefresh: ${forceRefresh})`)
     setIsLoading(true)
     setError(null)
     
     try {
       const proUser = await validateLicense(forceRefresh)
+      console.log(`[useProStatus] ✅ User fetched - isPro: ${proUser.isPro}, plan: ${proUser.plan?.nickname || 'none'}`)
       setUser(proUser)
       
       // Update cache age
@@ -91,7 +93,7 @@ export function useProStatus(): UseProStatusResult {
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to check license')
       setError(error)
-      console.error('[useProStatus] Failed to fetch user:', error)
+      console.error('[useProStatus] ❌ Failed to fetch user:', error)
     } finally {
       setIsLoading(false)
     }
@@ -105,23 +107,57 @@ export function useProStatus(): UseProStatusResult {
   }, [fetchUser])
 
   useEffect(() => {
-    // Fetch user on mount
-    fetchUser()
+    console.log('[useProStatus] Hook mounted, checking for pending refreshes')
+    
+    // Check for pending payment, status change, or login on mount
+    const checkAndRefreshIfNeeded = async () => {
+      const result = await chrome.storage.local.get([
+        'payment_pending',
+        'status_changed',
+        'extpay_payment_pending',
+        'extpay_login_pending'
+      ])
+      
+      const needsRefresh = result.payment_pending || result.status_changed || 
+                          result.extpay_payment_pending || result.extpay_login_pending
+      
+      if (needsRefresh) {
+        console.log('[useProStatus] 🔄 Pending refresh detected, clearing cache and forcing refresh', result)
+        
+        // Clear all flags
+        await chrome.storage.local.remove([
+          'payment_pending',
+          'status_changed', 
+          'extpay_payment_pending',
+          'extpay_login_pending',
+          'extpay_user_cache' // Clear cache too
+        ])
+        
+        // Force refresh from ExtPay
+        await fetchUser(true)
+      } else {
+        // Normal fetch (uses cache if available)
+        await fetchUser(false)
+      }
+    }
+    
+    // Run check immediately on mount
+    checkAndRefreshIfNeeded()
 
-    // Listen for payment events (real-time updates)
+    // Listen for payment events (real-time updates from ExtPay)
     const cleanupPaid = extPayService.onPaid((paidUser) => {
-      console.log('[useProStatus] Payment received, updating user')
+      console.log('[useProStatus] 💰 Payment received from ExtPay, updating user')
       setUser(paidUser)
       setIsLoading(false)
       setError(null)
       setCacheAge(0) // Fresh data
     })
     
-    // Listen for Pro status changes from background worker
+    // Listen for Pro status changes from background worker or other contexts
     const handleMessage = (message: any) => {
       if (message.type === 'PRO_STATUS_CHANGED') {
-        console.log('[useProStatus] Pro status changed, refreshing')
-        fetchUser()
+        console.log('[useProStatus] 📨 Received PRO_STATUS_CHANGED message, refreshing')
+        fetchUser(true) // Force refresh
       }
     }
     
@@ -135,7 +171,7 @@ export function useProStatus(): UseProStatusResult {
       // Auto-refresh when connection restored
       if (online) {
         console.log('[useProStatus] Connection restored, refreshing user status')
-        fetchUser()
+        fetchUser(true) // Force refresh
       }
     })
 

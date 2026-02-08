@@ -3,6 +3,7 @@ import { CheckIcon, ArchiveIcon, BellSlashIcon } from '@primer/octicons-react'
 import { useNotificationStore } from '../store/notification-store'
 import { ConfirmationDialog } from './ConfirmationDialog'
 import { GitHubAPI } from '../utils/github-api'
+import { BadgeService } from '../utils/badge-service'
 import { Spinner } from './Spinner'
 
 interface NotificationActionsProps {
@@ -38,8 +39,13 @@ export function NotificationActions({
           await api.markAsRead(notificationId)
         }
 
-        // Only update UI after API success
+        // Update UI after API success
         markAsRead(notificationId)
+        
+        // Update badge with fresh state from store (fixes race condition)
+        const updatedNotifications = useNotificationStore.getState().notifications
+        BadgeService.updateBadge(updatedNotifications)
+        
         onActionComplete?.('read')
       } catch (error) {
         console.error('Failed to mark notification as read:', error)
@@ -49,7 +55,7 @@ export function NotificationActions({
         setIsProcessing(false)
       }
     },
-    [notificationId, markAsRead, onActionComplete, isProcessing]
+    [notificationId, markAsRead, onActionComplete]
   )
 
   // Archive handler
@@ -61,7 +67,7 @@ export function NotificationActions({
       archiveNotification(notificationId)
       onActionComplete?.('archive')
     },
-    [notificationId, archiveNotification, onActionComplete, isProcessing]
+    [notificationId, archiveNotification, onActionComplete]
   )
 
   // Unsubscribe handler
@@ -95,7 +101,7 @@ export function NotificationActions({
     } finally {
       setIsProcessing(false)
     }
-  }, [notificationId, archiveNotification, onActionComplete, isProcessing])
+  }, [notificationId, archiveNotification, onActionComplete])
 
   const handleUnsubscribeCancel = useCallback(() => {
     setShowUnsubscribeConfirm(false)
