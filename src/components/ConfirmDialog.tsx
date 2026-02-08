@@ -25,9 +25,9 @@ export function ConfirmDialog({
   if (!isOpen) return null
 
   const variantStyles = {
-    danger: 'bg-github-danger-emphasis hover:bg-github-danger-fg text-white',
-    warning: 'bg-github-attention-emphasis hover:bg-github-attention-fg text-white',
-    default: 'bg-github-accent-emphasis hover:bg-github-accent-fg text-white',
+    danger: 'bg-github-danger-emphasis dark:bg-github-danger-dark-emphasis hover:bg-github-danger-fg dark:hover:bg-github-danger-dark-fg text-white',
+    warning: 'bg-github-attention-emphasis dark:bg-github-attention-dark-emphasis hover:bg-github-attention-fg dark:hover:bg-github-attention-dark-fg text-white',
+    default: 'bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis hover:bg-github-accent-fg dark:hover:bg-github-accent-dark-fg text-white',
   }
 
   return (
@@ -40,20 +40,20 @@ export function ConfirmDialog({
       aria-describedby="dialog-description"
     >
       <div
-        className="bg-github-canvas-default rounded-github border border-github-border-default shadow-lg max-w-md w-full mx-4"
+        className="bg-github-canvas-default dark:bg-github-canvas-dark-default rounded-github border border-github-border-default dark:border-github-border-dark-default shadow-lg max-w-md w-full mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-github-border-default">
+        <div className="flex items-center justify-between p-4 border-b border-github-border-default dark:border-github-border-dark-default">
           <h2
             id="dialog-title"
-            className="text-lg font-semibold text-github-fg-default"
+            className="text-lg font-semibold text-github-fg-default dark:text-github-fg-dark-default"
           >
             {title}
           </h2>
           <button
             onClick={onCancel}
-            className="text-github-fg-muted hover:text-github-fg-default transition-colors"
+            className="text-github-fg-muted dark:text-github-fg-dark-muted hover:text-github-fg-default dark:hover:text-github-fg-dark-default transition-colors"
             aria-label="Close dialog"
           >
             <XIcon size={20} />
@@ -63,18 +63,18 @@ export function ConfirmDialog({
         {/* Body */}
         <div id="dialog-description" className="p-4">
           {typeof message === 'string' ? (
-            <p className="text-sm text-github-fg-default">{message}</p>
+            <p className="text-sm text-github-fg-default dark:text-github-fg-dark-default">{message}</p>
           ) : (
             message
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 p-4 border-t border-github-border-default">
+        <div className="flex items-center justify-end gap-2 p-4 border-t border-github-border-default dark:border-github-border-dark-default">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium bg-github-canvas-default border border-github-border-default 
-                     text-github-fg-default rounded-github hover:bg-github-canvas-subtle transition-colors"
+            className="px-4 py-2 text-sm font-medium bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default 
+                     text-github-fg-default dark:text-github-fg-dark-default rounded-github hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle transition-colors"
           >
             {cancelLabel}
           </button>

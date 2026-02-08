@@ -93,9 +93,9 @@ export const SnoozeButton = memo(({ notificationId, onCustom }: SnoozeButtonProp
             setIsOpen(!isOpen)
           }}
           className={`
-            relative p-1.5 rounded-github text-github-fg-muted hover:text-github-fg-default
-            hover:bg-github-canvas-subtle transition-colors
-            focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis
+            relative p-1.5 rounded-github text-github-fg-muted dark:text-github-fg-dark-muted hover:text-github-fg-default dark:hover:text-github-fg-dark-default
+            hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle transition-colors
+            focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis
             ${proLoading ? 'opacity-50 cursor-wait pointer-events-none' : ''}
           `}
           aria-label={
@@ -137,7 +137,7 @@ export const SnoozeButton = memo(({ notificationId, onCustom }: SnoozeButtonProp
           <div
             className="
               absolute right-0 mt-2 w-56 rounded-github shadow-lg
-              bg-github-canvas-overlay border border-github-border-default
+              bg-github-canvas-overlay dark:bg-github-canvas-dark-overlay border border-github-border-default dark:border-github-border-dark-default
               z-50 overflow-hidden
             "
             role="menu"
@@ -153,14 +153,14 @@ export const SnoozeButton = memo(({ notificationId, onCustom }: SnoozeButtonProp
                   }}
                   className="
                     w-full px-4 py-2 text-left text-sm
-                    text-github-fg-default hover:bg-github-canvas-subtle
-                    focus:outline-none focus:bg-github-canvas-subtle
+                    text-github-fg-default dark:text-github-fg-dark-default hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle
+                    focus:outline-none focus:bg-github-canvas-subtle dark:focus:bg-github-canvas-dark-subtle
                     transition-colors
                   "
                   role="menuitem"
                 >
                   <div className="font-medium">{option.label}</div>
-                  <div className="text-xs text-github-fg-muted">{option.description}</div>
+                  <div className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted">{option.description}</div>
                 </button>
               ))}
             </div>

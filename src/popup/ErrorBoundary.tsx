@@ -30,19 +30,19 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   render() {
     if (this.state.hasError) {
       return (
-        <div className="w-[400px] h-[600px] bg-github-canvas-default p-6 flex items-center justify-center">
+        <div className="w-[400px] h-[600px] bg-github-canvas-default dark:bg-github-canvas-dark-default p-6 flex items-center justify-center">
           <div className="text-center max-w-sm">
             <div className="text-4xl mb-4">⚠️</div>
-            <h1 className="text-lg font-bold text-github-danger-fg mb-2">
+            <h1 className="text-lg font-bold text-github-danger-fg dark:text-github-danger-dark-fg mb-2">
               Something went wrong
             </h1>
-            <p className="text-sm text-github-fg-muted mb-4">
+            <p className="text-sm text-github-fg-muted dark:text-github-fg-dark-muted mb-4">
               {this.state.error?.message || 'An unexpected error occurred'}
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-github-accent-emphasis text-white rounded-github
-                       hover:bg-github-accent-fg transition-colors font-medium text-sm"
+              className="px-4 py-2 bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis text-white rounded-github
+                       hover:bg-github-accent-fg dark:hover:bg-github-accent-dark-fg transition-colors font-medium text-sm"
             >
               Reload Extension
             </button>

@@ -10,7 +10,7 @@ export const ArchivedTab = memo(() => {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4">
         <svg
-          className="w-16 h-16 text-github-fg-muted mb-4"
+          className="w-16 h-16 text-github-fg-muted dark:text-github-fg-dark-muted mb-4"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -22,10 +22,10 @@ export const ArchivedTab = memo(() => {
             d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
           />
         </svg>
-        <h3 className="text-sm font-medium text-github-fg-default mb-2">
+        <h3 className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default mb-2">
           No archived notifications
         </h3>
-        <p className="text-xs text-github-fg-muted text-center">
+        <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted text-center">
           Notifications you archive will appear here
         </p>
       </div>
@@ -43,7 +43,7 @@ export const ArchivedTab = memo(() => {
           />
           
           {/* Unarchive button overlay */}
-          <div className="absolute top-2 right-2 bg-github-canvas-subtle border border-github-border-default rounded-github px-3 py-1.5">
+          <div className="absolute top-2 right-2 bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle border border-github-border-default dark:border-github-border-dark-default rounded-github px-3 py-1.5">
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -51,7 +51,7 @@ export const ArchivedTab = memo(() => {
               }}
               className="
                 text-xs font-medium
-                text-github-accent-fg hover:text-github-accent-emphasis
+                text-github-accent-fg dark:text-github-accent-dark-fg hover:text-github-accent-emphasis dark:hover:text-github-accent-dark-emphasis
                 transition-colors
               "
               aria-label="Unarchive notification"

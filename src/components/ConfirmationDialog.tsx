@@ -74,8 +74,8 @@ export function ConfirmationDialog({
 
   const confirmButtonClass =
     confirmVariant === 'danger'
-      ? 'bg-github-danger-emphasis text-white hover:bg-github-danger-emphasis/90'
-      : 'bg-github-accent-emphasis text-white hover:bg-github-accent-emphasis/90'
+      ? 'bg-github-danger-emphasis dark:bg-github-danger-dark-emphasis text-white hover:bg-github-danger-emphasis/90 dark:hover:bg-github-danger-dark-emphasis/90'
+      : 'bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis text-white hover:bg-github-accent-emphasis/90 dark:hover:bg-github-accent-dark-emphasis/90'
 
   return (
     <div
@@ -94,23 +94,23 @@ export function ConfirmationDialog({
       {/* Dialog */}
       <div
         ref={dialogRef}
-        className="relative bg-github-canvas-default border border-github-border-default rounded-github shadow-xl max-w-md w-full mx-4 p-6"
+        className="relative bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default rounded-github shadow-xl max-w-md w-full mx-4 p-6"
       >
         <h2
           id="dialog-title"
-          className="text-lg font-semibold text-github-fg-default mb-3"
+          className="text-lg font-semibold text-github-fg-default dark:text-github-fg-dark-default mb-3"
         >
           {title}
         </h2>
 
-        <p className="text-sm text-github-fg-muted mb-6">{message}</p>
+        <p className="text-sm text-github-fg-muted dark:text-github-fg-dark-muted mb-6">{message}</p>
 
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
-            className="px-4 py-2 bg-github-canvas-default border border-github-border-default
-                     rounded-github hover:bg-github-canvas-subtle transition-colors
-                     font-medium text-sm text-github-fg-default"
+            className="px-4 py-2 bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default
+                     rounded-github hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle transition-colors
+                     font-medium text-sm text-github-fg-default dark:text-github-fg-dark-default"
           >
             {cancelLabel}
           </button>

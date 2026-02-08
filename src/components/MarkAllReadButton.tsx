@@ -67,8 +67,8 @@ export function MarkAllReadButton({ onMarkAll, disabled = false }: MarkAllReadBu
           flex items-center gap-2 whitespace-nowrap
           ${
             unreadCount === 0 || disabled || isLoading
-              ? 'bg-github-canvas-subtle text-github-fg-muted cursor-not-allowed'
-              : 'bg-github-success-subtle text-github-success-fg border border-github-success-emphasis hover:bg-github-success-emphasis hover:text-white'
+              ? 'bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle text-github-fg-muted dark:text-github-fg-dark-muted cursor-not-allowed'
+              : 'bg-github-success-subtle dark:bg-github-success-dark-subtle text-github-success-fg dark:text-github-success-dark-fg border border-github-success-emphasis dark:border-github-success-dark-emphasis hover:bg-github-success-emphasis dark:hover:bg-github-success-dark-emphasis hover:text-white'
           }
         `}
         title={

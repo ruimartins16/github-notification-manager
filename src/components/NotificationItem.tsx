@@ -37,7 +37,7 @@ function formatReason(reason: string): string {
 // Icon props constant
 const ICON_PROPS = {
   size: 16,
-  className: 'text-github-fg-muted flex-shrink-0',
+  className: 'text-github-fg-muted dark:text-github-fg-dark-muted flex-shrink-0',
   'aria-hidden': true,
 } as const
 
@@ -84,15 +84,15 @@ function getReasonBadgeClass(reason: string): string {
   switch (reason) {
     case 'mention':
     case 'team_mention':
-      return 'bg-github-attention-subtle text-github-attention-fg border-github-attention-emphasis'
+      return 'bg-github-attention-subtle dark:bg-github-attention-dark-subtle text-github-attention-fg dark:text-github-attention-dark-fg border-github-attention-emphasis dark:border-github-attention-dark-emphasis'
     case 'review_requested':
-      return 'bg-github-accent-subtle text-github-accent-fg border-github-accent-emphasis'
+      return 'bg-github-accent-subtle dark:bg-github-accent-dark-subtle text-github-accent-fg dark:text-github-accent-dark-fg border-github-accent-emphasis dark:border-github-accent-dark-emphasis'
     case 'assign':
-      return 'bg-github-success-subtle text-github-success-fg border-github-success-emphasis'
+      return 'bg-github-success-subtle dark:bg-github-success-dark-subtle text-github-success-fg dark:text-github-success-dark-fg border-github-success-emphasis dark:border-github-success-dark-emphasis'
     case 'security_alert':
-      return 'bg-github-danger-subtle text-github-danger-fg border-github-danger-emphasis'
+      return 'bg-github-danger-subtle dark:bg-github-danger-dark-subtle text-github-danger-fg dark:text-github-danger-dark-fg border-github-danger-emphasis dark:border-github-danger-dark-emphasis'
     default:
-      return 'bg-github-canvas-subtle text-github-fg-muted border-github-border-default'
+      return 'bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle text-github-fg-muted dark:text-github-fg-dark-muted border-github-border-default dark:border-github-border-dark-default'
   }
 }
 
@@ -168,9 +168,9 @@ export const NotificationItem = memo(({
   return (
     <>
       <div
-        className={`relative w-full text-left p-3 bg-github-canvas-default border rounded-github 
-                   hover:bg-github-canvas-subtle transition-colors group
-                   ${isSelected ? 'border-github-accent-emphasis border-l-4' : 'border-github-border-default'}`}
+        className={`relative w-full text-left p-3 bg-github-canvas-default dark:bg-github-canvas-dark-default border rounded-github 
+                   hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle transition-colors group
+                   ${isSelected ? 'border-github-accent-emphasis dark:border-github-accent-dark-emphasis border-l-4' : 'border-github-border-default dark:border-github-border-dark-default'}`}
       >
         {/* Top Row: Checkbox + Avatar + Content + Actions in top-right corner */}
         <div className="flex gap-3">
@@ -181,8 +181,8 @@ export const NotificationItem = memo(({
                 type="checkbox"
                 checked={isSelected}
                 onChange={handleCheckboxChange}
-                className="w-4 h-4 rounded border-github-border-default text-github-accent-emphasis 
-                         focus:ring-2 focus:ring-github-accent-emphasis cursor-pointer"
+                className="w-4 h-4 rounded border-github-border-default dark:border-github-border-dark-default text-github-accent-emphasis dark:text-github-accent-dark-emphasis 
+                         focus:ring-2 focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis cursor-pointer"
                 aria-label={`Select ${notification.subject.title}`}
                 onClick={(e) => e.stopPropagation()}
               />
@@ -200,21 +200,21 @@ export const NotificationItem = memo(({
             />
             {/* Unread indicator badge on avatar */}
             {notification.unread && (
-              <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-github-accent-emphasis rounded-full border-2 border-github-canvas-default" />
+              <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis rounded-full border-2 border-github-canvas-default dark:border-github-canvas-dark-default" />
             )}
           </div>
 
           {/* Main Content Area - Full Width */}
           <div className="flex-1 min-w-0 cursor-pointer" onClick={handleClick}>
             {/* Repository Name */}
-            <div className="text-xs text-github-fg-muted mb-1">
+            <div className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted mb-1">
               {notification.repository.full_name}
             </div>
 
             {/* Notification Title */}
             <div className="flex items-start gap-2 mb-2">
               {getNotificationIcon(notification.subject.type)}
-              <div className="text-sm font-medium text-github-fg-default line-clamp-2 flex-1 pr-20">
+              <div className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default line-clamp-2 flex-1 pr-20">
                 {notification.subject.title}
               </div>
             </div>
@@ -231,12 +231,12 @@ export const NotificationItem = memo(({
               </span>
 
               {/* Type Badge */}
-              <span className="text-xs px-2 py-0.5 rounded-full bg-github-canvas-subtle text-github-fg-muted border border-github-border-default">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle text-github-fg-muted dark:text-github-fg-dark-muted border border-github-border-default dark:border-github-border-dark-default">
                 {notification.subject.type}
               </span>
 
               {/* Time */}
-              <span className="text-xs text-github-fg-muted">
+              <span className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted">
                 {getRelativeTime(notification.updated_at)}
               </span>
             </div>

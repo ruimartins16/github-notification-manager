@@ -44,7 +44,7 @@ export const FilterBar = memo(() => {
 
   return (
     <div 
-      className="overflow-x-auto border-b border-github-border-default bg-github-canvas-default mb-2"
+      className="overflow-x-auto border-b border-github-border-default dark:border-github-border-dark-default bg-github-canvas-default dark:bg-github-canvas-dark-default mb-2"
       role="tablist"
       aria-label="Notification filters"
     >
@@ -63,11 +63,11 @@ export const FilterBar = memo(() => {
               aria-label={`${tab.label} (${count} notifications) - Press ${tab.shortcut}`}
               className={`
                 relative px-3 py-1.5 rounded-github text-xs font-medium transition-all flex-shrink-0
-                focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis
+                focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis
                 ${
                   isActive
-                    ? 'bg-github-accent-emphasis text-white shadow-sm'
-                    : 'text-github-fg-default hover:bg-github-canvas-subtle hover:text-github-fg-default'
+                    ? 'bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis text-white shadow-sm'
+                    : 'text-github-fg-default dark:text-github-fg-dark-default hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle hover:text-github-fg-default dark:hover:text-github-fg-dark-default'
                 }
               `}
             >
@@ -80,7 +80,7 @@ export const FilterBar = memo(() => {
                     ${
                       isActive
                         ? 'bg-white bg-opacity-20 text-white'
-                        : 'bg-github-accent-subtle text-github-accent-fg'
+                        : 'bg-github-accent-subtle dark:bg-github-accent-dark-subtle text-github-accent-fg dark:text-github-accent-dark-fg'
                     }
                   `}
                   aria-label={`${count} notifications`}

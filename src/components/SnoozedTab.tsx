@@ -11,7 +11,7 @@ export const SnoozedTab = memo(() => {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4">
         <svg
-          className="w-16 h-16 text-github-fg-muted mb-4"
+          className="w-16 h-16 text-github-fg-muted dark:text-github-fg-dark-muted mb-4"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -23,10 +23,10 @@ export const SnoozedTab = memo(() => {
             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
-        <h3 className="text-sm font-medium text-github-fg-default mb-2">
+        <h3 className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default mb-2">
           No snoozed notifications
         </h3>
-        <p className="text-xs text-github-fg-muted text-center">
+        <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted text-center">
           Notifications you snooze will appear here until they wake up
         </p>
       </div>
@@ -34,7 +34,7 @@ export const SnoozedTab = memo(() => {
   }
 
   return (
-    <div className="divide-y divide-github-border-default">
+    <div className="divide-y divide-github-border-default dark:divide-github-border-dark-default">
       {snoozedNotifications.map((snoozed) => (
         <div key={snoozed.notification.id} className="relative">
           <NotificationItem
@@ -43,13 +43,13 @@ export const SnoozedTab = memo(() => {
           />
           
           {/* Snooze info overlay */}
-          <div className="absolute top-2 right-2 bg-github-canvas-subtle border border-github-border-default rounded-github px-3 py-1.5 text-xs">
+          <div className="absolute top-2 right-2 bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle border border-github-border-default dark:border-github-border-dark-default rounded-github px-3 py-1.5 text-xs">
             <div className="flex items-center gap-2">
               <div>
-                <div className="text-github-fg-muted">
+                <div className="text-github-fg-muted dark:text-github-fg-dark-muted">
                   Wakes {formatDistanceToNow(snoozed.wakeTime, { addSuffix: true })}
                 </div>
-                <div className="text-[10px] text-github-fg-subtle">
+                <div className="text-[10px] text-github-fg-subtle dark:text-github-fg-dark-subtle">
                   {new Date(snoozed.wakeTime).toLocaleString()}
                 </div>
               </div>
@@ -60,7 +60,7 @@ export const SnoozedTab = memo(() => {
                 }}
                 className="
                   px-2 py-1 rounded text-[10px] font-medium
-                  text-github-accent-fg hover:bg-github-accent-subtle
+                  text-github-accent-fg dark:text-github-accent-dark-fg hover:bg-github-accent-subtle dark:hover:bg-github-accent-dark-subtle
                   transition-colors
                 "
                 aria-label="Unsnooze notification"

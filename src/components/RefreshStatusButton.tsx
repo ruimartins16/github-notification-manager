@@ -70,7 +70,7 @@ export function RefreshStatusButton({
       <button
         onClick={handleRefresh}
         disabled={isRefreshing}
-        className={`text-xs text-github-accent-fg hover:underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 ${className}`}
+        className={`text-xs text-github-accent-fg dark:text-github-accent-dark-fg hover:underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 ${className}`}
         title="Refresh subscription status from ExtensionPay"
       >
         <ArrowPathIcon 
@@ -78,7 +78,7 @@ export function RefreshStatusButton({
           aria-hidden="true"
         />
         {showSuccess ? (
-          <span className="text-github-success-fg">✓ Updated</span>
+          <span className="text-github-success-fg dark:text-github-success-dark-fg">✓ Updated</span>
         ) : (
           <span>{isRefreshing ? 'Refreshing...' : 'Refresh Status'}</span>
         )}
@@ -91,10 +91,10 @@ export function RefreshStatusButton({
     <button
       onClick={handleRefresh}
       disabled={isRefreshing}
-      className={`px-4 py-2 text-sm font-medium bg-github-canvas-default border border-github-border-default
-                 rounded-github hover:bg-github-canvas-subtle transition-colors
+      className={`px-4 py-2 text-sm font-medium bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default
+                 rounded-github hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle transition-colors
                  disabled:opacity-50 disabled:cursor-not-allowed
-                 focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis
+                 focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis
                  flex items-center gap-2 ${className}`}
       title="Refresh subscription status from ExtensionPay"
     >
@@ -103,9 +103,9 @@ export function RefreshStatusButton({
         aria-hidden="true"
       />
       {showSuccess ? (
-        <span className="text-github-success-fg">✓ Status Updated</span>
+        <span className="text-github-success-fg dark:text-github-success-dark-fg">✓ Status Updated</span>
       ) : (
-        <span className="text-github-fg-default">
+        <span className="text-github-fg-default dark:text-github-fg-dark-default">
           {isRefreshing ? 'Refreshing Status...' : 'Refresh Payment Status'}
         </span>
       )}

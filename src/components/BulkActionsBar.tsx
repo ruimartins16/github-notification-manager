@@ -70,12 +70,12 @@ export function BulkActionsBar({ onActionComplete }: BulkActionsBarProps) {
 
   return (
     <div 
-      className="sticky top-0 z-10 p-3 bg-github-accent-subtle border-b border-github-accent-emphasis"
+      className="sticky top-0 z-10 p-3 bg-github-accent-subtle dark:bg-github-accent-dark-subtle border-b border-github-accent-emphasis dark:border-github-accent-dark-emphasis"
       role="toolbar"
       aria-label="Bulk actions"
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium text-github-fg-default whitespace-nowrap">
+        <span className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default whitespace-nowrap">
           {selectedCount} selected
         </span>
         
@@ -85,8 +85,8 @@ export function BulkActionsBar({ onActionComplete }: BulkActionsBarProps) {
             onClick={handleBulkMarkAsRead}
             disabled={isProcessing}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-github
-                     bg-github-success-subtle text-github-success-fg border border-github-success-emphasis
-                     hover:bg-github-success-emphasis hover:text-white
+                     bg-github-success-subtle dark:bg-github-success-dark-subtle text-github-success-fg dark:text-github-success-dark-fg border border-github-success-emphasis dark:border-github-success-dark-emphasis
+                     hover:bg-github-success-emphasis dark:hover:bg-github-success-dark-emphasis hover:text-white
                      transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
             aria-label={`Mark ${selectedCount} notifications as read`}
             title="Mark as read"
@@ -100,8 +100,8 @@ export function BulkActionsBar({ onActionComplete }: BulkActionsBarProps) {
             onClick={handleBulkArchive}
             disabled={isProcessing}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-github
-                     bg-github-accent-subtle text-github-accent-fg border border-github-accent-emphasis
-                     hover:bg-github-accent-emphasis hover:text-white
+                     bg-github-accent-subtle dark:bg-github-accent-dark-subtle text-github-accent-fg dark:text-github-accent-dark-fg border border-github-accent-emphasis dark:border-github-accent-dark-emphasis
+                     hover:bg-github-accent-emphasis dark:hover:bg-github-accent-dark-emphasis hover:text-white
                      transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
             aria-label={`Archive ${selectedCount} notifications`}
             title="Archive"
@@ -115,8 +115,8 @@ export function BulkActionsBar({ onActionComplete }: BulkActionsBarProps) {
             onClick={handleClearSelection}
             disabled={isProcessing}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-github
-                     bg-github-canvas-default text-github-fg-muted border border-github-border-default
-                     hover:bg-github-canvas-subtle hover:text-github-fg-default
+                     bg-github-canvas-default dark:bg-github-canvas-dark-default text-github-fg-muted dark:text-github-fg-dark-muted border border-github-border-default dark:border-github-border-dark-default
+                     hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle hover:text-github-fg-default dark:hover:text-github-fg-dark-default
                      transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Clear selection"
             title="Clear selection"

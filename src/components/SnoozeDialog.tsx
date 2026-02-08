@@ -71,8 +71,8 @@ export const SnoozeDialog = memo(({ notificationId, isOpen, onClose }: SnoozeDia
     >
       <div
         className="
-          bg-github-canvas-default rounded-github shadow-lg
-          border border-github-border-default
+          bg-github-canvas-default dark:bg-github-canvas-dark-default rounded-github shadow-lg
+          border border-github-border-default dark:border-github-border-dark-default
           w-full max-w-md p-6
         "
         onClick={(e) => e.stopPropagation()}
@@ -82,7 +82,7 @@ export const SnoozeDialog = memo(({ notificationId, isOpen, onClose }: SnoozeDia
       >
         <h2
           id="snooze-dialog-title"
-          className="text-lg font-semibold text-github-fg-default mb-4"
+          className="text-lg font-semibold text-github-fg-default dark:text-github-fg-dark-default mb-4"
         >
           Snooze until...
         </h2>
@@ -91,7 +91,7 @@ export const SnoozeDialog = memo(({ notificationId, isOpen, onClose }: SnoozeDia
           <div>
             <label
               htmlFor="snooze-date"
-              className="block text-sm font-medium text-github-fg-default mb-2"
+              className="block text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default mb-2"
             >
               Date
             </label>
@@ -104,9 +104,9 @@ export const SnoozeDialog = memo(({ notificationId, isOpen, onClose }: SnoozeDia
               required
               className="
                 w-full px-3 py-2 rounded-github
-                bg-github-canvas-inset border border-github-border-default
-                text-github-fg-default
-                focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis
+                bg-github-canvas-inset dark:bg-github-canvas-dark-inset border border-github-border-default dark:border-github-border-dark-default
+                text-github-fg-default dark:text-github-fg-dark-default
+                focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis
               "
             />
           </div>
@@ -114,7 +114,7 @@ export const SnoozeDialog = memo(({ notificationId, isOpen, onClose }: SnoozeDia
           <div>
             <label
               htmlFor="snooze-time"
-              className="block text-sm font-medium text-github-fg-default mb-2"
+              className="block text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default mb-2"
             >
               Time
             </label>
@@ -127,9 +127,9 @@ export const SnoozeDialog = memo(({ notificationId, isOpen, onClose }: SnoozeDia
               required
               className="
                 w-full px-3 py-2 rounded-github
-                bg-github-canvas-inset border border-github-border-default
-                text-github-fg-default
-                focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis
+                bg-github-canvas-inset dark:bg-github-canvas-dark-inset border border-github-border-default dark:border-github-border-dark-default
+                text-github-fg-default dark:text-github-fg-dark-default
+                focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis
               "
             />
           </div>
@@ -140,9 +140,9 @@ export const SnoozeDialog = memo(({ notificationId, isOpen, onClose }: SnoozeDia
               onClick={handleCancel}
               className="
                 px-4 py-2 rounded-github text-sm font-medium
-                text-github-fg-default bg-github-canvas-subtle
-                hover:bg-github-canvas-inset
-                focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis
+                text-github-fg-default dark:text-github-fg-dark-default bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle
+                hover:bg-github-canvas-inset dark:hover:bg-github-canvas-dark-inset
+                focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis
                 transition-colors
               "
             >
@@ -153,9 +153,9 @@ export const SnoozeDialog = memo(({ notificationId, isOpen, onClose }: SnoozeDia
               disabled={!isValidDateTime()}
               className="
                 px-4 py-2 rounded-github text-sm font-medium
-                text-white bg-github-accent-emphasis
-                hover:bg-github-accent-emphasis/90
-                focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis
+                text-white bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis
+                hover:bg-github-accent-emphasis/90 dark:hover:bg-github-accent-dark-emphasis/90
+                focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis
                 disabled:opacity-50 disabled:cursor-not-allowed
                 transition-colors
               "

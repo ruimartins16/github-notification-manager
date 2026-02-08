@@ -29,10 +29,10 @@ export function Toast({
   }, [duration, onClose])
 
   const variantStyles = {
-    success: 'bg-github-success-subtle border-github-success-emphasis text-github-success-fg',
-    error: 'bg-github-danger-subtle border-github-danger-emphasis text-github-danger-fg',
-    warning: 'bg-github-attention-subtle border-github-attention-emphasis text-github-attention-fg',
-    info: 'bg-github-accent-subtle border-github-accent-emphasis text-github-accent-fg',
+    success: 'bg-github-success-subtle dark:bg-github-success-dark-subtle border-github-success-emphasis dark:border-github-success-dark-emphasis text-github-success-fg dark:text-github-success-dark-fg',
+    error: 'bg-github-danger-subtle dark:bg-github-danger-dark-subtle border-github-danger-emphasis dark:border-github-danger-dark-emphasis text-github-danger-fg dark:text-github-danger-dark-fg',
+    warning: 'bg-github-attention-subtle dark:bg-github-attention-dark-subtle border-github-attention-emphasis dark:border-github-attention-dark-emphasis text-github-attention-fg dark:text-github-attention-dark-fg',
+    info: 'bg-github-accent-subtle dark:bg-github-accent-dark-subtle border-github-accent-emphasis dark:border-github-accent-dark-emphasis text-github-accent-fg dark:text-github-accent-dark-fg',
   }
 
   const IconComponent = {
