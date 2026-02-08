@@ -90,6 +90,18 @@ export function useProStatus(): UseProStatusResult {
       // Update cache age
       const age = await getCacheAge()
       setCacheAge(age)
+      
+      // Cache Pro status to localStorage for fast synchronous access (prevents flash)
+      try {
+        localStorage.setItem('gnm-pro-cache', JSON.stringify({
+          isPro: proUser.isPro,
+          plan: proUser.plan?.nickname || null,
+          timestamp: Date.now()
+        }))
+        console.log('[useProStatus] Cached Pro status to localStorage:', proUser.isPro)
+      } catch (e) {
+        console.error('[useProStatus] Failed to cache Pro status to localStorage:', e)
+      }
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to check license')
       setError(error)
@@ -151,6 +163,18 @@ export function useProStatus(): UseProStatusResult {
       setIsLoading(false)
       setError(null)
       setCacheAge(0) // Fresh data
+      
+      // Cache Pro status to localStorage immediately
+      try {
+        localStorage.setItem('gnm-pro-cache', JSON.stringify({
+          isPro: paidUser.isPro,
+          plan: paidUser.plan?.nickname || null,
+          timestamp: Date.now()
+        }))
+        console.log('[useProStatus] Cached Pro status to localStorage after payment:', paidUser.isPro)
+      } catch (e) {
+        console.error('[useProStatus] Failed to cache Pro status to localStorage:', e)
+      }
     })
     
     // Listen for Pro status changes from background worker or other contexts

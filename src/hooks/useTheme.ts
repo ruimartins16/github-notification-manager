@@ -125,7 +125,20 @@ export function useTheme(): UseThemeResult {
       document.documentElement.classList.remove('dark')
       document.body.classList.remove('dark')
     }
-  }, [isDark])
+    
+    // Cache theme preference to localStorage for fast synchronous access on next load
+    // This prevents flash of white content when navigating between pages
+    try {
+      localStorage.setItem('gnm-theme-cache', JSON.stringify({
+        theme,
+        isPro,
+        resolvedTheme
+      }))
+      console.log('[useTheme] Cached theme to localStorage:', { theme, isPro, resolvedTheme })
+    } catch (e) {
+      console.error('[useTheme] Failed to cache theme to localStorage:', e)
+    }
+  }, [isDark, theme, isPro, resolvedTheme])
 
   // Wrap setTheme to enforce Pro gating
   const setTheme = useCallback((newTheme: ThemePreference) => {
