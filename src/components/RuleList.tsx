@@ -51,7 +51,7 @@ export function RuleList({ rules, onToggle, onDelete, isPro, proLoading }: RuleL
                     }
                   `}
                 >
-                  {rule.type}
+                  {rule.type.charAt(0).toUpperCase() + rule.type.slice(1)}
                 </span>
                 {!rule.enabled && (
                   <span className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted">Disabled</span>
