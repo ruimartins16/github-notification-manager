@@ -27,7 +27,7 @@ interface Toast {
 
 export function SettingsPage() {
   const { logout } = useAuth()
-  const [activeSection, setActiveSection] = useState<SettingsSection>('account')
+  const [activeSection, setActiveSection] = useState<SettingsSection>('notifications')
   const [userInfo, setUserInfo] = useState<{ login: string; avatar_url: string } | null>(null)
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [userError, setUserError] = useState<string | null>(null)
@@ -255,11 +255,11 @@ export function SettingsPage() {
           {/* Section Tabs */}
           <div className="flex gap-1 mb-4 border-b border-github-border-default dark:border-github-border-dark-default overflow-x-auto">
             {[
-              { id: 'account' as const, label: 'Account' },
               { id: 'notifications' as const, label: 'Notifications' },
               { id: 'behavior' as const, label: 'Behavior' },
               { id: 'rules' as const, label: 'Auto-Archive' },
               { id: 'advanced' as const, label: 'Advanced' },
+              { id: 'account' as const, label: 'Account' },
             ].map((tab) => (
               <button
                 key={tab.id}

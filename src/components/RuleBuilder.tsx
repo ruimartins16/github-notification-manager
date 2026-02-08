@@ -104,7 +104,7 @@ export function RuleBuilder({ onRuleCreated, onCancel }: RuleBuilderProps) {
         {/* Repository Rule Input */}
         {ruleType === 'repository' && (
           <div>
-            <label className="block text-xs font-medium text-github-fg-default dark:text-github-fg-dark-default mb-1">
+            <label className="block text-xs font-medium text-github-fg-default dark:text-github-fg-dark-default mb-2">
               Repository (owner/repo)
             </label>
             <input
@@ -133,7 +133,7 @@ export function RuleBuilder({ onRuleCreated, onCancel }: RuleBuilderProps) {
         {/* Age Rule Input */}
         {ruleType === 'age' && (
           <div>
-            <label className="block text-xs font-medium text-github-fg-default dark:text-github-fg-dark-default mb-1">
+            <label className="block text-xs font-medium text-github-fg-default dark:text-github-fg-dark-default mb-2">
               Days Old
             </label>
             <input
