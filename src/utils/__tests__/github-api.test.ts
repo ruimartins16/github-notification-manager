@@ -77,7 +77,7 @@ describe('GitHubAPI', () => {
       expect(result).toEqual(mockNotifications)
       expect(mockListNotifications).toHaveBeenCalledWith({
         all: false,
-        participating: false,
+        participating: true,
         per_page: 50,
       })
     })

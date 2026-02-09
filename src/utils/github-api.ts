@@ -67,7 +67,7 @@ export class GitHubAPI {
    * 
    * @param options - Fetch options
    * @param options.all - If true, show notifications marked as read (default: false)
-   * @param options.participating - If true, only show notifications user is participating in (default: false)
+   * @param options.participating - If true, only show notifications user is participating in (default: true)
    * @param options.perPage - Number of results per page (default: 50, max: 100)
    * @returns Promise<Array> - Array of notification objects
    * @throws Error if not initialized or request fails
@@ -83,7 +83,7 @@ export class GitHubAPI {
 
     const { data } = await this.octokit.rest.activity.listNotificationsForAuthenticatedUser({
       all: options?.all ?? false, // Only unread by default
-      participating: options?.participating ?? false, // All notifications, not just mentions
+      participating: options?.participating ?? true, // Only show participating notifications by default
       per_page: options?.perPage ?? 50,
     })
 

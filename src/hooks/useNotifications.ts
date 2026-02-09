@@ -35,7 +35,7 @@ export interface UseNotificationsOptions {
   all?: boolean
   /**
    * If true, only show notifications user is participating in
-   * @default false
+   * @default true
    */
   participating?: boolean
   /**

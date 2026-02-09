@@ -71,11 +71,11 @@ export class NotificationService {
     const api = GitHubAPI.getInstance()
     await api.initialize(token)
 
-    // Fetch only unread notifications (all=false is default)
+    // Fetch only unread notifications where user is participating (mentions, assignments, review requests)
     // Store's setNotifications will filter out dismissed notification IDs
     const notifications = await api.fetchNotifications({
       all: false,
-      participating: false,
+      participating: true,
     })
 
     // Filter out zombie notifications (GitHub API bug for review_requested)

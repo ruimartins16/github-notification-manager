@@ -57,7 +57,7 @@ describe('NotificationService', () => {
       expect(mockApi.initialize).toHaveBeenCalledWith(mockToken)
       expect(mockApi.fetchNotifications).toHaveBeenCalledWith({
         all: false,
-        participating: false,
+        participating: true,
       })
       expect(result).toEqual(mockNotifications)
     })
