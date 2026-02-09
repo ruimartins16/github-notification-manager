@@ -83,7 +83,7 @@ export class GitHubAPI {
 
     const { data } = await this.octokit.rest.activity.listNotificationsForAuthenticatedUser({
       all: options?.all ?? false, // Only unread by default
-      participating: options?.participating ?? true, // Only show participating notifications by default
+      participating: options?.participating ?? true, // Only show participating notifications by default (actionable items)
       per_page: options?.perPage ?? 50,
     })
 

@@ -83,13 +83,23 @@ export class NotificationService {
     await api.initialize(token)
 
     // Fetch only unread notifications where user is participating (mentions, assignments, review requests)
+    // This reduces noise from watched repo notifications and focuses on actionable items
     // Store's setNotifications will filter out dismissed notification IDs
     const notifications = await api.fetchNotifications({
       all: false,
-      participating: true,
+      participating: true, // Only show notifications where user is directly involved
+      perPage: 100, // Fetch max per page to avoid pagination issues
     })
 
     console.log('[NotificationService] Fetched', notifications.length, 'notifications from GitHub API')
+    
+    // Log first few notification details for debugging
+    if (notifications.length > 0) {
+      console.log('[NotificationService] Sample notifications (first 3):')
+      notifications.slice(0, 3).forEach((n: any, i: number) => {
+        console.log(`  ${i + 1}. ${n.subject.title} | reason: ${n.reason} | unread: ${n.unread} | repo: ${n.repository.full_name}`)
+      })
+    }
 
     // Filter out zombie notifications (GitHub API bug for review_requested)
     const filtered = this.filterZombieNotifications(notifications as unknown as GitHubNotification[])
@@ -97,6 +107,17 @@ export class NotificationService {
     const zombieCount = notifications.length - filtered.length
     if (zombieCount > 0) {
       console.log('[NotificationService] Filtered out', zombieCount, 'zombie notifications')
+      // Log which notifications were filtered as zombies
+      const zombies = (notifications as unknown as GitHubNotification[]).filter(n => {
+        if (n.unread) return false
+        if (!n.last_read_at) return false
+        const lastRead = new Date(n.last_read_at)
+        const updated = new Date(n.updated_at)
+        return updated <= lastRead
+      })
+      zombies.slice(0, 3).forEach((n, i) => {
+        console.log(`  Zombie ${i + 1}: ${n.subject.title} | reason: ${n.reason}`)
+      })
     }
     console.log('[NotificationService] Returning', filtered.length, 'valid notifications')
 
