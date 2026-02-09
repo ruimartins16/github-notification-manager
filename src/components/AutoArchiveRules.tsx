@@ -33,11 +33,8 @@ export function AutoArchiveRules() {
   }
 
   const handleToggle = async (ruleId: string) => {
-    // Gate behind Pro check
-    if (!isPro) {
-      setShowUpgradeModal(true)
-      return
-    }
+    // Free users can toggle their 1 rule, Pro users can toggle any rule
+    // No Pro check needed - if they have the rule, they can toggle it
     
     // Prevent race conditions during rule application
     if (isApplying) {
@@ -55,11 +52,8 @@ export function AutoArchiveRules() {
   }
 
   const handleDelete = (ruleId: string) => {
-    // Gate behind Pro check
-    if (!isPro) {
-      setShowUpgradeModal(true)
-      return
-    }
+    // Free users can delete their 1 rule to create a new one
+    // No Pro check needed - if they have the rule, they can delete it
     
     // Prevent race conditions during rule application
     if (isApplying) {
@@ -70,8 +64,10 @@ export function AutoArchiveRules() {
   }
   
   const handleNewRuleClick = () => {
-    // Gate behind Pro check
-    if (!isPro) {
+    // Free tier: allow 1 rule, Pro: unlimited
+    const FREE_TIER_MAX_RULES = 1
+    
+    if (!isPro && rules.length >= FREE_TIER_MAX_RULES) {
       setShowUpgradeModal(true)
       return
     }
@@ -107,22 +103,34 @@ export function AutoArchiveRules() {
               className={`
                 px-4 py-2 text-sm font-medium rounded-github focus:outline-none focus:ring-2 focus:ring-github-accent-emphasis dark:focus:ring-github-accent-dark-emphasis
                 whitespace-nowrap transition-colors
-                ${isPro 
+                ${(isPro || rules.length === 0)
                   ? 'text-white bg-github-accent-emphasis dark:bg-github-accent-dark-emphasis hover:bg-github-accent-fg dark:hover:bg-github-accent-dark-fg' 
                   : 'text-github-accent-fg dark:text-github-accent-dark-fg border-2 border-github-accent-emphasis dark:border-github-accent-dark-emphasis hover:bg-github-accent-subtle dark:hover:bg-github-accent-dark-subtle'
                 }
                 ${isApplying || proLoading ? 'opacity-50 cursor-not-allowed' : ''}
               `}
-              aria-label={isPro ? 'Create new rule' : 'Create new rule (Pro feature)'}
-              title={isPro ? 'Create new rule' : 'Upgrade to Pro to create custom rules'}
+              aria-label={
+                isPro 
+                  ? 'Create new rule' 
+                  : rules.length >= 1 
+                    ? 'Create new rule (Pro feature)' 
+                    : 'Create your first rule (free)'
+              }
+              title={
+                isPro 
+                  ? 'Create new rule' 
+                  : rules.length >= 1
+                    ? 'Upgrade to Pro for unlimited rules'
+                    : 'Create your first auto-archive rule'
+              }
             >
               + New Rule
             </button>
           )}
         </div>
 
-        {/* Rule Builder (shown when creating new rule) - Only for Pro users */}
-        {showBuilder && isPro && (
+        {/* Rule Builder (shown when creating new rule) - Free tier: 1 rule, Pro: unlimited */}
+        {showBuilder && (
           <RuleBuilder
             onRuleCreated={handleRuleCreated}
             onCancel={() => setShowBuilder(false)}
@@ -164,9 +172,9 @@ export function AutoArchiveRules() {
                   <li>Archived notifications can be viewed in the Archived tab</li>
                   <li>Disabled rules won't archive new notifications</li>
                   <li>Statistics show how many notifications each rule has archived</li>
-                  {!isPro && (
+                  {!isPro && rules.length > 0 && (
                     <li className="text-github-accent-fg dark:text-github-accent-dark-fg font-medium">
-                      💎 Upgrade to Pro to create and manage custom rules
+                      💎 Upgrade to Pro for unlimited custom rules
                     </li>
                   )}
                 </ul>
