@@ -5,7 +5,8 @@
  * This ensures free-tier limits are respected and no orphaned Pro data remains.
  */
 
-import { NOTIFICATIONS_STORAGE_KEY } from './notification-service'
+// The actual storage key used by Zustand persist middleware
+const ZUSTAND_STORAGE_KEY = 'zustand-notifications'
 
 /**
  * Maximum number of auto-archive rules for free tier
@@ -38,14 +39,14 @@ const FREE_TIER_MAX_RULES = 1
  */
 export async function cleanupProTierData(): Promise<void> {
   console.log('[ProCleanup] 🧹 Starting Pro-tier data cleanup for free tier')
-  console.log('[ProCleanup] Storage key:', NOTIFICATIONS_STORAGE_KEY)
+  console.log('[ProCleanup] Storage key:', ZUSTAND_STORAGE_KEY)
   
   try {
     // Get current notification store state
-    const result = await chrome.storage.local.get(NOTIFICATIONS_STORAGE_KEY)
+    const result = await chrome.storage.local.get(ZUSTAND_STORAGE_KEY)
     console.log('[ProCleanup] Storage result:', result)
     
-    const storeData = result[NOTIFICATIONS_STORAGE_KEY]
+    const storeData = result[ZUSTAND_STORAGE_KEY]
     
     if (!storeData) {
       console.log('[ProCleanup] No notification store data found, nothing to clean')
@@ -131,12 +132,12 @@ export async function cleanupProTierData(): Promise<void> {
       
       console.log('[ProCleanup] Saving updated data to storage...')
       console.log('[ProCleanup] Saving as type:', typeof updatedData)
-      await chrome.storage.local.set({ [NOTIFICATIONS_STORAGE_KEY]: updatedData })
+      await chrome.storage.local.set({ [ZUSTAND_STORAGE_KEY]: updatedData })
       console.log('[ProCleanup] ✅ Pro-tier data cleanup completed successfully')
       
       // Broadcast message to reload notification store
       try {
-        await chrome.runtime.sendMessage({ type: 'STORAGE_UPDATED', key: NOTIFICATIONS_STORAGE_KEY })
+        await chrome.runtime.sendMessage({ type: 'STORAGE_UPDATED', key: ZUSTAND_STORAGE_KEY })
         console.log('[ProCleanup] Broadcasted storage update message')
       } catch (e) {
         console.log('[ProCleanup] Could not broadcast message (no receivers):', e)
@@ -157,15 +158,13 @@ export async function cleanupProTierData(): Promise<void> {
  */
 export async function needsProCleanup(): Promise<boolean> {
   try {
-    const result = await chrome.storage.local.get(NOTIFICATIONS_STORAGE_KEY)
-    const storeData = result[NOTIFICATIONS_STORAGE_KEY]
+    const result = await chrome.storage.local.get(ZUSTAND_STORAGE_KEY)
+    const storeData = result[ZUSTAND_STORAGE_KEY]
     
     if (!storeData) return false
     
     const parsed = typeof storeData === 'string' ? JSON.parse(storeData) : storeData
-    if (!parsed.state) return false
-    
-    const state = parsed.state
+    const state = parsed.state || parsed
     
     // Check if rules exceed free tier limit
     const hasExcessRules = state.autoArchiveRules && 
