@@ -164,16 +164,15 @@ GitHush is a powerful Chrome extension that transforms how you manage GitHub not
 💎 PRO FEATURES
 
 Free tier includes:
-• 3 snoozes per day
-• 3 repositories for auto-archive
-• 1 auto-archive rule
+• Core notification management (filters, mark as read/done)
+• 1 auto-archive rule (fully manageable)
 • Basic keyboard shortcuts (? for help)
+• Light theme
 
 Pro tier (€3/month or €15 lifetime):
 • Unlimited snoozes
-• Unlimited repositories
 • Unlimited auto-archive rules
-• Full keyboard shortcuts
+• Full keyboard shortcuts (J/K navigation, quick actions)
 • Beautiful dark mode
 • Support independent development
 
