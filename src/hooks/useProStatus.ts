@@ -85,11 +85,28 @@ export function useProStatus(): UseProStatusResult {
     setError(null)
     
     try {
+      // Get previous Pro status from localStorage before fetching new status
+      let previousProStatus = previousProStatusRef.current
+      if (previousProStatus === null) {
+        // Try to restore from localStorage on first mount
+        try {
+          const cached = localStorage.getItem('gnm-pro-cache')
+          if (cached) {
+            const parsed = JSON.parse(cached)
+            previousProStatus = parsed.isPro
+            previousProStatusRef.current = previousProStatus
+            console.log('[useProStatus] Restored previous Pro status from cache:', previousProStatus)
+          }
+        } catch (e) {
+          console.log('[useProStatus] Could not restore previous Pro status from cache')
+        }
+      }
+      
       const proUser = await validateLicense(forceRefresh)
       console.log(`[useProStatus] ✅ User fetched - isPro: ${proUser.isPro}, plan: ${proUser.plan?.nickname || 'none'}`)
+      console.log(`[useProStatus] Previous Pro status: ${previousProStatus}, Current Pro status: ${proUser.isPro}`)
       
       // Check if Pro status changed from true to false (downgrade)
-      const previousProStatus = previousProStatusRef.current
       if (previousProStatus === true && proUser.isPro === false) {
         console.log('[useProStatus] 🔽 Downgrade detected (Pro → Free), triggering cleanup')
         try {
