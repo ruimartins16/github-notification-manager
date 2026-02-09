@@ -132,7 +132,10 @@ export const useNotificationStore = create<NotificationState>()(
         // Filter out notifications that user explicitly dismissed (marked as read)
         // GitHub's API inconsistently returns marked-as-read notifications with unread:true
         const dismissedSet = new Set(state.dismissedNotificationIds)
-        const filteredNotifications = notifications.filter(n => !dismissedSet.has(n.id))
+        // Also filter out archived notifications so they don't reappear in the active list
+        // when the background worker fetches fresh data from GitHub API
+        const archivedSet = new Set(state.archivedNotifications.map(n => n.id))
+        const filteredNotifications = notifications.filter(n => !dismissedSet.has(n.id) && !archivedSet.has(n.id))
         
         // Cleanup: Remove dismissed IDs that are no longer in the API response
         // This prevents unbounded growth of the dismissed list
@@ -556,25 +559,33 @@ export const useNotificationStore = create<NotificationState>()(
   )
 )
 
-// Setup message listeners after a short delay to ensure store is ready
+// Storage key must match the persist config `name` above
+const ZUSTAND_STORAGE_KEY = 'zustand-notifications'
+
+// Setup message listeners and storage sync after a short delay to ensure store is ready
 if (typeof chrome !== 'undefined' && chrome.runtime) {
   // Use setTimeout to defer listener setup until after module initialization
   setTimeout(() => {
-    chrome.runtime.onMessage.addListener((message) => {
-      if (message.type === 'SNOOZE_WAKEUP') {
-        console.log('[Zustand] Received wake-up message for:', message.notificationId)
-        useNotificationStore.getState().wakeNotification(message.notificationId)
+    // Defensive checks INSIDE setTimeout: in test environments, chrome mocks
+    // may be cleaned up before this callback fires. Every chrome API access
+    // must be re-checked here.
+    if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
+      chrome.runtime.onMessage.addListener((message) => {
+        if (message.type === 'SNOOZE_WAKEUP') {
+          console.log('[Zustand] Received wake-up message for:', message.notificationId)
+          useNotificationStore.getState().wakeNotification(message.notificationId)
+          return false
+        } else if (message.type === 'APPLY_AUTO_ARCHIVE_RULES') {
+          console.log('[Zustand] Received request to apply auto-archive rules')
+          useNotificationStore.getState().applyAutoArchiveRules()
+          return true // Indicates message was handled successfully
+        }
         return false
-      } else if (message.type === 'APPLY_AUTO_ARCHIVE_RULES') {
-        console.log('[Zustand] Received request to apply auto-archive rules')
-        useNotificationStore.getState().applyAutoArchiveRules()
-        return true // Indicates message was handled successfully
-      }
-      return false
-    })
+      })
+    }
     
     // Process any pending wake-ups after listener is set up
-    if (chrome.storage) {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
       chrome.storage.local.get('pending-wakeups').then((result) => {
         const pending: string[] = result['pending-wakeups'] || []
         if (pending.length > 0) {
@@ -587,6 +598,58 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
           chrome.storage.local.set({ 'pending-wakeups': [] })
         }
       })
+    }
+
+    // Listen for external storage changes (from background worker)
+    // Zustand's persist middleware does NOT detect external writes to chrome.storage.
+    // This listener bridges that gap: when the background worker writes fresh
+    // notifications to 'zustand-notifications', we sync them into the live store.
+    //
+    // Infinite loop prevention: We compare the incoming lastFetched timestamp
+    // against the store's current lastFetched. We only update if the incoming
+    // timestamp is newer, which means it came from the background worker.
+    // When the store itself writes (via persist middleware), the timestamps
+    // will match, so the listener is a no-op.
+    if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
+      chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName !== 'local' || !changes[ZUSTAND_STORAGE_KEY]) {
+          return
+        }
+
+        const newValue = changes[ZUSTAND_STORAGE_KEY].newValue
+        if (!newValue || typeof newValue !== 'string') {
+          return
+        }
+
+        try {
+          const parsed = JSON.parse(newValue)
+          const incomingNotifications = parsed.state?.notifications
+          const incomingLastFetched = parsed.state?.lastFetched
+
+          // Guard: Only sync if the incoming data has a newer timestamp
+          // This prevents infinite loops when persist middleware writes back
+          const currentLastFetched = useNotificationStore.getState().lastFetched
+          if (!incomingLastFetched || (currentLastFetched && incomingLastFetched <= currentLastFetched)) {
+            return
+          }
+
+          if (Array.isArray(incomingNotifications)) {
+            console.log(
+              '[Zustand] External storage update detected (background worker).',
+              'Syncing', incomingNotifications.length, 'notifications.',
+              'lastFetched:', new Date(incomingLastFetched).toLocaleTimeString()
+            )
+
+            // Use setNotifications which applies dismissedNotificationIds filtering
+            useNotificationStore.getState().setNotifications(incomingNotifications)
+            // Update lastFetched to match background worker's timestamp
+            useNotificationStore.setState({ lastFetched: incomingLastFetched })
+          }
+        } catch (error) {
+          console.error('[Zustand] Failed to parse external storage update:', error)
+        }
+      })
+      console.log('[Zustand] Storage sync listener registered for background updates')
     }
   }, 0)
 }

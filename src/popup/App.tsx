@@ -20,6 +20,7 @@ import { AuthService } from '../utils/auth-service'
 import { convertApiUrlToWebUrl } from '../utils/url-converter'
 import { extPayService } from '../utils/extpay-service'
 import { trackEvent, ANALYTICS_EVENTS } from '../utils/analytics'
+import { useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { GearIcon, ArrowLeftIcon, CheckCircleIcon, CheckboxIcon, QuestionIcon } from '@primer/octicons-react'
 
@@ -62,6 +63,9 @@ function App() {
   // Pro status
   const { isPro, isLoading: proLoading } = useProStatus()
   
+  // React Query client for cache invalidation
+  const queryClient = useQueryClient()
+  
   const [copied, setCopied] = useState(false)
   const [isPolling, setIsPolling] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('active')
@@ -86,6 +90,23 @@ function App() {
   // Combined loading state
   const isLoading = authLoading
   const error = authError
+
+  // Force fresh data when popup opens
+  // Zustand persist only hydrates once (on module load), so if the popup JS was cached
+  // from a previous open, the store may have stale in-memory data. This forces:
+  // 1. Zustand to re-read from chrome.storage (picks up background worker writes)
+  // 2. React Query to refetch from GitHub API (ensures freshest possible data)
+  useEffect(() => {
+    console.log('[App] Popup opened - forcing rehydration and cache invalidation')
+    
+    // Force Zustand to re-read from chrome.storage.local
+    // This picks up any notifications the background worker wrote since last open
+    useNotificationStore.persist.rehydrate()
+    
+    // Invalidate React Query cache so it refetches from GitHub API
+    // This ensures we don't serve stale cached data from a previous popup session
+    queryClient.invalidateQueries({ queryKey: ['notifications'] })
+  }, [queryClient])
 
   // Keyboard shortcuts handlers
   const handleOpenFocused = useCallback(() => {

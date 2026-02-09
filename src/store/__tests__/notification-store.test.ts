@@ -60,6 +60,10 @@ describe('useNotificationStore', () => {
       lastFetched: null,
       activeFilter: 'all',
       snoozedNotifications: [],
+      dismissedNotificationIds: [],
+      archivedNotifications: [],
+      selectedNotificationIds: new Set<string>(),
+      autoArchiveRules: [],
     })
 
     // Reset mocks

@@ -270,10 +270,22 @@ async function fetchNotificationsInBackground() {
     const existingData = result[ZUSTAND_STORAGE_KEY]
     const parsed = existingData ? JSON.parse(existingData) : { state: {}, version: 0 }
     
+    // Filter out notifications that user explicitly dismissed (marked as read)
+    // The popup tracks dismissed IDs to handle GitHub's API inconsistency
+    // where marked-as-read notifications sometimes still return with unread:true
+    const dismissedIds = new Set<string>(parsed.state?.dismissedNotificationIds || [])
+    const filteredNotifications = dismissedIds.size > 0
+      ? notifications.filter((n: GitHubNotification) => !dismissedIds.has(n.id))
+      : notifications
+    
+    if (dismissedIds.size > 0 && filteredNotifications.length < notifications.length) {
+      console.log('Background fetch: filtered out', notifications.length - filteredNotifications.length, 'dismissed notifications')
+    }
+    
     // Update notifications in Zustand's persisted state
     parsed.state = {
       ...parsed.state,
-      notifications: notifications,
+      notifications: filteredNotifications,
       lastFetched: Date.now(),
     }
     
@@ -281,7 +293,7 @@ async function fetchNotificationsInBackground() {
       [ZUSTAND_STORAGE_KEY]: JSON.stringify(parsed)
     })
     
-    console.log('Background fetch: updated Zustand storage with', notifications.length, 'notifications')
+    console.log('Background fetch: updated Zustand storage with', filteredNotifications.length, 'notifications')
     
     // Try to notify UI to apply rules (if open)
     const sent = await chrome.runtime.sendMessage({
@@ -290,7 +302,7 @@ async function fetchNotificationsInBackground() {
     
     if (!sent) {
       // UI not open, apply rules in background
-      await applyAutoArchiveRulesInBackground(notifications)
+      await applyAutoArchiveRulesInBackground(filteredNotifications)
     }
     
     // Badge will be updated automatically by storage listener

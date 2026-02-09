@@ -10,7 +10,7 @@ import '../index.css'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30 * 1000, // 30 seconds - data fresh for 30s
+      staleTime: 5 * 60 * 1000, // 5 minutes - background worker handles periodic fetching
       gcTime: 5 * 60 * 1000, // 5 minutes - cache persists 5min after last use
       refetchOnWindowFocus: true, // Refresh when user focuses popup
       refetchOnReconnect: true, // Refresh after network reconnect
