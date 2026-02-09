@@ -95,7 +95,9 @@ describe('BadgeService', () => {
       expect(mockChrome.action.setBadgeText).toHaveBeenCalledWith({ text: '' })
     })
 
-    it('should clear badge when all notifications are read', () => {
+    it('should show count even when notifications are marked as read', () => {
+      // Badge now counts ALL notifications in the store (not just unread)
+      // The store filters out dismissed/archived, so if they're here, they count
       const notifications: GitHubNotification[] = [
         createMockNotification({ unread: false }),
         createMockNotification({ unread: false }),
@@ -103,10 +105,11 @@ describe('BadgeService', () => {
 
       BadgeService.updateBadge(notifications)
 
-      expect(mockChrome.action.setBadgeText).toHaveBeenCalledWith({ text: '' })
+      expect(mockChrome.action.setBadgeText).toHaveBeenCalledWith({ text: '2' })
     })
 
-    it('should show count for unread notifications with blue badge', () => {
+    it('should show count for all notifications with blue badge', () => {
+      // Now counts ALL notifications (dismissed/archived already filtered by store)
       const notifications: GitHubNotification[] = [
         createMockNotification({ unread: true, reason: 'comment' }),
         createMockNotification({ unread: true, reason: 'subscribed' }),
@@ -115,7 +118,7 @@ describe('BadgeService', () => {
 
       BadgeService.updateBadge(notifications)
 
-      expect(mockChrome.action.setBadgeText).toHaveBeenCalledWith({ text: '2' })
+      expect(mockChrome.action.setBadgeText).toHaveBeenCalledWith({ text: '3' })
       expect(mockChrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({
         color: '#0969DA', // Blue
       })
@@ -135,7 +138,7 @@ describe('BadgeService', () => {
       })
     })
 
-    it('should show "99+" for 100+ unread notifications', () => {
+    it('should show "99+" for 100+ notifications', () => {
       const notifications: GitHubNotification[] = Array.from({ length: 150 }, () =>
         createMockNotification({ unread: true, reason: 'comment' })
       )
@@ -145,7 +148,9 @@ describe('BadgeService', () => {
       expect(mockChrome.action.setBadgeText).toHaveBeenCalledWith({ text: '99+' })
     })
 
-    it('should only count unread notifications, not all', () => {
+    it('should count all notifications in the store', () => {
+      // All notifications in the store are actionable (dismissed/archived already filtered)
+      // Mix of read and unread - all should be counted
       const notifications: GitHubNotification[] = [
         createMockNotification({ unread: true, reason: 'comment' }),
         createMockNotification({ unread: false, reason: 'comment' }),
@@ -156,8 +161,8 @@ describe('BadgeService', () => {
 
       BadgeService.updateBadge(notifications)
 
-      // Should only count the 3 unread
-      expect(mockChrome.action.setBadgeText).toHaveBeenCalledWith({ text: '3' })
+      // Should count ALL 5 notifications (not just 3 unread)
+      expect(mockChrome.action.setBadgeText).toHaveBeenCalledWith({ text: '5' })
     })
   })
 })

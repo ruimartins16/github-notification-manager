@@ -36,20 +36,26 @@ export class BadgeService {
   /**
    * Update extension badge based on notifications
    * 
-   * @param notifications - Array of GitHub notifications
+   * Count all notifications in the array, not just unread ones.
+   * The store already filters out dismissed/archived notifications,
+   * so everything in this array is actionable and should be counted.
+   * 
+   * This ensures badge count always matches the popup's "All" tab count.
+   * 
+   * @param notifications - Array of GitHub notifications (all actionable)
    */
   static updateBadge(notifications: GitHubNotification[]): void {
-    // Only count unread notifications
-    const unreadNotifications = notifications.filter(n => n.unread)
-    const count = unreadNotifications.length
+    // Count ALL notifications - the store already filtered out dismissed/archived
+    // If a notification is in this array, user hasn't dismissed it yet = should count
+    const count = notifications.length
 
     if (count === 0) {
       this.clearBadge()
       return
     }
 
-    // Check for priority mentions
-    const hasPriority = this.detectPriorityMentions(unreadNotifications)
+    // Check for priority mentions (affects badge color)
+    const hasPriority = this.detectPriorityMentions(notifications)
 
     // Format count for display
     const text = this.formatBadgeCount(count)
@@ -77,7 +83,7 @@ export class BadgeService {
    * - 1-99: show number
    * - 100+: show "99+"
    * 
-   * @param count - Number of unread notifications
+   * @param count - Number of active notifications
    * @returns Formatted string for badge display
    */
   static formatBadgeCount(count: number): string {
