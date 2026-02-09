@@ -130,21 +130,17 @@ export const useNotificationStore = create<NotificationState>()(
         const state = get()
         
         // Filter out notifications that user explicitly dismissed (marked as read)
-        // GitHub's API inconsistently returns marked-as-read notifications with unread:true
+        // GitHub's API has eventual consistency - marked-as-read notifications can
+        // reappear in subsequent API responses. We keep dismissedNotificationIds
+        // permanently to prevent them from ever coming back.
         const dismissedSet = new Set(state.dismissedNotificationIds)
         // Also filter out archived notifications so they don't reappear in the active list
         // when the background worker fetches fresh data from GitHub API
         const archivedSet = new Set(state.archivedNotifications.map(n => n.id))
         const filteredNotifications = notifications.filter(n => !dismissedSet.has(n.id) && !archivedSet.has(n.id))
         
-        // Cleanup: Remove dismissed IDs that are no longer in the API response
-        // This prevents unbounded growth of the dismissed list
-        const currentIds = new Set(notifications.map(n => n.id))
-        const cleanedDismissedIds = state.dismissedNotificationIds.filter(id => currentIds.has(id))
-        
         set({ 
           notifications: filteredNotifications, 
-          dismissedNotificationIds: cleanedDismissedIds,
           error: null 
         })
       },
