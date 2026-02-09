@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware'
 import { GitHubNotification, NotificationReason, SnoozedNotification } from '../types/github'
 import { AutoArchiveRule } from '../types/rules'
-import { NOTIFICATIONS_STORAGE_KEY } from '../utils/notification-service'
 import { applyRules } from '../utils/rule-matcher'
 import { useSettingsStore } from './settings-store'
 
@@ -556,26 +555,6 @@ export const useNotificationStore = create<NotificationState>()(
     }
   )
 )
-
-// Sync with background worker updates
-// Listen to the 'notifications' key written by NotificationService
-if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
-  chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === 'local' && changes[NOTIFICATIONS_STORAGE_KEY]) {
-      const change = changes[NOTIFICATIONS_STORAGE_KEY]
-      
-      // Only sync if there's a new value and it's an array
-      if (change.newValue && Array.isArray(change.newValue)) {
-        console.log('[Zustand] Syncing notifications from background worker:', change.newValue.length)
-        
-        // Update Zustand store with background worker's data
-        // Only touch notifications array, leave snoozedNotifications alone
-        useNotificationStore.getState().setNotifications(change.newValue)
-        useNotificationStore.getState().updateLastFetched()
-      }
-    }
-  })
-}
 
 // Setup message listeners after a short delay to ensure store is ready
 if (typeof chrome !== 'undefined' && chrome.runtime) {

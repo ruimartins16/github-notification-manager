@@ -25,7 +25,7 @@ import { useNotificationStore } from '../store/notification-store'
 import { useAuth } from './useAuth'
 import type { GitHubNotification } from '../types/github'
 
-const STALE_TIME = 30 * 1000 // 30 seconds - data considered fresh for 30s
+const STALE_TIME = 5 * 60 * 1000 // 5 minutes - balances freshness with API rate limits
 
 export interface UseNotificationsOptions {
   /**

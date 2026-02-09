@@ -18,6 +18,8 @@ import type { GitHubNotification } from '../types/github'
 
 /**
  * Storage key for notifications in chrome.storage.local
+ * @deprecated Background worker now writes to 'zustand-notifications' instead.
+ * This key is kept for test compatibility and may be removed in future versions.
  */
 export const NOTIFICATIONS_STORAGE_KEY = 'notifications'
 

@@ -14,8 +14,11 @@ console.log('[ExtPay] Background service initialized with extension ID:', EXTENS
 
 // Now import other services
 import { AuthService } from '../utils/auth-service'
-import { NotificationService, NOTIFICATIONS_STORAGE_KEY } from '../utils/notification-service'
+import { NotificationService } from '../utils/notification-service'
 import { BadgeService } from '../utils/badge-service'
+
+// Storage key for Zustand persisted state (single source of truth)
+const ZUSTAND_STORAGE_KEY = 'zustand-notifications'
 import { applyRules } from '../utils/rule-matcher'
 import { AutoArchiveRule } from '../types/rules'
 import type { GitHubNotification } from '../types/github'
@@ -111,9 +114,9 @@ chrome.runtime.onStartup.addListener(async () => {
   
   // Recover snooze alarms from persisted state
   try {
-    const result = await chrome.storage.local.get('zustand-notifications')
-    if (result['zustand-notifications']) {
-      const parsed = JSON.parse(result['zustand-notifications'])
+    const result = await chrome.storage.local.get(ZUSTAND_STORAGE_KEY)
+    if (result[ZUSTAND_STORAGE_KEY]) {
+      const parsed = JSON.parse(result[ZUSTAND_STORAGE_KEY])
       const snoozedNotifications = parsed.state?.snoozedNotifications || []
       
       console.log('Recovering snooze alarms:', snoozedNotifications.length)
@@ -198,7 +201,7 @@ let lastBadgeUpdateTimestamp = 0
 const BADGE_UPDATE_DEBOUNCE_MS = 100
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName === 'local' && changes[NOTIFICATIONS_STORAGE_KEY]) {
+  if (areaName === 'local' && changes[ZUSTAND_STORAGE_KEY]) {
     // Debounce rapid updates (e.g., when background fetch writes immediately after popup)
     const now = Date.now()
     if (now - lastBadgeUpdateTimestamp < BADGE_UPDATE_DEBOUNCE_MS) {
@@ -206,11 +209,18 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     }
     lastBadgeUpdateTimestamp = now
 
-    const newNotifications = changes[NOTIFICATIONS_STORAGE_KEY].newValue as GitHubNotification[] | undefined
+    // Parse Zustand's persisted format
+    const newValue = changes[ZUSTAND_STORAGE_KEY].newValue
     
-    if (newNotifications) {
-      console.log('Notifications updated, refreshing badge:', newNotifications.length)
-      BadgeService.updateBadge(newNotifications)
+    if (newValue && typeof newValue === 'string') {
+      try {
+        const parsed = JSON.parse(newValue)
+        const notifications = parsed.state?.notifications || []
+        console.log('Notifications updated in Zustand storage, refreshing badge:', notifications.length)
+        BadgeService.updateBadge(notifications)
+      } catch (error) {
+        console.error('Failed to parse Zustand storage for badge update:', error)
+      }
     } else {
       // Notifications cleared
       BadgeService.clearBadge()
@@ -250,8 +260,28 @@ async function fetchNotificationsInBackground() {
     }
 
     console.log('Fetching notifications in background...')
-    const notifications = await NotificationService.fetchAndStore(token)
+    
+    // Fetch notifications (don't use fetchAndStore - we'll write to Zustand storage directly)
+    const notifications = await NotificationService.fetchNotifications(token)
     console.log('Background fetch complete:', notifications.length, 'notifications')
+    
+    // Write directly to Zustand's storage key (single source of truth)
+    const result = await chrome.storage.local.get(ZUSTAND_STORAGE_KEY)
+    const existingData = result[ZUSTAND_STORAGE_KEY]
+    const parsed = existingData ? JSON.parse(existingData) : { state: {}, version: 0 }
+    
+    // Update notifications in Zustand's persisted state
+    parsed.state = {
+      ...parsed.state,
+      notifications: notifications,
+      lastFetched: Date.now(),
+    }
+    
+    await chrome.storage.local.set({
+      [ZUSTAND_STORAGE_KEY]: JSON.stringify(parsed)
+    })
+    
+    console.log('Background fetch: updated Zustand storage with', notifications.length, 'notifications')
     
     // Try to notify UI to apply rules (if open)
     const sent = await chrome.runtime.sendMessage({
@@ -356,12 +386,12 @@ async function checkSubscriptionStatus() {
 async function applyAutoArchiveRulesInBackground(notifications: GitHubNotification[]) {
   try {
     // Get auto-archive rules from storage
-    const result = await chrome.storage.local.get('zustand-notifications')
-    if (!result['zustand-notifications']) {
+    const result = await chrome.storage.local.get(ZUSTAND_STORAGE_KEY)
+    if (!result[ZUSTAND_STORAGE_KEY]) {
       return
     }
 
-    const parsed = JSON.parse(result['zustand-notifications'])
+    const parsed = JSON.parse(result[ZUSTAND_STORAGE_KEY])
     const rules: AutoArchiveRule[] = parsed.state?.autoArchiveRules || []
 
     if (rules.length === 0) {
@@ -397,9 +427,9 @@ async function applyAutoArchiveRulesInBackground(notifications: GitHubNotificati
 
     // IMPORTANT: Read storage again to ensure we have the latest state
     // This prevents overwriting changes made by the UI between reads
-    const latestResult = await chrome.storage.local.get('zustand-notifications')
-    const latestParsed = latestResult['zustand-notifications'] 
-      ? JSON.parse(latestResult['zustand-notifications'])
+    const latestResult = await chrome.storage.local.get(ZUSTAND_STORAGE_KEY)
+    const latestParsed = latestResult[ZUSTAND_STORAGE_KEY] 
+      ? JSON.parse(latestResult[ZUSTAND_STORAGE_KEY])
       : parsed
 
     // Update storage with filtered notifications and updated rules
@@ -410,10 +440,9 @@ async function applyAutoArchiveRulesInBackground(notifications: GitHubNotificati
       autoArchiveRules: updatedRules,
     }
 
-    // Write atomically - both keys in one operation
+    // Write atomically to Zustand storage only (single source of truth)
     await chrome.storage.local.set({
-      'zustand-notifications': JSON.stringify(latestParsed),
-      [NOTIFICATIONS_STORAGE_KEY]: toKeep,
+      [ZUSTAND_STORAGE_KEY]: JSON.stringify(latestParsed),
     })
 
     console.log('Auto-archive complete:', toArchive.length, 'archived,', toKeep.length, 'kept')
