@@ -30,10 +30,41 @@ export const LAST_FETCH_STORAGE_KEY = 'lastFetchTimestamp'
 
 export class NotificationService {
   /**
+   * Filter out "zombie" notifications that GitHub API incorrectly returns as unread.
+   * 
+   * GitHub's API has a known behavior where review_requested notifications remain
+   * unread even after marking as read, until you submit a review or the PR closes.
+   * 
+   * A notification is a "zombie" (falsely unread) when:
+   * - It has a last_read_at timestamp (user marked it as read)
+   * - AND last_read_at >= updated_at (no new activity since user read it)
+   * 
+   * If updated_at > last_read_at, there was a genuine new update (comment, push, etc.)
+   * after the user read it, so we should still show it.
+   * 
+   * @param notifications - Array of notifications from GitHub API
+   * @returns Filtered array without zombie notifications
+   */
+  private static filterZombieNotifications(notifications: GitHubNotification[]): GitHubNotification[] {
+    return notifications.filter(n => {
+      // Never read = genuinely unread
+      if (!n.last_read_at) return true
+      
+      // Has been read - check if there's new activity since then
+      const lastRead = new Date(n.last_read_at)
+      const updated = new Date(n.updated_at)
+      
+      // If updated > lastRead, there's new activity - show it
+      // If updated <= lastRead, nothing new - filter it out (zombie)
+      return updated > lastRead
+    })
+  }
+
+  /**
    * Fetch notifications from GitHub API
    * 
    * @param token - GitHub access token
-   * @returns Array of unread notifications (dismissed IDs filtered by store)
+   * @returns Array of unread notifications (dismissed IDs filtered by store, zombies filtered out)
    * @throws Error if API request fails
    */
   static async fetchNotifications(token: string): Promise<GitHubNotification[]> {
@@ -47,7 +78,10 @@ export class NotificationService {
       participating: false,
     })
 
-    return notifications as unknown as GitHubNotification[]
+    // Filter out zombie notifications (GitHub API bug for review_requested)
+    const filtered = this.filterZombieNotifications(notifications as unknown as GitHubNotification[])
+
+    return filtered
   }
 
   /**

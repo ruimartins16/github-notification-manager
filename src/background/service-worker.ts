@@ -262,8 +262,9 @@ async function fetchNotificationsInBackground() {
     console.log('Fetching notifications in background...')
     
     // Fetch notifications (don't use fetchAndStore - we'll write to Zustand storage directly)
+    // Note: fetchNotifications includes zombie filter (last_read_at >= updated_at)
     const notifications = await NotificationService.fetchNotifications(token)
-    console.log('Background fetch complete:', notifications.length, 'notifications')
+    console.log('Background fetch complete:', notifications.length, 'notifications (after zombie filter)')
     
     // Write directly to Zustand's storage key (single source of truth)
     const result = await chrome.storage.local.get(ZUSTAND_STORAGE_KEY)
