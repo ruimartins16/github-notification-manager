@@ -28,6 +28,8 @@ interface UseKeyboardShortcutsOptions {
   onSnoozeFocused?: () => void
   /** Callback when marking all as read */
   onMarkAllRead?: () => void
+  /** Callback when manually refreshing notifications */
+  onManualRefresh?: () => void
   /** Callback when opening help modal */
   onOpenHelp?: () => void
   /** Callback to show upgrade prompt */
@@ -58,6 +60,7 @@ export function useKeyboardShortcuts({
   onArchiveFocused,
   onSnoozeFocused,
   onMarkAllRead,
+  onManualRefresh,
   onOpenHelp,
   onShowUpgrade,
   enabled = true,
@@ -215,6 +218,13 @@ export function useKeyboardShortcuts({
         onMarkAllRead?.()
         return
       }
+
+      // Manual refresh - FREE (always available)
+      if ((e.key === 'r' || e.key === 'R') && !e.shiftKey) {
+        e.preventDefault()
+        onManualRefresh?.()
+        return
+      }
     },
     [
       enabled,
@@ -227,6 +237,7 @@ export function useKeyboardShortcuts({
       onSnoozeFocused,
       onOpenFocused,
       onMarkAllRead,
+      onManualRefresh,
       onOpenHelp,
       onShowUpgrade,
       setFilter,
@@ -339,7 +350,7 @@ export function useKeyboardShortcuts({
         category: 'filters',
         isPro: true,
       },
-      // Global - PRO except help
+      // Global - PRO except help and refresh
       {
         key: 'Shift + D',
         description: 'Mark all as read',
@@ -347,6 +358,13 @@ export function useKeyboardShortcuts({
         category: 'global',
         requiresShift: true,
         isPro: true,
+      },
+      {
+        key: 'R',
+        description: 'Refresh notifications from GitHub',
+        action: () => onManualRefresh?.(),
+        category: 'global',
+        isPro: false,
       },
       {
         key: '?',
@@ -365,6 +383,7 @@ export function useKeyboardShortcuts({
     onSnoozeFocused,
     onOpenFocused,
     onMarkAllRead,
+    onManualRefresh,
     onOpenHelp,
     setFilter,
   ])

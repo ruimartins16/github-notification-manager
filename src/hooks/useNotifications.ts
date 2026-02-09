@@ -110,8 +110,13 @@ export function useNotifications(options?: UseNotificationsOptions): UseNotifica
     // Don't poll - background service worker handles periodic fetching
     refetchInterval: false,
     staleTime: STALE_TIME,
-    // Manual refresh on window focus
-    refetchOnWindowFocus: true,
+    // Conditional refetch on window focus - only if data is stale (> 2 minutes)
+    refetchOnWindowFocus: () => {
+      const lastFetched = useNotificationStore.getState().lastFetched
+      const cacheAge = lastFetched ? Date.now() - lastFetched : Infinity
+      const CACHE_MAX_AGE = 2 * 60 * 1000 // 2 minutes
+      return cacheAge > CACHE_MAX_AGE
+    },
     refetchOnReconnect: true,
     retry: 3,
   })

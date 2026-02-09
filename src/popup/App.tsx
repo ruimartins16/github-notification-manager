@@ -95,17 +95,28 @@ function App() {
   // Zustand persist only hydrates once (on module load), so if the popup JS was cached
   // from a previous open, the store may have stale in-memory data. This forces:
   // 1. Zustand to re-read from chrome.storage (picks up background worker writes)
-  // 2. React Query to refetch from GitHub API (ensures freshest possible data)
+  // 2. Conditionally refetch from GitHub API only if data is stale (> 2 minutes)
   useEffect(() => {
-    console.log('[App] Popup opened - forcing rehydration and cache invalidation')
+    console.log('[App] Popup opened - checking data freshness')
     
     // Force Zustand to re-read from chrome.storage.local
     // This picks up any notifications the background worker wrote since last open
     useNotificationStore.persist.rehydrate()
     
-    // Invalidate React Query cache so it refetches from GitHub API
-    // This ensures we don't serve stale cached data from a previous popup session
-    queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    // Check if background fetch is recent
+    // Background worker fetches every 60s, so if lastFetched < 2min ago, data is fresh
+    const lastFetched = useNotificationStore.getState().lastFetched
+    const cacheAge = lastFetched ? Date.now() - lastFetched : Infinity
+    const CACHE_MAX_AGE = 2 * 60 * 1000 // 2 minutes
+    
+    if (cacheAge > CACHE_MAX_AGE) {
+      // Data is stale, refetch from GitHub API
+      console.log('[App] Data is stale (age:', Math.round(cacheAge / 1000), 's), refetching from GitHub...')
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    } else {
+      // Data is fresh from background worker, trust rehydrated data
+      console.log('[App] Using recent background fetch (age:', Math.round(cacheAge / 1000), 's)')
+    }
   }, [queryClient])
 
   // Keyboard shortcuts handlers
@@ -374,6 +385,21 @@ function App() {
     }
   }, [markAllAsRead, undoMarkAllAsRead, addToast])
 
+  // Manual refresh handler
+  const handleManualRefresh = useCallback(async () => {
+    console.log('[App] Manual refresh triggered')
+    addToast('Refreshing notifications...', { variant: 'info', duration: 2000 })
+    
+    try {
+      // Force React Query to refetch from GitHub API
+      await refreshNotifications()
+      addToast('Notifications refreshed', { variant: 'success', duration: 2000 })
+    } catch (error) {
+      console.error('[App] Manual refresh failed:', error)
+      addToast('Failed to refresh notifications', { variant: 'error', duration: 3000 })
+    }
+  }, [refreshNotifications, addToast])
+
   // Keyboard shortcuts integration
   const { getShortcuts, listRef } = useKeyboardShortcuts({
     focusedIndex,
@@ -384,6 +410,7 @@ function App() {
     onArchiveFocused: handleArchiveFocused,
     onSnoozeFocused: handleSnoozeFocused,
     onMarkAllRead: handleMarkAllAsRead,
+    onManualRefresh: handleManualRefresh,
     onOpenHelp: () => setIsHelpModalOpen(true),
     onShowUpgrade: () => setShowUpgradeModal(true),
     enabled: viewMode === 'active' && !selectionMode && pageMode === 'notifications',
