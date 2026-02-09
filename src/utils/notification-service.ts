@@ -36,8 +36,13 @@ export class NotificationService {
    * unread even after marking as read, until you submit a review or the PR closes.
    * 
    * A notification is a "zombie" (falsely unread) when:
-   * - It has a last_read_at timestamp (user marked it as read)
+   * - GitHub marks it as read (unread: false)
+   * - BUT it has a last_read_at timestamp
    * - AND last_read_at >= updated_at (no new activity since user read it)
+   * 
+   * Important: If GitHub marks a notification as unread (unread: true), we ALWAYS
+   * keep it, regardless of timestamps. This handles edge cases like bulk "mark all
+   * as read" where timestamps might be unreliable.
    * 
    * If updated_at > last_read_at, there was a genuine new update (comment, push, etc.)
    * after the user read it, so we should still show it.
@@ -47,7 +52,13 @@ export class NotificationService {
    */
   private static filterZombieNotifications(notifications: GitHubNotification[]): GitHubNotification[] {
     return notifications.filter(n => {
-      // Never read = genuinely unread
+      // If GitHub says it's unread, trust that - always keep it
+      // This handles edge cases like bulk "mark all as read" where new notifications
+      // arrive with confusing timestamps (last_read_at set but unread: true)
+      if (n.unread) return true
+      
+      // If marked as read by GitHub (unread: false), check if it's a zombie
+      // Never read = genuinely unread (should not happen if unread: false, but be safe)
       if (!n.last_read_at) return true
       
       // Has been read - check if there's new activity since then
@@ -78,8 +89,16 @@ export class NotificationService {
       participating: true,
     })
 
+    console.log('[NotificationService] Fetched', notifications.length, 'notifications from GitHub API')
+
     // Filter out zombie notifications (GitHub API bug for review_requested)
     const filtered = this.filterZombieNotifications(notifications as unknown as GitHubNotification[])
+    
+    const zombieCount = notifications.length - filtered.length
+    if (zombieCount > 0) {
+      console.log('[NotificationService] Filtered out', zombieCount, 'zombie notifications')
+    }
+    console.log('[NotificationService] Returning', filtered.length, 'valid notifications')
 
     return filtered
   }
