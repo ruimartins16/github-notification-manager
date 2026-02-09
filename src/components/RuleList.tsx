@@ -7,11 +7,10 @@ interface RuleListProps {
   rules: AutoArchiveRule[]
   onToggle: (ruleId: string) => void
   onDelete: (ruleId: string) => void
-  isPro: boolean
   proLoading: boolean
 }
 
-export function RuleList({ rules, onToggle, onDelete, isPro, proLoading }: RuleListProps) {
+export function RuleList({ rules, onToggle, onDelete, proLoading }: RuleListProps) {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   if (rules.length === 0) {
     return (
@@ -83,27 +82,16 @@ export function RuleList({ rules, onToggle, onDelete, isPro, proLoading }: RuleL
               {/* Toggle Enable/Disable */}
               <button
                 onClick={() => onToggle(rule.id)}
-                disabled={proLoading || !isPro}
-                aria-label={
-                  !isPro 
-                    ? 'Toggle rule (Pro feature)' 
-                    : rule.enabled ? 'Disable rule' : 'Enable rule'
-                }
+                disabled={proLoading}
+                aria-label={rule.enabled ? 'Disable rule' : 'Enable rule'}
                 className={`
                   p-2 rounded-github transition-colors
-                  ${!isPro 
-                    ? 'opacity-50 cursor-not-allowed'
-                    : rule.enabled
-                      ? 'text-github-success-fg dark:text-github-success-dark-fg hover:bg-github-success-subtle dark:hover:bg-github-success-dark-subtle'
-                      : 'text-github-fg-muted dark:text-github-fg-dark-muted hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle'
+                  ${rule.enabled
+                    ? 'text-github-success-fg dark:text-github-success-dark-fg hover:bg-github-success-subtle dark:hover:bg-github-success-dark-subtle'
+                    : 'text-github-fg-muted dark:text-github-fg-dark-muted hover:bg-github-canvas-subtle dark:hover:bg-github-canvas-dark-subtle'
                   }
-                  ${!isPro && (rule.enabled ? 'text-github-success-fg dark:text-github-success-dark-fg' : 'text-github-fg-muted dark:text-github-fg-dark-muted')}
                 `}
-                title={
-                  !isPro 
-                    ? 'Upgrade to Pro to toggle rules' 
-                    : rule.enabled ? 'Disable rule' : 'Enable rule'
-                }
+                title={rule.enabled ? 'Disable rule' : 'Enable rule'}
               >
                 {rule.enabled ? (
                   // Check icon
@@ -141,16 +129,13 @@ export function RuleList({ rules, onToggle, onDelete, isPro, proLoading }: RuleL
               {/* Delete */}
               <button
                 onClick={() => setDeleteConfirm(rule.id)}
-                disabled={proLoading || !isPro}
-                aria-label={!isPro ? 'Delete rule (Pro feature)' : 'Delete rule'}
+                disabled={proLoading}
+                aria-label="Delete rule"
                 className={`
                   p-2 rounded-github transition-colors
-                  ${!isPro 
-                    ? 'opacity-50 cursor-not-allowed text-github-danger-fg dark:text-github-danger-dark-fg' 
-                    : 'text-github-danger-fg dark:text-github-danger-dark-fg hover:bg-github-danger-subtle dark:hover:bg-github-danger-dark-subtle'
-                  }
+                  text-github-danger-fg dark:text-github-danger-dark-fg hover:bg-github-danger-subtle dark:hover:bg-github-danger-dark-subtle
                 `}
-                title={!isPro ? 'Upgrade to Pro to delete rules' : 'Delete rule'}
+                title="Delete rule"
               >
                 {/* Trash icon */}
                 <svg

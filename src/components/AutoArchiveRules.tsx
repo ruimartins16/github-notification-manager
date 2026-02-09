@@ -143,7 +143,6 @@ export function AutoArchiveRules() {
             rules={rules}
             onToggle={handleToggle}
             onDelete={handleDelete}
-            isPro={isPro}
             proLoading={proLoading}
           />
         </div>
