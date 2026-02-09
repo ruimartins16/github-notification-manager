@@ -53,24 +53,28 @@ export async function cleanupProTierData(): Promise<void> {
     }
     
     console.log('[ProCleanup] Store data type:', typeof storeData)
-    console.log('[ProCleanup] Store data length:', typeof storeData === 'string' ? storeData.length : 'N/A')
     
-    // Parse the store data (it's JSON string from Zustand persist)
+    // Parse the store data - handle both string (Zustand persist) and object (direct storage)
     let parsed
     try {
-      parsed = typeof storeData === 'string' ? JSON.parse(storeData) : storeData
+      if (typeof storeData === 'string') {
+        console.log('[ProCleanup] Data is string, parsing as JSON...')
+        parsed = JSON.parse(storeData)
+      } else if (typeof storeData === 'object') {
+        console.log('[ProCleanup] Data is already an object, using directly')
+        parsed = storeData
+      } else {
+        console.error('[ProCleanup] Unexpected data type:', typeof storeData)
+        return
+      }
       console.log('[ProCleanup] Parsed store data successfully')
     } catch (e) {
       console.error('[ProCleanup] Failed to parse store data:', e)
       return
     }
     
-    if (!parsed.state) {
-      console.log('[ProCleanup] No state in store data, nothing to clean')
-      return
-    }
-    
-    const state = parsed.state
+    // Handle both Zustand persist format {state: {...}} and direct format
+    const state = parsed.state || parsed
     console.log('[ProCleanup] Current state:', {
       autoArchiveRulesCount: state.autoArchiveRules?.length || 0,
       snoozedNotificationsCount: state.snoozedNotifications?.length || 0
@@ -111,11 +115,22 @@ export async function cleanupProTierData(): Promise<void> {
     
     // 3. Save changes if any
     if (hasChanges) {
-      const updatedData = typeof storeData === 'string' 
-        ? JSON.stringify({ ...parsed, state })
-        : { ...parsed, state }
+      // Save back in the same format we received it
+      let updatedData
+      if (parsed.state) {
+        // Zustand persist format
+        updatedData = typeof storeData === 'string' 
+          ? JSON.stringify({ ...parsed, state })
+          : { ...parsed, state }
+      } else {
+        // Direct format
+        updatedData = typeof storeData === 'string'
+          ? JSON.stringify(state)
+          : state
+      }
       
       console.log('[ProCleanup] Saving updated data to storage...')
+      console.log('[ProCleanup] Saving as type:', typeof updatedData)
       await chrome.storage.local.set({ [NOTIFICATIONS_STORAGE_KEY]: updatedData })
       console.log('[ProCleanup] ✅ Pro-tier data cleanup completed successfully')
       
