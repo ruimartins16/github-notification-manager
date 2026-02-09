@@ -5,10 +5,11 @@
  * Handles loading, caching, offline detection, and real-time updates.
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { extPayService, type ProUser } from '../utils/extpay-service'
 import { validateLicense, getCacheAge } from '../utils/license-validator'
 import { onNetworkChange } from '../utils/network-handler'
+import { cleanupProTierData } from '../utils/pro-cleanup'
 
 /**
  * Return type for useProStatus hook
@@ -72,6 +73,7 @@ export function useProStatus(): UseProStatusResult {
   const [error, setError] = useState<Error | null>(null)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [cacheAge, setCacheAge] = useState<number | null>(null)
+  const previousProStatusRef = useRef<boolean | null>(null)
 
   /**
    * Fetch user status from license validator
@@ -85,6 +87,22 @@ export function useProStatus(): UseProStatusResult {
     try {
       const proUser = await validateLicense(forceRefresh)
       console.log(`[useProStatus] ✅ User fetched - isPro: ${proUser.isPro}, plan: ${proUser.plan?.nickname || 'none'}`)
+      
+      // Check if Pro status changed from true to false (downgrade)
+      const previousProStatus = previousProStatusRef.current
+      if (previousProStatus === true && proUser.isPro === false) {
+        console.log('[useProStatus] 🔽 Downgrade detected (Pro → Free), triggering cleanup')
+        try {
+          await cleanupProTierData()
+          console.log('[useProStatus] ✅ Pro-tier data cleanup completed')
+        } catch (cleanupError) {
+          console.error('[useProStatus] ❌ Failed to clean up Pro-tier data:', cleanupError)
+        }
+      }
+      
+      // Update previous Pro status
+      previousProStatusRef.current = proUser.isPro
+      
       setUser(proUser)
       
       // Update cache age

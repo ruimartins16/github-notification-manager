@@ -137,7 +137,7 @@ export const SnoozeButton = memo(({ notificationId, onCustom }: SnoozeButtonProp
           <div
             className="
               absolute right-0 mt-2 w-56 rounded-github shadow-lg
-              bg-github-canvas-overlay dark:bg-github-canvas-dark-overlay border border-github-border-default dark:border-github-border-dark-default
+              bg-github-canvas-default dark:bg-github-canvas-dark-default border border-github-border-default dark:border-github-border-dark-default
               z-50 overflow-hidden
             "
             role="menu"
