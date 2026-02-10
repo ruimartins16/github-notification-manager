@@ -657,33 +657,26 @@ export const useNotificationStore = create<NotificationState>()(
         lastFetched: state.lastFetched,
         activeFilter: state.activeFilter,
         dismissedNotifications: state.dismissedNotifications,
+        _dismissDataVersion: (state as any)._dismissDataVersion,
       }),
-      // Migration: Convert old dismissedNotificationIds to new dismissedNotifications format
+      // Migration and cleanup on rehydrate
       onRehydrateStorage: () => (state) => {
         if (!state) return
         
-        // Check if we need to migrate from old format
-        if (state.dismissedNotificationIds && Array.isArray(state.dismissedNotificationIds) && state.dismissedNotificationIds.length > 0) {
-          console.log('[Migration] Converting', state.dismissedNotificationIds.length, 'old dismissedNotificationIds to new format')
-          
-          // Convert old IDs to new format with dummy timestamps
-          // We use 7 days ago as the dismissal time (arbitrary but reasonable)
-          const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000)
-          const migratedDismissals: DismissedNotification[] = state.dismissedNotificationIds.map(id => ({
-            id,
-            dismissedAt: sevenDaysAgo,
-            // Use a timestamp from 7 days ago as lastSeenUpdatedAt
-            // This means any activity in the last 7 days will cause the notification to reappear
-            lastSeenUpdatedAt: new Date(sevenDaysAgo).toISOString(),
-          }))
-          
-          // Merge with existing dismissedNotifications (if any)
-          state.dismissedNotifications = [...(state.dismissedNotifications || []), ...migratedDismissals]
-          
-          // Clean up old field
+        // ONE-TIME RESET (v2): Clear dismissedNotifications that were corrupted by the
+        // double-filtering bug where both background worker and store applied smart dismiss,
+        // causing all notifications to be filtered out. We use a version flag to only run once.
+        const DISMISS_DATA_VERSION = 2
+        const currentVersion = (state as any)._dismissDataVersion || 0
+        
+        if (currentVersion < DISMISS_DATA_VERSION) {
+          console.log('[Migration v2] Clearing corrupted dismissedNotifications data (had', 
+            state.dismissedNotifications?.length || 0, 'entries)')
+          state.dismissedNotifications = []
+          // Also clean up legacy field if present
           delete state.dismissedNotificationIds
-          
-          console.log('[Migration] Successfully migrated to new format:', state.dismissedNotifications.length, 'dismissed notifications')
+          ;(state as any)._dismissDataVersion = DISMISS_DATA_VERSION
+          console.log('[Migration v2] Reset complete. Smart dismiss starts fresh.')
         }
       },
     }

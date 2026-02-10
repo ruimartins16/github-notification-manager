@@ -215,9 +215,27 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     if (newValue && typeof newValue === 'string') {
       try {
         const parsed = JSON.parse(newValue)
-        const notifications = parsed.state?.notifications || []
-        console.log('Notifications updated in Zustand storage, refreshing badge:', notifications.length)
-        BadgeService.updateBadge(notifications)
+        const notifications: GitHubNotification[] = parsed.state?.notifications || []
+        
+        // Apply smart dismiss filtering for accurate badge count
+        // The background worker stores RAW notifications; the store filters on popup open.
+        // For badge accuracy when popup is closed, we filter here too (read-only, no write-back).
+        const dismissedNotifications = parsed.state?.dismissedNotifications || []
+        interface BadgeDismissedEntry { id: string; lastSeenUpdatedAt: string }
+        const dismissedMap = new Map<string, BadgeDismissedEntry>(
+          dismissedNotifications.map((d: BadgeDismissedEntry) => [d.id, d])
+        )
+        const archivedSet = new Set((parsed.state?.archivedNotifications || []).map((n: any) => n.id))
+        
+        const badgeNotifications = notifications.filter((n: GitHubNotification) => {
+          if (archivedSet.has(n.id)) return false
+          const dismissed = dismissedMap.get(n.id)
+          if (!dismissed) return true
+          return new Date(n.updated_at) > new Date(dismissed.lastSeenUpdatedAt)
+        })
+        
+        console.log('Badge update:', notifications.length, 'raw,', badgeNotifications.length, 'after dismiss filter')
+        BadgeService.updateBadge(badgeNotifications)
       } catch (error) {
         console.error('Failed to parse Zustand storage for badge update:', error)
       }
@@ -266,54 +284,21 @@ async function fetchNotificationsInBackground() {
     const notifications = await NotificationService.fetchNotifications(token)
     console.log('Background fetch complete:', notifications.length, 'notifications (after zombie filter)')
     
-    // Write directly to Zustand's storage key (single source of truth)
+    // Write raw notifications directly to Zustand's storage key (single source of truth)
+    // NOTE: Smart dismiss filtering is NOT done here. It's handled by the Zustand store's
+    // setNotifications() method, which runs when:
+    //   - Popup is open: storage onChanged listener detects this write and calls setNotifications()
+    //   - Popup opens later: rehydrate + setNotifications() in App.tsx useEffect
+    // This avoids double-filtering bugs where the background worker and store both filter,
+    // causing notifications to disappear entirely.
     const result = await chrome.storage.local.get(ZUSTAND_STORAGE_KEY)
     const existingData = result[ZUSTAND_STORAGE_KEY]
     const parsed = existingData ? JSON.parse(existingData) : { state: {}, version: 0 }
     
-    // SMART DISMISS FILTERING:
-    // Filter out notifications that user explicitly dismissed (marked as read)
-    // BUT if there's new activity (updated_at changed), include them again!
-    // This ensures users see important updates even on dismissed threads.
-    interface DismissedNotification {
-      id: string
-      dismissedAt: number
-      lastSeenUpdatedAt: string
-    }
-    
-    const dismissedNotifications: DismissedNotification[] = parsed.state?.dismissedNotifications || []
-    const dismissedMap = new Map(dismissedNotifications.map(d => [d.id, d]))
-    
-    const filteredNotifications = notifications.filter((n: GitHubNotification) => {
-      const dismissed = dismissedMap.get(n.id)
-      if (!dismissed) return true  // Not dismissed, include it
-      
-      // Check if there's new activity since dismissal
-      const lastSeenUpdate = new Date(dismissed.lastSeenUpdatedAt)
-      const currentUpdate = new Date(n.updated_at)
-      
-      // If GitHub's updated_at is newer than when we dismissed = new activity!
-      if (currentUpdate > lastSeenUpdate) {
-        console.log(
-          '[Background] Dismissed notification has new activity, including:',
-          n.subject.title
-        )
-        return true  // Include it!
-      }
-      
-      // No new activity, keep it hidden
-      return false
-    })
-    
-    const dismissedCount = notifications.length - filteredNotifications.length
-    if (dismissedCount > 0) {
-      console.log('Background fetch: filtered out', dismissedCount, 'dismissed notifications (no new activity)')
-    }
-    
-    // Update notifications in Zustand's persisted state
+    // Update notifications in Zustand's persisted state (raw, unfiltered)
     parsed.state = {
       ...parsed.state,
-      notifications: filteredNotifications,
+      notifications: notifications,
       lastFetched: Date.now(),
     }
     
@@ -321,7 +306,7 @@ async function fetchNotificationsInBackground() {
       [ZUSTAND_STORAGE_KEY]: JSON.stringify(parsed)
     })
     
-    console.log('Background fetch: updated Zustand storage with', filteredNotifications.length, 'notifications')
+    console.log('Background fetch: updated Zustand storage with', notifications.length, 'notifications (raw)')
     
     // Try to notify UI to apply rules (if open)
     const sent = await chrome.runtime.sendMessage({
@@ -330,7 +315,7 @@ async function fetchNotificationsInBackground() {
     
     if (!sent) {
       // UI not open, apply rules in background
-      await applyAutoArchiveRulesInBackground(filteredNotifications)
+      await applyAutoArchiveRulesInBackground(notifications)
     }
     
     // Badge will be updated automatically by storage listener

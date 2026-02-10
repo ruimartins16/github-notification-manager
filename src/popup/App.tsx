@@ -17,6 +17,7 @@ import { useToast } from '../hooks/useToast'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { GitHubAPI } from '../utils/github-api'
 import { AuthService } from '../utils/auth-service'
+import { NotificationService } from '../utils/notification-service'
 import { convertApiUrlToWebUrl } from '../utils/url-converter'
 import { extPayService } from '../utils/extpay-service'
 import { trackEvent, ANALYTICS_EVENTS } from '../utils/analytics'
@@ -92,32 +93,65 @@ function App() {
   // from a previous open, the store may have stale in-memory data. This forces:
   // 1. Zustand to re-read from chrome.storage (picks up background worker writes)
   // 2. Re-apply smart dismiss filtering to show correct notification count immediately
+  // 3. Trigger fresh GitHub API fetch if data is stale or missing
   useEffect(() => {
-    console.log('[App] Popup opened - rehydrating and applying smart dismiss filtering')
+    const init = async () => {
+      console.log('[App] Popup opened - rehydrating and applying smart dismiss filtering')
+      
+      // Force Zustand to re-read from chrome.storage.local
+      // This picks up any notifications the background worker wrote since last open
+      // IMPORTANT: rehydrate() is async - we must await it before reading state
+      await useNotificationStore.persist.rehydrate()
+      
+      const state = useNotificationStore.getState()
+      const rehydratedNotifications = state.notifications
+      
+      console.log('[App] Re-applying smart dismiss filtering to', rehydratedNotifications.length, 'rehydrated notifications')
+      
+      // This will:
+      // 1. Filter out archived notifications
+      // 2. Apply smart dismiss (check updated_at vs lastSeenUpdatedAt)
+      // 3. Show notifications with new activity even if previously dismissed
+      state.setNotifications(rehydratedNotifications)
+      
+      const lastFetched = state.lastFetched
+      const cacheAge = lastFetched ? Date.now() - lastFetched : Infinity
+      
+      console.log('[App] Data age:', Math.round(cacheAge / 1000), 's (from background worker)')
+      
+      // If data is stale (>60s old) or never fetched (after extension reload/install),
+      // trigger an immediate fetch from GitHub API. This prevents the user from seeing
+      // an empty popup while waiting for the background alarm (up to 60s delay).
+      //
+      // NOTE: We can't use refreshNotifications() here because the useAuth hook hasn't
+      // resolved the token yet (its useEffect runs in the same cycle). Instead, we fetch
+      // the token directly from storage and call NotificationService ourselves.
+      const STALE_THRESHOLD_MS = 60_000 // 60 seconds
+      if (cacheAge > STALE_THRESHOLD_MS) {
+        console.log('[App] Data is stale or missing, triggering immediate refresh...')
+        try {
+          const token = await AuthService.getStoredToken()
+          if (token) {
+            const freshNotifications = await NotificationService.fetchNotifications(token)
+            console.log('[App] Immediate refresh fetched', freshNotifications.length, 'notifications')
+            
+            // Update store (applies smart dismiss filtering)
+            const currentState = useNotificationStore.getState()
+            currentState.setNotifications(freshNotifications)
+            currentState.updateLastFetched()
+            
+            console.log('[App] Immediate refresh complete')
+          } else {
+            console.log('[App] No token available yet, skipping immediate refresh')
+          }
+        } catch (error) {
+          console.error('[App] Immediate refresh failed:', error)
+          // Not critical - background worker will retry on next alarm
+        }
+      }
+    }
     
-    // Force Zustand to re-read from chrome.storage.local
-    // This picks up any notifications the background worker wrote since last open
-    useNotificationStore.persist.rehydrate()
-    
-    // CRITICAL: After rehydrate, the store has raw notifications from storage
-    // but smart dismiss filtering hasn't been applied yet!
-    // We need to explicitly call setNotifications() to re-apply the filtering logic
-    // that checks updated_at timestamps for new activity on dismissed notifications.
-    const state = useNotificationStore.getState()
-    const rehydratedNotifications = state.notifications
-    
-    console.log('[App] Re-applying smart dismiss filtering to', rehydratedNotifications.length, 'rehydrated notifications')
-    
-    // This will:
-    // 1. Filter out archived notifications
-    // 2. Apply smart dismiss (check updated_at vs lastSeenUpdatedAt)
-    // 3. Show notifications with new activity even if previously dismissed
-    state.setNotifications(rehydratedNotifications)
-    
-    const lastFetched = state.lastFetched
-    const cacheAge = lastFetched ? Date.now() - lastFetched : Infinity
-    
-    console.log('[App] Data age:', Math.round(cacheAge / 1000), 's (from background worker)')
+    init()
   }, [])
 
   // Keyboard shortcuts handlers
