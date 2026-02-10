@@ -13,6 +13,35 @@ const MENTION_REASONS: NotificationReason[] = ['mention', 'team_mention', 'autho
 const REVIEW_REASONS: NotificationReason[] = ['review_requested']
 const ASSIGNED_REASONS: NotificationReason[] = ['assign']
 
+// Dismissed notification tracking (for smart dismiss - reappear on new activity)
+export interface DismissedNotification {
+  id: string
+  dismissedAt: number  // Timestamp when user dismissed it
+  lastSeenUpdatedAt: string  // GitHub's updated_at value when dismissed
+}
+
+// Cleanup old dismissed notifications to prevent unbounded growth
+// Keep dismissed entries for 30 days - after that, if notification comes back, treat as new
+const DISMISSAL_RETENTION_DAYS = 30
+const DISMISSAL_RETENTION_MS = DISMISSAL_RETENTION_DAYS * 24 * 60 * 60 * 1000
+
+function cleanupOldDismissals(dismissedNotifications: DismissedNotification[]): DismissedNotification[] {
+  const cutoffTime = Date.now() - DISMISSAL_RETENTION_MS
+  const filtered = dismissedNotifications.filter(d => d.dismissedAt > cutoffTime)
+  
+  if (filtered.length < dismissedNotifications.length) {
+    console.log(
+      '[Cleanup] Removed',
+      dismissedNotifications.length - filtered.length,
+      'dismissed entries older than',
+      DISMISSAL_RETENTION_DAYS,
+      'days'
+    )
+  }
+  
+  return filtered
+}
+
 interface NotificationState {
   notifications: GitHubNotification[]
   snoozedNotifications: SnoozedNotification[]
@@ -24,7 +53,8 @@ interface NotificationState {
   activeFilter: NotificationFilter
   markAllBackup: GitHubNotification[] | null
   selectedNotificationIds: Set<string>
-  dismissedNotificationIds: string[] // IDs user explicitly marked as read (persisted)
+  dismissedNotifications: DismissedNotification[] // Notifications user marked as read (reappear on new activity)
+  dismissedNotificationIds?: string[] // DEPRECATED: Legacy format for migration only
   
   // Actions
   setNotifications: (notifications: GitHubNotification[]) => void
@@ -123,7 +153,7 @@ export const useNotificationStore = create<NotificationState>()(
       activeFilter: useSettingsStore.getState().defaultFilter,
       markAllBackup: null,
       selectedNotificationIds: new Set<string>(),
-      dismissedNotificationIds: [],
+      dismissedNotifications: [], // Smart dismiss - tracks when and what version was dismissed
 
       // Actions
       setNotifications: (notifications) => {
@@ -131,21 +161,56 @@ export const useNotificationStore = create<NotificationState>()(
         
         console.log('[NotificationStore] Received', notifications.length, 'notifications to store')
         
-        // Filter out notifications that user explicitly dismissed (marked as read)
-        // GitHub's API has eventual consistency - marked-as-read notifications can
-        // reappear in subsequent API responses. We keep dismissedNotificationIds
-        // permanently to prevent them from ever coming back.
-        const dismissedSet = new Set(state.dismissedNotificationIds)
-        // Also filter out archived notifications so they don't reappear in the active list
-        // when the background worker fetches fresh data from GitHub API
-        const archivedSet = new Set(state.archivedNotifications.map(n => n.id))
-        const filteredNotifications = notifications.filter(n => !dismissedSet.has(n.id) && !archivedSet.has(n.id))
+        // CLEANUP: Remove old dismissed entries (older than 30 days)
+        const cleanedDismissed = cleanupOldDismissals(state.dismissedNotifications)
         
-        const dismissedCount = notifications.filter(n => dismissedSet.has(n.id)).length
+        // SMART DISMISS FILTERING:
+        // Filter out notifications that user explicitly dismissed (marked as read)
+        // BUT if there's new activity (updated_at changed), show them again!
+        // This prevents dismissed notifications from permanently disappearing if someone replies.
+        
+        // Build lookup maps for efficient filtering
+        const dismissedMap = new Map(cleanedDismissed.map(d => [d.id, d]))
+        const archivedSet = new Set(state.archivedNotifications.map(n => n.id))
+        
+        const filteredNotifications = notifications.filter(n => {
+          // Always filter out archived notifications (they're in separate tab)
+          if (archivedSet.has(n.id)) return false
+          
+          // Check if notification was dismissed
+          const dismissed = dismissedMap.get(n.id)
+          if (!dismissed) return true  // Not dismissed, show it
+          
+          // It was dismissed - check if there's NEW ACTIVITY since dismissal
+          const lastSeenUpdate = new Date(dismissed.lastSeenUpdatedAt)
+          const currentUpdate = new Date(n.updated_at)
+          
+          // If GitHub's updated_at is AFTER what we saw when dismissing = new activity!
+          if (currentUpdate > lastSeenUpdate) {
+            console.log(
+              '[NotificationStore] 🔔 Dismissed notification has NEW ACTIVITY, showing again:',
+              n.subject.title,
+              '| Last seen:', lastSeenUpdate.toISOString(),
+              '| Current:', currentUpdate.toISOString()
+            )
+            return true  // Show it again!
+          }
+          
+          // No new activity since dismissal, keep it hidden
+          return false
+        })
+        
+        const dismissedCount = notifications.filter(n => {
+          const dismissed = dismissedMap.get(n.id)
+          if (!dismissed) return false
+          const currentUpdate = new Date(n.updated_at)
+          return currentUpdate <= new Date(dismissed.lastSeenUpdatedAt)
+        }).length
+        
         const archivedCount = notifications.filter(n => archivedSet.has(n.id)).length
         
         if (dismissedCount > 0) {
-          console.log('[NotificationStore] Filtered out', dismissedCount, 'dismissed notifications')
+          console.log('[NotificationStore] Filtered out', dismissedCount, 'dismissed notifications (no new activity)')
         }
         if (archivedCount > 0) {
           console.log('[NotificationStore] Filtered out', archivedCount, 'archived notifications')
@@ -153,7 +218,8 @@ export const useNotificationStore = create<NotificationState>()(
         console.log('[NotificationStore] Storing', filteredNotifications.length, 'notifications')
         
         set({ 
-          notifications: filteredNotifications, 
+          notifications: filteredNotifications,
+          dismissedNotifications: cleanedDismissed, // Store cleaned list
           error: null 
         })
       },
@@ -168,12 +234,25 @@ export const useNotificationStore = create<NotificationState>()(
         set({ notifications: [], error: null, lastFetched: null }),
 
       markAsRead: (notificationId) =>
-        set((state) => ({
-          notifications: state.notifications.filter(
-            (n) => n.id !== notificationId
-          ),
-          dismissedNotificationIds: [...state.dismissedNotificationIds, notificationId],
-        })),
+        set((state) => {
+          const notification = state.notifications.find(n => n.id === notificationId)
+          if (!notification) {
+            console.warn('[markAsRead] Notification not found:', notificationId)
+            return state
+          }
+          
+          return {
+            notifications: state.notifications.filter(n => n.id !== notificationId),
+            dismissedNotifications: [
+              ...state.dismissedNotifications,
+              {
+                id: notificationId,
+                dismissedAt: Date.now(),
+                lastSeenUpdatedAt: notification.updated_at,
+              }
+            ],
+          }
+        }),
 
       markAllAsRead: () => {
         const state = get()
@@ -186,6 +265,13 @@ export const useNotificationStore = create<NotificationState>()(
         const idsToMarkAsRead = filteredNotifications.map(n => n.id)
         const idsToMarkAsReadSet = new Set(idsToMarkAsRead)
         
+        // Create dismissed entries with timestamps for all marked notifications
+        const newDismissals: DismissedNotification[] = filteredNotifications.map(n => ({
+          id: n.id,
+          dismissedAt: Date.now(),
+          lastSeenUpdatedAt: n.updated_at,
+        }))
+        
         // Remove marked notifications from the list (consistent with individual markAsRead)
         const updatedNotifications = state.notifications.filter(n => 
           !idsToMarkAsReadSet.has(n.id)
@@ -194,7 +280,7 @@ export const useNotificationStore = create<NotificationState>()(
         set({ 
           notifications: updatedNotifications,
           markAllBackup: backup,
-          dismissedNotificationIds: [...state.dismissedNotificationIds, ...idsToMarkAsRead],
+          dismissedNotifications: [...state.dismissedNotifications, ...newDismissals],
         })
         
         return filteredNotifications
@@ -209,12 +295,12 @@ export const useNotificationStore = create<NotificationState>()(
           
           // Remove restored notification IDs from dismissed list
           const restoredIds = new Set(state.markAllBackup.map(n => n.id))
-          const updatedDismissedIds = state.dismissedNotificationIds.filter(id => !restoredIds.has(id))
+          const updatedDismissed = state.dismissedNotifications.filter(d => !restoredIds.has(d.id))
           
           return {
             notifications: state.markAllBackup,
             markAllBackup: null,
-            dismissedNotificationIds: updatedDismissedIds,
+            dismissedNotifications: updatedDismissed,
           }
         }),
 
@@ -464,6 +550,14 @@ export const useNotificationStore = create<NotificationState>()(
       bulkMarkAsRead: () => {
         const state = get()
         const selectedIds = Array.from(state.selectedNotificationIds)
+        const selectedNotifications = state.notifications.filter(n => selectedIds.includes(n.id))
+        
+        // Create dismissed entries with timestamps for all selected notifications
+        const newDismissals: DismissedNotification[] = selectedNotifications.map(n => ({
+          id: n.id,
+          dismissedAt: Date.now(),
+          lastSeenUpdatedAt: n.updated_at,
+        }))
         
         // Remove selected notifications from active list and add to dismissed
         set((state) => ({
@@ -471,7 +565,7 @@ export const useNotificationStore = create<NotificationState>()(
             n => !selectedIds.includes(n.id)
           ),
           selectedNotificationIds: new Set<string>(),
-          dismissedNotificationIds: [...state.dismissedNotificationIds, ...selectedIds],
+          dismissedNotifications: [...state.dismissedNotifications, ...newDismissals],
         }))
         
         // Return selected IDs for API calls
@@ -554,7 +648,7 @@ export const useNotificationStore = create<NotificationState>()(
     {
       name: 'zustand-notifications', // Use different key from NotificationService
       storage: createJSONStorage(() => chromeStorage),
-      // Persist notifications, snoozed notifications, archived notifications, rules, selected filter, dismissed IDs
+      // Persist notifications, snoozed notifications, archived notifications, rules, selected filter, dismissed notifications
       partialize: (state) => ({
         notifications: state.notifications,
         snoozedNotifications: state.snoozedNotifications,
@@ -562,8 +656,36 @@ export const useNotificationStore = create<NotificationState>()(
         autoArchiveRules: state.autoArchiveRules,
         lastFetched: state.lastFetched,
         activeFilter: state.activeFilter,
-        dismissedNotificationIds: state.dismissedNotificationIds,
+        dismissedNotifications: state.dismissedNotifications,
       }),
+      // Migration: Convert old dismissedNotificationIds to new dismissedNotifications format
+      onRehydrateStorage: () => (state) => {
+        if (!state) return
+        
+        // Check if we need to migrate from old format
+        if (state.dismissedNotificationIds && Array.isArray(state.dismissedNotificationIds) && state.dismissedNotificationIds.length > 0) {
+          console.log('[Migration] Converting', state.dismissedNotificationIds.length, 'old dismissedNotificationIds to new format')
+          
+          // Convert old IDs to new format with dummy timestamps
+          // We use 7 days ago as the dismissal time (arbitrary but reasonable)
+          const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000)
+          const migratedDismissals: DismissedNotification[] = state.dismissedNotificationIds.map(id => ({
+            id,
+            dismissedAt: sevenDaysAgo,
+            // Use a timestamp from 7 days ago as lastSeenUpdatedAt
+            // This means any activity in the last 7 days will cause the notification to reappear
+            lastSeenUpdatedAt: new Date(sevenDaysAgo).toISOString(),
+          }))
+          
+          // Merge with existing dismissedNotifications (if any)
+          state.dismissedNotifications = [...(state.dismissedNotifications || []), ...migratedDismissals]
+          
+          // Clean up old field
+          delete state.dismissedNotificationIds
+          
+          console.log('[Migration] Successfully migrated to new format:', state.dismissedNotifications.length, 'dismissed notifications')
+        }
+      },
     }
   )
 )

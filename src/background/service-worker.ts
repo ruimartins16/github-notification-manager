@@ -271,16 +271,43 @@ async function fetchNotificationsInBackground() {
     const existingData = result[ZUSTAND_STORAGE_KEY]
     const parsed = existingData ? JSON.parse(existingData) : { state: {}, version: 0 }
     
+    // SMART DISMISS FILTERING:
     // Filter out notifications that user explicitly dismissed (marked as read)
-    // The popup tracks dismissed IDs to handle GitHub's API inconsistency
-    // where marked-as-read notifications sometimes still return with unread:true
-    const dismissedIds = new Set<string>(parsed.state?.dismissedNotificationIds || [])
-    const filteredNotifications = dismissedIds.size > 0
-      ? notifications.filter((n: GitHubNotification) => !dismissedIds.has(n.id))
-      : notifications
+    // BUT if there's new activity (updated_at changed), include them again!
+    // This ensures users see important updates even on dismissed threads.
+    interface DismissedNotification {
+      id: string
+      dismissedAt: number
+      lastSeenUpdatedAt: string
+    }
     
-    if (dismissedIds.size > 0 && filteredNotifications.length < notifications.length) {
-      console.log('Background fetch: filtered out', notifications.length - filteredNotifications.length, 'dismissed notifications')
+    const dismissedNotifications: DismissedNotification[] = parsed.state?.dismissedNotifications || []
+    const dismissedMap = new Map(dismissedNotifications.map(d => [d.id, d]))
+    
+    const filteredNotifications = notifications.filter((n: GitHubNotification) => {
+      const dismissed = dismissedMap.get(n.id)
+      if (!dismissed) return true  // Not dismissed, include it
+      
+      // Check if there's new activity since dismissal
+      const lastSeenUpdate = new Date(dismissed.lastSeenUpdatedAt)
+      const currentUpdate = new Date(n.updated_at)
+      
+      // If GitHub's updated_at is newer than when we dismissed = new activity!
+      if (currentUpdate > lastSeenUpdate) {
+        console.log(
+          '[Background] Dismissed notification has new activity, including:',
+          n.subject.title
+        )
+        return true  // Include it!
+      }
+      
+      // No new activity, keep it hidden
+      return false
+    })
+    
+    const dismissedCount = notifications.length - filteredNotifications.length
+    if (dismissedCount > 0) {
+      console.log('Background fetch: filtered out', dismissedCount, 'dismissed notifications (no new activity)')
     }
     
     // Update notifications in Zustand's persisted state

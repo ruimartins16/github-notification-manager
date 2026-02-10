@@ -20,7 +20,6 @@ import { AuthService } from '../utils/auth-service'
 import { convertApiUrlToWebUrl } from '../utils/url-converter'
 import { extPayService } from '../utils/extpay-service'
 import { trackEvent, ANALYTICS_EVENTS } from '../utils/analytics'
-import { useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { GearIcon, ArrowLeftIcon, CheckCircleIcon, CheckboxIcon, QuestionIcon } from '@primer/octicons-react'
 
@@ -63,9 +62,6 @@ function App() {
   // Pro status
   const { isPro, isLoading: proLoading } = useProStatus()
   
-  // React Query client for cache invalidation
-  const queryClient = useQueryClient()
-  
   const [copied, setCopied] = useState(false)
   const [isPolling, setIsPolling] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('active')
@@ -95,29 +91,34 @@ function App() {
   // Zustand persist only hydrates once (on module load), so if the popup JS was cached
   // from a previous open, the store may have stale in-memory data. This forces:
   // 1. Zustand to re-read from chrome.storage (picks up background worker writes)
-  // 2. Conditionally refetch from GitHub API only if data is stale (> 2 minutes)
+  // 2. Re-apply smart dismiss filtering to show correct notification count immediately
   useEffect(() => {
-    console.log('[App] Popup opened - checking data freshness')
+    console.log('[App] Popup opened - rehydrating and applying smart dismiss filtering')
     
     // Force Zustand to re-read from chrome.storage.local
     // This picks up any notifications the background worker wrote since last open
     useNotificationStore.persist.rehydrate()
     
-    // Check if background fetch is recent
-    // Background worker fetches every 60s, so if lastFetched < 2min ago, data is fresh
-    const lastFetched = useNotificationStore.getState().lastFetched
-    const cacheAge = lastFetched ? Date.now() - lastFetched : Infinity
-    const CACHE_MAX_AGE = 2 * 60 * 1000 // 2 minutes
+    // CRITICAL: After rehydrate, the store has raw notifications from storage
+    // but smart dismiss filtering hasn't been applied yet!
+    // We need to explicitly call setNotifications() to re-apply the filtering logic
+    // that checks updated_at timestamps for new activity on dismissed notifications.
+    const state = useNotificationStore.getState()
+    const rehydratedNotifications = state.notifications
     
-    if (cacheAge > CACHE_MAX_AGE) {
-      // Data is stale, refetch from GitHub API
-      console.log('[App] Data is stale (age:', Math.round(cacheAge / 1000), 's), refetching from GitHub...')
-      queryClient.invalidateQueries({ queryKey: ['notifications'] })
-    } else {
-      // Data is fresh from background worker, trust rehydrated data
-      console.log('[App] Using recent background fetch (age:', Math.round(cacheAge / 1000), 's)')
-    }
-  }, [queryClient])
+    console.log('[App] Re-applying smart dismiss filtering to', rehydratedNotifications.length, 'rehydrated notifications')
+    
+    // This will:
+    // 1. Filter out archived notifications
+    // 2. Apply smart dismiss (check updated_at vs lastSeenUpdatedAt)
+    // 3. Show notifications with new activity even if previously dismissed
+    state.setNotifications(rehydratedNotifications)
+    
+    const lastFetched = state.lastFetched
+    const cacheAge = lastFetched ? Date.now() - lastFetched : Infinity
+    
+    console.log('[App] Data age:', Math.round(cacheAge / 1000), 's (from background worker)')
+  }, [])
 
   // Keyboard shortcuts handlers
   const handleOpenFocused = useCallback(() => {

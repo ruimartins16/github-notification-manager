@@ -5,7 +5,7 @@
  * - Real-time access to notifications state (synced with background worker)
  * - Loading, error, and data states from Zustand
  * - Automatic syncing with chrome.storage via persist middleware
- * - Manual refresh capability via React Query
+ * - Manual refresh capability
  * 
  * Background worker handles:
  * - Periodic fetching every 60 seconds
@@ -18,14 +18,11 @@
  * ```
  */
 
-import { useQuery } from '@tanstack/react-query'
-import { useCallback } from 'react'
-import { GitHubAPI } from '../utils/github-api'
+import { useCallback, useState } from 'react'
+import { NotificationService } from '../utils/notification-service'
 import { useNotificationStore } from '../store/notification-store'
 import { useAuth } from './useAuth'
 import type { GitHubNotification } from '../types/github'
-
-const STALE_TIME = 5 * 60 * 1000 // 5 minutes - balances freshness with API rate limits
 
 export interface UseNotificationsOptions {
   /**
@@ -53,10 +50,10 @@ export interface UseNotificationsResult {
   markAsRead: (notificationId: string) => void
 }
 
-export function useNotifications(options?: UseNotificationsOptions): UseNotificationsResult {
-  const { token, isAuthenticated } = useAuth()
+export function useNotifications(_options?: UseNotificationsOptions): UseNotificationsResult {
+  const { token } = useAuth()
   
-  // Get state and actions from Zustand store
+  // Get state and actions from Zustand store (single source of truth)
   const { 
     notifications, 
     isLoading: storeLoading, 
@@ -68,68 +65,45 @@ export function useNotifications(options?: UseNotificationsOptions): UseNotifica
     updateLastFetched,
   } = useNotificationStore()
 
-  // React Query for manual refresh capability
-  const query = useQuery<GitHubNotification[], Error>({
-    queryKey: ['notifications', { all: options?.all, participating: options?.participating }],
-    queryFn: async () => {
-      if (!token) {
-        throw new Error('Token is required but not available')
-      }
+  // Local state for tracking refresh operation
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
-      setLoading(true)
-
-      try {
-        const api = GitHubAPI.getInstance()
-        await api.initialize(token)
-        
-        // Fetch unread notifications (all=false is default)
-        // setNotifications will filter out dismissed IDs (notifications user marked as read)
-        const fetchedNotifications = await api.fetchNotifications({
-          all: options?.all,
-          participating: options?.participating,
-        })
-
-        const typedNotifications = fetchedNotifications as unknown as GitHubNotification[]
-        
-        // Update Zustand store (which persists to chrome.storage)
-        // Store will automatically filter out dismissed notification IDs
-        setNotifications(typedNotifications)
-        updateLastFetched()
-        
-        return typedNotifications
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch notifications'
-        setError(errorMessage)
-        throw err
-      } finally {
-        setLoading(false)
-      }
-    },
-    // Only fetch if authenticated AND token exists (prevents race condition)
-    enabled: (options?.enabled ?? true) && isAuthenticated && !!token,
-    // Don't poll - background service worker handles periodic fetching
-    refetchInterval: false,
-    staleTime: STALE_TIME,
-    // Conditional refetch on window focus - only if data is stale (> 2 minutes)
-    refetchOnWindowFocus: () => {
-      const lastFetched = useNotificationStore.getState().lastFetched
-      const cacheAge = lastFetched ? Date.now() - lastFetched : Infinity
-      const CACHE_MAX_AGE = 2 * 60 * 1000 // 2 minutes
-      return cacheAge > CACHE_MAX_AGE
-    },
-    refetchOnReconnect: true,
-    retry: 3,
-  })
-
-  // Manual refresh function
+  // Manual refresh function - fetches from GitHub API and updates store
   const refresh = useCallback(async () => {
-    await query.refetch()
-  }, [query])
+    if (!token) {
+      console.warn('[useNotifications] Cannot refresh: no token')
+      return
+    }
+
+    setIsRefreshing(true)
+    setLoading(true)
+
+    try {
+      console.log('[useNotifications] Manual refresh triggered')
+      
+      // Fetch fresh notifications from GitHub API
+      const fetchedNotifications = await NotificationService.fetchNotifications(token)
+      
+      // Update Zustand store (which persists to chrome.storage)
+      // Store will automatically apply smart dismiss filtering
+      setNotifications(fetchedNotifications)
+      updateLastFetched()
+      
+      console.log('[useNotifications] Refresh complete:', fetchedNotifications.length, 'notifications')
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch notifications'
+      console.error('[useNotifications] Refresh failed:', errorMessage)
+      setError(errorMessage)
+    } finally {
+      setLoading(false)
+      setIsRefreshing(false)
+    }
+  }, [token, setNotifications, setLoading, setError, updateLastFetched])
 
   return {
-    notifications,
-    isLoading: storeLoading || query.isFetching,
-    error: storeError || (query.error?.message ?? null),
+    notifications, // From Zustand store (synced with background worker)
+    isLoading: storeLoading || isRefreshing,
+    error: storeError,
     refresh,
     markAsRead,
   }
@@ -144,7 +118,7 @@ export function useNotifications(options?: UseNotificationsOptions): UseNotifica
  * ```
  */
 export function useUnreadCount(): number {
-  const { notifications } = useNotifications({ all: false })
+  const notifications = useNotificationStore(state => state.notifications)
   
   if (!notifications) return 0
   
