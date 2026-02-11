@@ -33,7 +33,8 @@ function App() {
     notifications, 
     isLoading: notificationsLoading, 
     error: notificationsError,
-    refresh: refreshNotifications 
+    refresh: refreshNotifications,
+    forceRefresh: forceRefreshNotifications
   } = useNotifications()
   const unreadCount = useUnreadCount()
   
@@ -421,19 +422,30 @@ function App() {
   }, [markAllAsRead, undoMarkAllAsRead, addToast])
 
   // Manual refresh handler
-  const handleManualRefresh = useCallback(async () => {
-    console.log('[App] Manual refresh triggered')
-    addToast('Refreshing notifications...', { variant: 'info', duration: 2000 })
+  // Supports force refresh (bypasses ETag cache) when called with forceRefresh=true
+  const handleManualRefresh = useCallback(async (forceRefresh = false) => {
+    if (forceRefresh) {
+      console.log('[App] Force refresh triggered (bypassing ETag cache)')
+      addToast('Force refreshing from GitHub...', { variant: 'info', duration: 2000 })
+    } else {
+      console.log('[App] Manual refresh triggered')
+      addToast('Refreshing notifications...', { variant: 'info', duration: 2000 })
+    }
     
     try {
-      // Force React Query to refetch from GitHub API
-      await refreshNotifications()
-      addToast('Notifications refreshed', { variant: 'success', duration: 2000 })
+      // Use forceRefresh to bypass ETag cache, or regular refresh
+      if (forceRefresh) {
+        await forceRefreshNotifications()
+        addToast('Notifications force refreshed', { variant: 'success', duration: 2000 })
+      } else {
+        await refreshNotifications()
+        addToast('Notifications refreshed', { variant: 'success', duration: 2000 })
+      }
     } catch (error) {
       console.error('[App] Manual refresh failed:', error)
       addToast('Failed to refresh notifications', { variant: 'error', duration: 3000 })
     }
-  }, [refreshNotifications, addToast])
+  }, [refreshNotifications, forceRefreshNotifications, addToast])
 
   // Keyboard shortcuts integration
   const { getShortcuts, listRef } = useKeyboardShortcuts({

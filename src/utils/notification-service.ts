@@ -15,6 +15,7 @@
 
 import { GitHubAPI } from './github-api'
 import { isNotModifiedError } from './conditional-request-plugin'
+import { etagCache } from './etag-cache'
 import type { GitHubNotification } from '../types/github'
 
 /**
@@ -157,6 +158,33 @@ export class NotificationService {
       console.error('[NotificationService] Failed to fetch notifications:', error)
       throw error
     }
+  }
+
+  /**
+   * Force fetch fresh notifications (bypasses ETag cache)
+   * 
+   * Use this when you need to guarantee fresh data from GitHub's API,
+   * bypassing the ETag conditional request cache. This is useful when:
+   * - User manually triggers refresh
+   * - Suspecting stale cached data
+   * - Need immediate update without waiting for periodic refresh
+   * 
+   * @param token - GitHub access token
+   * @returns Array of fresh notifications from GitHub API
+   * @throws Error if API request fails
+   */
+  static async forceRefreshNotifications(token: string): Promise<GitHubNotification[]> {
+    console.log('[NotificationService] Force refresh: Clearing ETag cache')
+    
+    // Clear ETag cache to force fresh 200 OK response
+    try {
+      await etagCache.delete('https://api.github.com/notifications')
+    } catch (error) {
+      console.error('[NotificationService] Failed to clear ETag cache, continuing anyway:', error)
+    }
+    
+    // Fetch notifications normally - will get 200 OK instead of 304
+    return this.fetchNotifications(token)
   }
 
   /**

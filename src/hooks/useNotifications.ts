@@ -47,6 +47,7 @@ export interface UseNotificationsResult {
   isLoading: boolean
   error: string | null
   refresh: () => Promise<void>
+  forceRefresh: () => Promise<void>
   markAsRead: (notificationId: string) => void
 }
 
@@ -100,11 +101,43 @@ export function useNotifications(_options?: UseNotificationsOptions): UseNotific
     }
   }, [token, setNotifications, setLoading, setError, updateLastFetched])
 
+  // Force refresh function - bypasses ETag cache to guarantee fresh data
+  const forceRefresh = useCallback(async () => {
+    if (!token) {
+      console.warn('[useNotifications] Cannot force refresh: no token')
+      return
+    }
+
+    setIsRefreshing(true)
+    setLoading(true)
+
+    try {
+      console.log('[useNotifications] Force refresh triggered (bypassing ETag cache)')
+      
+      // Force fetch bypasses ETag cache - always gets fresh 200 OK from GitHub
+      const fetchedNotifications = await NotificationService.forceRefreshNotifications(token)
+      
+      // Update Zustand store (which persists to chrome.storage)
+      setNotifications(fetchedNotifications)
+      updateLastFetched()
+      
+      console.log('[useNotifications] Force refresh complete:', fetchedNotifications.length, 'notifications')
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to force refresh notifications'
+      console.error('[useNotifications] Force refresh failed:', errorMessage)
+      setError(errorMessage)
+    } finally {
+      setLoading(false)
+      setIsRefreshing(false)
+    }
+  }, [token, setNotifications, setLoading, setError, updateLastFetched])
+
   return {
-    notifications, // From Zustand store (synced with background worker)
+    notifications,
     isLoading: storeLoading || isRefreshing,
     error: storeError,
     refresh,
+    forceRefresh,
     markAsRead,
   }
 }

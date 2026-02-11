@@ -61,6 +61,11 @@ const FETCH_ALARM_NAME = 'fetch-notifications'
 // Alarm name for periodic subscription status check
 const SUB_STATUS_ALARM_NAME = 'check-subscription-status'
 
+// Force fresh data periodically to prevent stale ETag cache issues.
+// Uses a persisted timestamp so it survives service worker restarts.
+const FORCE_REFRESH_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
+const LAST_FORCE_REFRESH_KEY = 'last_force_refresh_timestamp'
+
 // Initialize extension on install or update
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('Extension installed:', details.reason)
@@ -271,6 +276,11 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
  * Fetch notifications in background (called by alarm)
  * Only fetches if user is authenticated
  * Applies auto-archive rules after fetching
+ * 
+ * ETag Strategy:
+ * - Most fetches use ETag conditional requests (saves rate limits)
+ * - Every 5th fetch clears ETag to force fresh data (prevents stale cache)
+ * - Balances rate limit optimization with data freshness
  */
 async function fetchNotificationsInBackground() {
   try {
@@ -280,6 +290,20 @@ async function fetchNotificationsInBackground() {
     if (!token) {
       console.log('No token found, skipping background fetch')
       return
+    }
+
+    // Check if we should force a fresh fetch (bypass ETag cache)
+    // Persisted to chrome.storage so it survives service worker restarts
+    const forceRefreshResult = await chrome.storage.local.get(LAST_FORCE_REFRESH_KEY)
+    const lastForceRefresh: number = forceRefreshResult[LAST_FORCE_REFRESH_KEY] || 0
+    const timeSinceForceRefresh = Date.now() - lastForceRefresh
+    
+    if (timeSinceForceRefresh >= FORCE_REFRESH_INTERVAL_MS) {
+      console.log(`[Background] Forcing fresh fetch (${Math.round(timeSinceForceRefresh / 1000)}s since last force refresh)`)
+      await etagCache.delete('https://api.github.com/notifications')
+      await chrome.storage.local.set({ [LAST_FORCE_REFRESH_KEY]: Date.now() })
+    } else {
+      console.log(`[Background] Using ETag conditional request (${Math.round((FORCE_REFRESH_INTERVAL_MS - timeSinceForceRefresh) / 1000)}s until next force refresh)`)
     }
 
     console.log('Fetching notifications in background...')

@@ -29,7 +29,7 @@ interface UseKeyboardShortcutsOptions {
   /** Callback when marking all as read */
   onMarkAllRead?: () => void
   /** Callback when manually refreshing notifications */
-  onManualRefresh?: () => void
+  onManualRefresh?: (forceRefresh?: boolean) => void
   /** Callback when opening help modal */
   onOpenHelp?: () => void
   /** Callback to show upgrade prompt */
@@ -220,9 +220,12 @@ export function useKeyboardShortcuts({
       }
 
       // Manual refresh - FREE (always available)
-      if ((e.key === 'r' || e.key === 'R') && !e.shiftKey) {
+      // R: Normal refresh (uses ETag cache)
+      // Shift+R: Force refresh (bypasses ETag cache for fresh data)
+      if (e.key === 'r' || e.key === 'R') {
         e.preventDefault()
-        onManualRefresh?.()
+        const forceRefresh = e.shiftKey
+        onManualRefresh?.(forceRefresh)
         return
       }
     },
@@ -362,8 +365,16 @@ export function useKeyboardShortcuts({
       {
         key: 'R',
         description: 'Refresh notifications from GitHub',
-        action: () => onManualRefresh?.(),
+        action: () => onManualRefresh?.(false),
         category: 'global',
+        isPro: false,
+      },
+      {
+        key: 'Shift + R',
+        description: 'Force refresh (bypass cache)',
+        action: () => onManualRefresh?.(true),
+        category: 'global',
+        requiresShift: true,
         isPro: false,
       },
       {
