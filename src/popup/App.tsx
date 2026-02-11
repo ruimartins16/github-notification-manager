@@ -387,7 +387,30 @@ function App() {
 
       const api = GitHubAPI.getInstance()
       await api.initialize(token)
+      
+      // Primary: Call bulk mark all as read (efficient for most notifications)
       await api.markAllAsRead()
+      
+      // Fallback: Also mark each notification individually to ensure GitHub processes them
+      // This handles edge cases where bulk endpoint doesn't reliably mark certain notification types (e.g., review_requested)
+      // Pattern follows BulkActionsBar.tsx implementation
+      console.log(`[App] Marking ${markedNotifications.length} notifications individually as fallback`)
+      const individualResults = await Promise.allSettled(
+        markedNotifications.map(n => 
+          api.markAsRead(n.id).catch(err => {
+            console.warn(`[App] Failed to mark notification ${n.id} as read:`, err)
+            throw err
+          })
+        )
+      )
+      
+      // Log any failures but don't block the flow
+      const failedCount = individualResults.filter(r => r.status === 'rejected').length
+      if (failedCount > 0) {
+        console.warn(`[App] ${failedCount} of ${markedNotifications.length} individual mark-as-read calls failed`)
+      } else {
+        console.log(`[App] Successfully marked all ${markedNotifications.length} notifications individually`)
+      }
     } catch (error) {
       console.error('Failed to mark notifications as read on GitHub:', error)
       
@@ -407,6 +430,12 @@ function App() {
               const api = GitHubAPI.getInstance()
               await api.initialize(token)
               await api.markAllAsRead()
+              
+              // Retry individual calls too
+              await Promise.allSettled(
+                markedNotifications.map(n => api.markAsRead(n.id))
+              )
+              
               addToast('Synced with GitHub', { variant: 'success', duration: 3000 })
             } catch (retryError) {
               console.error('Retry failed:', retryError)
