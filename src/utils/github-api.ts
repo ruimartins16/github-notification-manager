@@ -18,6 +18,7 @@
  */
 
 import { Octokit } from '@octokit/rest'
+import { conditionalRequestPlugin } from './conditional-request-plugin'
 import type { GitHubUser } from '../types/github'
 
 export class GitHubAPI {
@@ -59,7 +60,20 @@ export class GitHubAPI {
     this.octokit = new Octokit({ 
       auth: token,
       userAgent: 'GitHush v1.0.0',
+      request: {
+        fetch: (url: string | Request, opts?: RequestInit) => {
+          // Add cache: 'no-cache' to force validation with server
+          // This ensures conditional requests are sent every time
+          return fetch(url, { 
+            ...opts, 
+            cache: 'no-cache' 
+          })
+        }
+      }
     })
+    
+    // Register conditional request plugin for ETag support
+    conditionalRequestPlugin(this.octokit)
   }
 
   /**

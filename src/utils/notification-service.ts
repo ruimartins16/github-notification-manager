@@ -14,6 +14,7 @@
  */
 
 import { GitHubAPI } from './github-api'
+import { isNotModifiedError } from './conditional-request-plugin'
 import type { GitHubNotification } from '../types/github'
 
 /**
@@ -74,6 +75,11 @@ export class NotificationService {
   /**
    * Fetch notifications from GitHub API
    * 
+   * Handles conditional requests (ETag) automatically via the Octokit plugin:
+   * - First request: Returns fresh data with 200 OK, stores ETag
+   * - Subsequent requests: If data unchanged, throws NotModifiedError (304), use cached data
+   * - If data changed: Returns fresh data with 200 OK, updates ETag
+   * 
    * @param token - GitHub access token
    * @returns Array of unread notifications (dismissed IDs filtered by store, zombies filtered out)
    * @throws Error if API request fails
@@ -82,46 +88,75 @@ export class NotificationService {
     const api = GitHubAPI.getInstance()
     await api.initialize(token)
 
-    // Fetch only unread notifications where user is participating (mentions, assignments, review requests)
-    // This reduces noise from watched repo notifications and focuses on actionable items
-    // Store's setNotifications will filter out dismissed notification IDs
-    const notifications = await api.fetchNotifications({
-      all: false,
-      participating: true, // Only show notifications where user is directly involved
-      perPage: 100, // Fetch max per page to avoid pagination issues
-    })
-
-    console.log('[NotificationService] Fetched', notifications.length, 'notifications from GitHub API')
-    
-    // Log first few notification details for debugging
-    if (notifications.length > 0) {
-      console.log('[NotificationService] Sample notifications (first 3):')
-      notifications.slice(0, 3).forEach((n: any, i: number) => {
-        console.log(`  ${i + 1}. ${n.subject.title} | reason: ${n.reason} | unread: ${n.unread} | repo: ${n.repository.full_name}`)
+    try {
+      // Fetch only unread notifications where user is participating (mentions, assignments, review requests)
+      // This reduces noise from watched repo notifications and focuses on actionable items
+      // Store's setNotifications will filter out dismissed notification IDs
+      const notifications = await api.fetchNotifications({
+        all: false,
+        participating: true, // Only show notifications where user is directly involved
+        perPage: 100, // Fetch max per page to avoid pagination issues
       })
+
+      console.log('[NotificationService] Fresh data received (200 OK) -', notifications.length, 'notifications from GitHub API')
+      
+      // Log first few notification details for debugging
+      if (notifications.length > 0) {
+        console.log('[NotificationService] Sample notifications (first 3):')
+        notifications.slice(0, 3).forEach((n: any, i: number) => {
+          console.log(`  ${i + 1}. ${n.subject.title} | reason: ${n.reason} | unread: ${n.unread} | repo: ${n.repository.full_name}`)
+        })
+      }
+
+      // Filter out zombie notifications (GitHub API bug for review_requested)
+      const filtered = this.filterZombieNotifications(notifications as unknown as GitHubNotification[])
+      
+      const zombieCount = notifications.length - filtered.length
+      if (zombieCount > 0) {
+        console.log('[NotificationService] Filtered out', zombieCount, 'zombie notifications')
+        // Log which notifications were filtered as zombies
+        const zombies = (notifications as unknown as GitHubNotification[]).filter(n => {
+          if (n.unread) return false
+          if (!n.last_read_at) return false
+          const lastRead = new Date(n.last_read_at)
+          const updated = new Date(n.updated_at)
+          return updated <= lastRead
+        })
+        zombies.slice(0, 3).forEach((n, i) => {
+          console.log(`  Zombie ${i + 1}: ${n.subject.title} | reason: ${n.reason}`)
+        })
+      }
+      console.log('[NotificationService] Returning', filtered.length, 'valid notifications')
+
+      return filtered
+      
+    } catch (error) {
+      // Handle 304 Not Modified response
+      if (isNotModifiedError(error)) {
+        console.log('[NotificationService] Data not modified (304) - using cached data from storage')
+        
+        // Get cached notifications from Zustand storage
+        const result = await chrome.storage.local.get('zustand-notifications')
+        if (result['zustand-notifications']) {
+          try {
+            const parsed = JSON.parse(result['zustand-notifications'])
+            const cachedNotifications = parsed?.state?.notifications || []
+            console.log('[NotificationService] Returning', cachedNotifications.length, 'cached notifications')
+            return cachedNotifications
+          } catch (parseError) {
+            console.error('[NotificationService] Failed to parse cached notifications:', parseError)
+            // Fall through to re-throw original error
+          }
+        } else {
+          console.warn('[NotificationService] 304 received but no cached data found - returning empty array')
+          return []
+        }
+      }
+      
+      // Re-throw all other errors
+      console.error('[NotificationService] Failed to fetch notifications:', error)
+      throw error
     }
-
-    // Filter out zombie notifications (GitHub API bug for review_requested)
-    const filtered = this.filterZombieNotifications(notifications as unknown as GitHubNotification[])
-    
-    const zombieCount = notifications.length - filtered.length
-    if (zombieCount > 0) {
-      console.log('[NotificationService] Filtered out', zombieCount, 'zombie notifications')
-      // Log which notifications were filtered as zombies
-      const zombies = (notifications as unknown as GitHubNotification[]).filter(n => {
-        if (n.unread) return false
-        if (!n.last_read_at) return false
-        const lastRead = new Date(n.last_read_at)
-        const updated = new Date(n.updated_at)
-        return updated <= lastRead
-      })
-      zombies.slice(0, 3).forEach((n, i) => {
-        console.log(`  Zombie ${i + 1}: ${n.subject.title} | reason: ${n.reason}`)
-      })
-    }
-    console.log('[NotificationService] Returning', filtered.length, 'valid notifications')
-
-    return filtered
   }
 
   /**

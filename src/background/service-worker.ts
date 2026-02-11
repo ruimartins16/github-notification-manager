@@ -16,6 +16,7 @@ console.log('[ExtPay] Background service initialized with extension ID:', EXTENS
 import { AuthService } from '../utils/auth-service'
 import { NotificationService } from '../utils/notification-service'
 import { BadgeService } from '../utils/badge-service'
+import { etagCache } from '../utils/etag-cache'
 
 // Storage key for Zustand persisted state (single source of truth)
 const ZUSTAND_STORAGE_KEY = 'zustand-notifications'
@@ -91,6 +92,10 @@ chrome.runtime.onInstalled.addListener((details) => {
 chrome.runtime.onStartup.addListener(async () => {
   // Preload license on startup
   validateLicense().catch(console.error)
+  
+  // Cleanup expired ETags on startup (removes entries older than 7 days)
+  console.log('[ETag] Cleaning up expired ETag cache entries...')
+  await etagCache.cleanup()
   
   // Recreate notification fetch alarm if missing
   const alarm = await chrome.alarms.get(FETCH_ALARM_NAME)
