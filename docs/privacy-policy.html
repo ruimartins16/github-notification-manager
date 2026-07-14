@@ -151,16 +151,16 @@
     <header>
       <h1>🔔 Privacy Policy</h1>
       <p style="font-size: 1.2em; margin-top: 10px;">GitHush</p>
-      <p class="last-updated">Last Updated: February 8, 2026</p>
+      <p class="last-updated">Last Updated: July 14, 2026</p>
     </header>
 
     <div class="tldr">
       <h2>TL;DR (Too Long; Didn't Read)</h2>
       <ul>
-        <li><span class="checkmark">✅</span> We don't collect, store, or transmit any of your personal data</li>
-        <li><span class="checkmark">✅</span> All data stays in your browser locally</li>
+        <li><span class="checkmark">✅</span> Your data never reaches us — everything stays in your browser locally</li>
         <li><span class="checkmark">✅</span> We only access GitHub APIs that you authorize</li>
-        <li><span class="checkmark">✅</span> No analytics, tracking, or third-party services</li>
+        <li><span class="checkmark">✅</span> No external tracking or analytics services (usage counters are stored locally only and never transmitted)</li>
+        <li><span class="checkmark">✅</span> The only third parties involved are GitHub (the service itself) and, if you buy Pro, ExtensionPay/Stripe for payment</li>
         <li><span class="checkmark">✅</span> Open source and transparent</li>
       </ul>
     </div>
@@ -169,7 +169,14 @@
     <p>GitHush ("the Extension") is a Chrome browser extension that helps you manage your GitHub notifications. This privacy policy explains how we handle your data.</p>
 
     <h2>Data Collection</h2>
-    <p><strong>We do NOT collect any data.</strong> The Extension operates entirely within your browser and does not send any information to external servers (other than GitHub's API, which you authorize).</p>
+    <p><strong>We (the developer) never receive your data.</strong> The Extension operates entirely within your browser and does not send any information to servers we operate — we don't have any servers. The only external communication is with GitHub's API (which you authorize) and, optionally, the payment provider if you upgrade to Pro.</p>
+    <p>For transparency, these are the categories of user data the Extension handles, matching our Chrome Web Store disclosure:</p>
+    <ol>
+      <li><strong>Authentication information</strong> — your GitHub OAuth access token, stored in your browser and sent only to GitHub's API to authenticate your requests.</li>
+      <li><strong>Personally identifiable information</strong> — your GitHub profile basics (username, display name, avatar), fetched from GitHub and stored in your browser to show who is signed in.</li>
+      <li><strong>Website content</strong> — your GitHub notifications (issue/PR titles, repository names, links), fetched from GitHub and cached in your browser.</li>
+    </ol>
+    <p>None of this data leaves your browser except to communicate with GitHub itself.</p>
 
     <h3>What Data We Access</h3>
     <p>The Extension requests access to:</p>
@@ -227,6 +234,22 @@
           <li>Removal: Cleared when you log out or uninstall the extension</li>
         </ul>
       </li>
+      <li>
+        <strong>Local Usage Counters</strong>
+        <ul>
+          <li>Purpose: Anonymous counters of upgrade-flow interactions (e.g., "upgrade button clicked") to understand which Pro features matter</li>
+          <li>Location: Browser local storage <strong>only</strong> — these events are never transmitted anywhere and contain no notification content or personal data</li>
+          <li>Removal: Cleared when you uninstall the extension</li>
+        </ul>
+      </li>
+      <li>
+        <strong>Subscription Status</strong> (Pro users only)
+        <ul>
+          <li>Purpose: To enable/disable Pro features (Pro status, plan type, subscription date)</li>
+          <li>Location: Browser local storage</li>
+          <li>Removal: Cleared when you uninstall the extension</li>
+        </ul>
+      </li>
     </ol>
 
     <h2>Data Sharing</h2>
@@ -234,8 +257,9 @@
     <ul>
       <li>Your browser ↔ GitHub's API (api.github.com)</li>
       <li>Your browser ↔ GitHub's website (github.com)</li>
+      <li>Your browser ↔ ExtensionPay (extensionpay.com), only if you upgrade to Pro</li>
     </ul>
-    <p>No intermediary servers, no analytics services, no tracking.</p>
+    <p>No intermediary servers, no external analytics services, no tracking.</p>
 
     <h2>Third-Party Services</h2>
     <p>The Extension communicates with:</p>
@@ -248,8 +272,32 @@
           <li>Data Sent: Your GitHub OAuth token (which you authorize)</li>
         </ul>
       </li>
-      <li><strong>No other third-party services</strong></li>
+      <li>
+        <strong>ExtensionPay</strong> (extensionpay.com) — only if you upgrade to Pro
+        <ul>
+          <li>Purpose: Subscription and license management for optional Pro features</li>
+          <li>Privacy Policy: <a href="https://extensionpay.com/privacy" target="_blank">ExtensionPay Privacy Policy</a></li>
+          <li>Data Shared: Email address (optional, for receipts and multi-device sync) and browser extension ID</li>
+        </ul>
+      </li>
+      <li>
+        <strong>Stripe</strong> (stripe.com) — only if you upgrade to Pro
+        <ul>
+          <li>Purpose: Secure payment processing (PCI DSS Level 1 certified)</li>
+          <li>Privacy Policy: <a href="https://stripe.com/privacy" target="_blank">Stripe Privacy Policy</a></li>
+          <li>Data Shared: Payment details you provide during checkout — <strong>never</strong> seen or stored by the Extension</li>
+        </ul>
+      </li>
     </ol>
+
+    <h2>Payments (Pro Features)</h2>
+    <p>GitHush offers optional Pro features via subscription or one-time purchase. Payments happen entirely on ExtensionPay's secure checkout pages powered by Stripe:</p>
+    <ul>
+      <li><span class="checkmark">✅</span> We never see or store your credit card number, CVV, billing address, or bank details</li>
+      <li><span class="checkmark">✅</span> Only your subscription status (Pro yes/no, plan type) is stored locally in your browser to unlock features</li>
+      <li><span class="checkmark">✅</span> Cancel anytime via Settings → Manage Subscription (ExtensionPay portal)</li>
+      <li><span class="checkmark">✅</span> Refunds and the EEA 14-day right of withdrawal: contact support@extensionpay.com</li>
+    </ul>
 
     <h2>Permissions Explained</h2>
     <p>The Extension requests the following Chrome permissions:</p>
@@ -262,28 +310,24 @@
       </thead>
       <tbody>
         <tr>
-          <td><code>identity</code></td>
-          <td>To handle GitHub OAuth device flow authentication</td>
-        </tr>
-        <tr>
-          <td><code>notifications</code></td>
-          <td>To show browser notifications when new GitHub notifications arrive</td>
-        </tr>
-        <tr>
           <td><code>storage</code></td>
           <td>To store your preferences, auth token, and notification data locally</td>
         </tr>
         <tr>
           <td><code>alarms</code></td>
-          <td>To wake up snoozed notifications at the scheduled time</td>
+          <td>To check for new notifications on your chosen interval and wake snoozed notifications at the scheduled time</td>
         </tr>
         <tr>
           <td><code>https://api.github.com/*</code></td>
-          <td>To fetch notifications from GitHub API</td>
+          <td>To fetch notifications from GitHub's API and mark them as read</td>
         </tr>
         <tr>
           <td><code>https://github.com/*</code></td>
-          <td>To open notification links on GitHub</td>
+          <td>To complete GitHub's OAuth device-flow sign-in</td>
+        </tr>
+        <tr>
+          <td>Content script on <code>extensionpay.com</code></td>
+          <td>Required by the ExtensionPay library to process optional Pro payments; runs only on extensionpay.com pages</td>
         </tr>
       </tbody>
     </table>
@@ -326,10 +370,10 @@
     <div class="summary">
       <h2>Summary</h2>
       <p style="font-size: 1.1em; margin-bottom: 20px;"><strong>GitHush is privacy-first:</strong></p>
-      <p><span class="checkmark">✅</span> No data collection</p>
-      <p><span class="checkmark">✅</span> No tracking or analytics</p>
-      <p><span class="checkmark">✅</span> No third-party services</p>
-      <p><span class="checkmark">✅</span> All data stays local</p>
+      <p><span class="checkmark">✅</span> Your data never reaches us — no servers, no databases</p>
+      <p><span class="checkmark">✅</span> No external tracking or analytics services</p>
+      <p><span class="checkmark">✅</span> Only third parties: GitHub (the service itself) and ExtensionPay/Stripe for optional payments</p>
+      <p><span class="checkmark">✅</span> All data stays local in your browser</p>
       <p><span class="checkmark">✅</span> Open source and transparent</p>
       <p><span class="checkmark">✅</span> You're in full control</p>
     </div>

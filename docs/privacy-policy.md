@@ -1,6 +1,6 @@
 # Privacy Policy for GitHush
 
-**Last Updated:** February 8, 2026
+**Last Updated:** July 14, 2026
 
 ## Introduction
 
@@ -8,15 +8,23 @@ GitHush ("the Extension") is a Chrome browser extension that helps you manage yo
 
 ## TL;DR (Too Long; Didn't Read)
 
-- ✅ We don't collect, store, or transmit any of your personal data
-- ✅ All data stays in your browser locally
+- ✅ Your data never reaches us — everything stays in your browser locally
 - ✅ We only access GitHub APIs that you authorize
-- ✅ No analytics, tracking, or third-party services
+- ✅ No external tracking or analytics services (usage counters are stored locally only and never transmitted)
+- ✅ The only third parties involved are GitHub (the service itself) and, if you buy Pro, ExtensionPay/Stripe for payment
 - ✅ Open source and transparent
 
 ## Data Collection
 
-**We do NOT collect any data.** The Extension operates entirely within your browser and does not send any information to external servers (other than GitHub's API, which you authorize).
+**We (the developer) never receive your data.** The Extension operates entirely within your browser and does not send any information to servers we operate — we don't have any servers. The only external communication is with GitHub's API (which you authorize) and, optionally, the payment provider if you upgrade to Pro.
+
+For transparency, these are the categories of user data the Extension handles, matching our Chrome Web Store disclosure:
+
+1. **Authentication information** — your GitHub OAuth access token, stored in your browser and sent only to GitHub's API to authenticate your requests.
+2. **Personally identifiable information** — your GitHub profile basics (username, display name, avatar), fetched from GitHub and stored in your browser to show who is signed in.
+3. **Website content** — your GitHub notifications (issue/PR titles, repository names, links), fetched from GitHub and cached in your browser.
+
+None of this data leaves your browser except to communicate with GitHub itself.
 
 ### What Data We Access
 
@@ -55,6 +63,11 @@ The Extension stores data **only in your browser's local storage** using Chrome'
    - Purpose: To remind you about notifications you've snoozed
    - Location: Browser local storage + Chrome alarms API
    - Removal: Cleared when you log out or uninstall the extension
+
+5. **Local Usage Counters**
+   - Purpose: Anonymous counters of upgrade-flow interactions (e.g., "upgrade button clicked") to understand which Pro features matter
+   - Location: Browser local storage **only** — these events are never transmitted anywhere and contain no notification content or personal data
+   - Removal: Cleared when you uninstall the extension
 
 ## Data Sharing
 
@@ -186,12 +199,11 @@ The Extension requests the following Chrome permissions:
 
 | Permission | Purpose |
 |------------|---------|
-| `identity` | To handle GitHub OAuth device flow authentication |
-| `notifications` | To show browser notifications when new GitHub notifications arrive |
 | `storage` | To store your preferences, auth token, and notification data locally |
-| `alarms` | To wake up snoozed notifications at the scheduled time |
-| `https://api.github.com/*` | To fetch notifications from GitHub API |
-| `https://github.com/*` | To open notification links on GitHub |
+| `alarms` | To check for new notifications on your chosen interval and wake snoozed notifications at the scheduled time |
+| `https://api.github.com/*` | To fetch notifications from GitHub's API and mark them as read |
+| `https://github.com/*` | To complete GitHub's OAuth device-flow sign-in |
+| Content script on `extensionpay.com` | Required by the ExtensionPay library to process optional Pro payments; runs only on extensionpay.com pages |
 
 ## Your Rights
 
@@ -213,7 +225,7 @@ You have full control over your data:
 ## Data Retention
 
 - **Authentication Token:** Stored until you log out or uninstall
-- **Notification Data:** Refreshed every 30 minutes, older data overwritten
+- **Notification Data:** Refreshed on your configured interval (default: every minute), older data overwritten
 - **Snoozed Notifications:** Stored until they wake or you unsnooze them
 - **User Preferences:** Stored indefinitely until you uninstall
 
@@ -235,7 +247,7 @@ If you discover a security vulnerability, please report it to:
 
 ## Children's Privacy
 
-The Extension does not knowingly collect data from anyone, including children under 13. Since we don't collect any data, COPPA compliance is not applicable.
+The Extension does not knowingly collect data from anyone, including children under 13. All data handled by the Extension stays in the user's browser; we never receive it.
 
 ## Changes to This Policy
 
@@ -262,14 +274,16 @@ Questions about privacy or data handling?
 ## Compliance
 
 ### GDPR (EU)
-Since we don't collect personal data, most GDPR requirements don't apply. However:
-- ✅ Data minimization: We collect zero data
-- ✅ Right to deletion: Log out or uninstall
-- ✅ Data portability: Data stays in your browser
-- ✅ Transparency: Open source code
+Personal data handled by the Extension (token, GitHub profile, notifications) is processed and stored only on your device; we never receive it. This means:
+- ✅ Data minimization: only what's needed to show your notifications, kept locally
+- ✅ Right to deletion: log out or uninstall to erase everything
+- ✅ Data portability: data stays in your browser, inspectable at any time
+- ✅ Transparency: open source code
+
+For payments, ExtensionPay and Stripe act as independent processors under their own privacy policies (linked above). EEA consumers have a 14-day right of withdrawal on purchases; contact support@extensionpay.com for refunds.
 
 ### CCPA (California)
-We don't sell or share personal information because we don't collect it.
+We don't sell or share personal information — we never receive it in the first place.
 
 ### Chrome Web Store Policies
 This extension complies with:
@@ -281,10 +295,10 @@ This extension complies with:
 
 **GitHush is privacy-first:**
 
-✅ No data collection  
-✅ No tracking or analytics  
-✅ No third-party services  
-✅ All data stays local  
+✅ Your data never reaches us — no servers, no databases  
+✅ No external tracking or analytics services  
+✅ Only third parties: GitHub (the service itself) and ExtensionPay/Stripe for optional payments  
+✅ All data stays local in your browser  
 ✅ Open source and transparent  
 ✅ You're in full control  
 
