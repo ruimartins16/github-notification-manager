@@ -23,8 +23,6 @@
     "type": "module"
   },
   "permissions": [
-    "identity",
-    "notifications",
     "storage",
     "alarms"
   ],
