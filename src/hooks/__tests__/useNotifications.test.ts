@@ -1,272 +1,244 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, waitFor, act } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { renderHook, act } from '@testing-library/react'
 import { useNotifications, useUnreadCount } from '../useNotifications'
 import { useNotificationStore } from '../../store/notification-store'
-import React from 'react'
+import { NotificationService } from '../../utils/notification-service'
+import type { GitHubNotification } from '../../types/github'
 
-// Create a shared mock instance that we can access in tests
-const mockAPIInstance = {
-  initialize: vi.fn(),
-  fetchNotifications: vi.fn(),
-  isInitialized: vi.fn().mockReturnValue(true),
-}
+// Hoisted so the vi.mock factories below can reference it
+const { mockUseAuth } = vi.hoisted(() => ({ mockUseAuth: vi.fn() }))
 
-// Mock GitHubAPI with singleton pattern
-vi.mock('../../utils/github-api', () => {
-  return {
-    GitHubAPI: {
-      getInstance: vi.fn(() => mockAPIInstance),
-    },
-  }
-})
-
-// Mock useAuth
+// Mock useAuth - the hook only needs a token
 vi.mock('../useAuth', () => ({
-  useAuth: vi.fn(() => ({
-    token: 'gho_test_token',
-    isAuthenticated: true,
-  })),
+  useAuth: mockUseAuth,
 }))
 
-// Mock chrome.storage API
-const mockStorage = {
-  onChanged: {
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
+// Mock NotificationService - the hook calls its static fetch methods
+vi.mock('../../utils/notification-service', () => ({
+  NotificationService: {
+    fetchNotifications: vi.fn(),
+    forceRefreshNotifications: vi.fn(),
   },
-  local: {
-    set: vi.fn().mockResolvedValue(undefined),
-    get: vi.fn().mockResolvedValue({}),
-    remove: vi.fn().mockResolvedValue(undefined),
-  },
+}))
+
+const mockFetchNotifications = vi.mocked(NotificationService.fetchNotifications)
+const mockForceRefreshNotifications = vi.mocked(NotificationService.forceRefreshNotifications)
+
+function makeNotification(id: string, overrides: Partial<GitHubNotification> = {}): GitHubNotification {
+  return {
+    id,
+    unread: true,
+    reason: 'mention',
+    updated_at: '2024-01-01T00:00:00Z',
+    last_read_at: null,
+    subject: {
+      title: `Test notification ${id}`,
+      url: `https://api.github.com/repos/user/test/issues/${id}`,
+      latest_comment_url: null,
+      type: 'Issue',
+    },
+    repository: {
+      id: 1,
+      name: 'test',
+      full_name: 'user/test',
+      owner: {
+        login: 'user',
+        avatar_url: 'https://avatars.githubusercontent.com/u/1',
+      },
+      html_url: 'https://github.com/user/test',
+      description: null,
+    },
+    url: `https://api.github.com/notifications/threads/${id}`,
+    subscription_url: `https://api.github.com/notifications/threads/${id}/subscription`,
+    ...overrides,
+  } as GitHubNotification
 }
 
-global.chrome = {
-  storage: mockStorage,
-} as any
+function resetStore() {
+  useNotificationStore.setState({
+    notifications: [],
+    snoozedNotifications: [],
+    archivedNotifications: [],
+    dismissedNotifications: [],
+    isLoading: false,
+    error: null,
+    lastFetched: null,
+    activeFilter: 'all',
+    markAllBackup: null,
+    selectedNotificationIds: new Set<string>(),
+  })
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  resetStore()
+  mockUseAuth.mockReturnValue({ token: 'gho_test_token', isAuthenticated: true })
+})
 
 describe('useNotifications', () => {
-  let queryClient: QueryClient
+  it('exposes notifications state and actions', () => {
+    const { result } = renderHook(() => useNotifications())
 
-  beforeEach(() => {
-    // Reset Zustand store
-    useNotificationStore.setState({
-      notifications: [],
-      isLoading: false,
-      error: null,
-      lastFetched: null,
-    })
-
-    // Create a new QueryClient for each test
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: {
-          retry: false, // Disable retries in tests
-        },
-      },
-    })
-    vi.clearAllMocks()
-    // Reset mock implementations
-    mockAPIInstance.initialize.mockClear()
-    mockAPIInstance.fetchNotifications.mockClear()
-    mockAPIInstance.isInitialized.mockReturnValue(true)
-    
-    mockStorage.local.set.mockResolvedValue(undefined)
-    mockStorage.local.get.mockResolvedValue({})
+    expect(result.current.notifications).toEqual([])
+    expect(result.current.isLoading).toBe(false)
+    expect(result.current.error).toBeNull()
+    expect(typeof result.current.refresh).toBe('function')
+    expect(typeof result.current.forceRefresh).toBe('function')
+    expect(typeof result.current.markAsRead).toBe('function')
   })
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    React.createElement(QueryClientProvider, { client: queryClient }, children)
-  )
-
-  it('should fetch notifications successfully', async () => {
-    const mockNotifications = [
-      {
-        id: '1',
-        unread: true,
-        reason: 'mention',
-        updated_at: '2024-01-01T00:00:00Z',
-        subject: {
-          title: 'Test notification',
-          url: 'https://api.github.com/repos/test/test/issues/1',
-          latest_comment_url: 'https://api.github.com/repos/test/test/issues/comments/1',
-          type: 'Issue',
-        },
-        repository: {
-          id: 1,
-          name: 'test',
-          full_name: 'user/test',
-          owner: {
-            login: 'user',
-            avatar_url: 'https://avatars.githubusercontent.com/u/1',
-          },
-          html_url: 'https://github.com/user/test',
-        },
-        url: 'https://api.github.com/notifications/threads/1',
-        subscription_url: 'https://api.github.com/notifications/threads/1/subscription',
-        last_read_at: null,
-      },
-    ]
-
-    mockAPIInstance.initialize.mockResolvedValueOnce(undefined)
-    mockAPIInstance.fetchNotifications.mockResolvedValueOnce(mockNotifications)
-
-    const { result } = renderHook(() => useNotifications(), { wrapper })
-
-    await waitFor(() => {
-      expect(result.current.notifications.length).toBeGreaterThan(0)
+  it('reflects notifications already in the Zustand store', () => {
+    const stored = [makeNotification('1'), makeNotification('2')]
+    act(() => {
+      useNotificationStore.setState({ notifications: stored })
     })
 
-    expect(result.current.notifications).toEqual(mockNotifications)
-    expect(mockAPIInstance.initialize).toHaveBeenCalledWith('gho_test_token')
-    expect(mockAPIInstance.fetchNotifications).toHaveBeenCalled()
+    const { result } = renderHook(() => useNotifications())
+
+    expect(result.current.notifications).toEqual(stored)
   })
 
-  it('should handle fetch errors', async () => {
-    // Mock initialize to succeed
-    mockAPIInstance.initialize.mockResolvedValue(undefined)
-    // Mock fetchNotifications to fail
-    const testError = new Error('API Error')
-    mockAPIInstance.fetchNotifications.mockRejectedValue(testError)
+  describe('refresh', () => {
+    it('fetches notifications and updates the store on success', async () => {
+      const fetched = [makeNotification('1'), makeNotification('2')]
+      mockFetchNotifications.mockResolvedValue(fetched)
 
-    const { result } = renderHook(() => useNotifications(), { wrapper })
+      const { result } = renderHook(() => useNotifications())
 
-    // Wait for error to be set
-    await waitFor(() => {
-      expect(mockAPIInstance.fetchNotifications).toHaveBeenCalled()
+      await act(async () => {
+        await result.current.refresh()
+      })
+
+      expect(mockFetchNotifications).toHaveBeenCalledWith('gho_test_token')
+      expect(result.current.notifications).toEqual(fetched)
+      expect(result.current.isLoading).toBe(false)
+      expect(result.current.error).toBeNull()
+
+      const storeState = useNotificationStore.getState()
+      expect(storeState.notifications).toEqual(fetched)
+      expect(storeState.lastFetched).not.toBeNull()
     })
 
-    // Error should be propagated to the hook
-    await waitFor(() => {
-      expect(result.current.error).toBeTruthy()
+    it('sets the store error when the fetch fails', async () => {
+      mockFetchNotifications.mockRejectedValue(new Error('API Error'))
+
+      const { result } = renderHook(() => useNotifications())
+
+      await act(async () => {
+        await result.current.refresh()
+      })
+
+      expect(result.current.error).toBe('API Error')
+      expect(result.current.isLoading).toBe(false)
+      expect(result.current.notifications).toEqual([])
+      expect(useNotificationStore.getState().error).toBe('API Error')
+    })
+
+    it('does not fetch when there is no token', async () => {
+      mockUseAuth.mockReturnValue({ token: null, isAuthenticated: false })
+
+      const { result } = renderHook(() => useNotifications())
+
+      await act(async () => {
+        await result.current.refresh()
+      })
+
+      expect(mockFetchNotifications).not.toHaveBeenCalled()
     })
   })
 
-  it('should not fetch if not authenticated', async () => {
-    const { useAuth } = await import('../useAuth')
-    ;(useAuth as any).mockReturnValueOnce({
-      token: null,
-      isAuthenticated: false,
+  describe('forceRefresh', () => {
+    it('fetches via forceRefreshNotifications and updates the store', async () => {
+      const fetched = [makeNotification('42')]
+      mockForceRefreshNotifications.mockResolvedValue(fetched)
+
+      const { result } = renderHook(() => useNotifications())
+
+      await act(async () => {
+        await result.current.forceRefresh()
+      })
+
+      expect(mockForceRefreshNotifications).toHaveBeenCalledWith('gho_test_token')
+      expect(mockFetchNotifications).not.toHaveBeenCalled()
+      expect(result.current.notifications).toEqual(fetched)
+      expect(useNotificationStore.getState().lastFetched).not.toBeNull()
     })
 
-    const { result } = renderHook(() => useNotifications(), { wrapper })
+    it('sets the store error when the force fetch fails', async () => {
+      mockForceRefreshNotifications.mockRejectedValue(new Error('Force API Error'))
 
-    await waitFor(() => {
+      const { result } = renderHook(() => useNotifications())
+
+      await act(async () => {
+        await result.current.forceRefresh()
+      })
+
+      expect(result.current.error).toBe('Force API Error')
       expect(result.current.isLoading).toBe(false)
     })
-
-    expect(mockAPIInstance.fetchNotifications).not.toHaveBeenCalled()
   })
 
-  it('should respect custom options', async () => {
-    mockAPIInstance.initialize.mockResolvedValueOnce(undefined)
-    mockAPIInstance.fetchNotifications.mockResolvedValueOnce([])
-
-    renderHook(
-      () =>
-        useNotifications({
-          all: true,
-          participating: true,
-        }),
-      { wrapper }
-    )
-
-    await waitFor(() => {
-      expect(mockAPIInstance.fetchNotifications).toHaveBeenCalledWith({
-        all: true,
-        participating: true,
+  describe('markAsRead', () => {
+    it('records a smart-dismiss entry and hides the notification from the active list', () => {
+      act(() => {
+        useNotificationStore.setState({
+          notifications: [makeNotification('1'), makeNotification('2')],
+        })
       })
+
+      const { result } = renderHook(() => useNotifications())
+
+      act(() => {
+        result.current.markAsRead('1')
+      })
+
+      const storeState = useNotificationStore.getState()
+      // Raw list is untouched; dismissal is applied at read time
+      expect(storeState.notifications).toHaveLength(2)
+      expect(storeState.dismissedNotifications.map(d => d.id)).toContain('1')
+      expect(storeState.getActiveNotifications().map(n => n.id)).toEqual(['2'])
     })
-  })
-
-  it('should be disabled when enabled option is false', async () => {
-    const { result } = renderHook(
-      () => useNotifications({ enabled: false }),
-      { wrapper }
-    )
-
-    expect(result.current.isLoading).toBe(false)
-    expect(mockAPIInstance.fetchNotifications).not.toHaveBeenCalled()
-  })
-
-  it('should provide refresh function', async () => {
-    mockAPIInstance.initialize.mockResolvedValue(undefined)
-    mockAPIInstance.fetchNotifications.mockResolvedValue([])
-
-    const { result } = renderHook(() => useNotifications(), { wrapper })
-
-    expect(result.current.refresh).toBeDefined()
-    expect(typeof result.current.refresh).toBe('function')
-  })
-
-  it('should provide markAsRead function', () => {
-    const { result } = renderHook(() => useNotifications(), { wrapper })
-
-    expect(result.current.markAsRead).toBeDefined()
-    expect(typeof result.current.markAsRead).toBe('function')
   })
 })
 
 describe('useUnreadCount', () => {
-  let queryClient: QueryClient
-
-  beforeEach(() => {
-    // Reset Zustand store
-    useNotificationStore.setState({
-      notifications: [],
-      isLoading: false,
-      error: null,
-      lastFetched: null,
-    })
-
-    queryClient = new QueryClient({
-      defaultOptions: {
-        queries: {
-          retry: false,
-        },
-      },
-    })
-    vi.clearAllMocks()
-    // Reset mock implementations
-    mockAPIInstance.initialize.mockClear()
-    mockAPIInstance.fetchNotifications.mockClear()
-    mockAPIInstance.isInitialized.mockReturnValue(true)
-    
-    mockStorage.local.set.mockResolvedValue(undefined)
-    mockStorage.local.get.mockResolvedValue({})
-  })
-
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    React.createElement(QueryClientProvider, { client: queryClient }, children)
-  )
-
-  it('should return 0 when no notifications', () => {
-    const { result } = renderHook(() => useUnreadCount(), { wrapper })
+  it('returns 0 when there are no notifications', () => {
+    const { result } = renderHook(() => useUnreadCount())
 
     expect(result.current).toBe(0)
   })
 
-  it('should count unread notifications', () => {
-    // Set up store with notifications
+  it('counts active notifications (raw list minus dismissed/archived/snoozed)', () => {
     act(() => {
       useNotificationStore.setState({
         notifications: [
-          { id: '1', unread: true } as any,
-          { id: '2', unread: false } as any,
-          { id: '3', unread: true } as any,
+          makeNotification('1'),
+          makeNotification('2'),
+          makeNotification('3'),
         ],
+        dismissedNotifications: [
+          { id: '2', dismissedAt: Date.now(), lastSeenUpdatedAt: '2024-01-01T00:00:00Z' },
+        ],
+        archivedNotifications: [makeNotification('3')],
       })
     })
 
-    const { result } = renderHook(() => useUnreadCount(), { wrapper })
+    const { result } = renderHook(() => useUnreadCount())
 
-    expect(result.current).toBe(2)
+    expect(result.current).toBe(1)
   })
 
-  it('should return 0 when notifications data is undefined', () => {
-    const { result} = renderHook(() => useUnreadCount(), { wrapper })
+  it('updates when notifications change in the store', () => {
+    const { result } = renderHook(() => useUnreadCount())
 
     expect(result.current).toBe(0)
+
+    act(() => {
+      useNotificationStore.setState({
+        notifications: [makeNotification('1'), makeNotification('2')],
+      })
+    })
+
+    expect(result.current).toBe(2)
   })
 })

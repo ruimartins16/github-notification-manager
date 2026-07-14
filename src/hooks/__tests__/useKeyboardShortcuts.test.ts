@@ -8,6 +8,14 @@ vi.mock('../../store/notification-store', () => ({
   useNotificationStore: vi.fn(),
 }))
 
+// Mock useProStatus: its real implementation imports extpay-service -> extpay ->
+// webextension-polyfill, which throws outside a real browser extension.
+// Shortcuts are Pro-gated, so report Pro to exercise the behavioral tests.
+vi.mock('../useProStatus', () => ({
+  useProStatus: vi.fn(() => ({ isPro: true, isLoading: false })),
+  useIsPro: vi.fn(() => true),
+}))
+
 describe('useKeyboardShortcuts', () => {
   let mockSetFilter: ReturnType<typeof vi.fn>
   let mockSetFocusedIndex: ReturnType<typeof vi.fn>

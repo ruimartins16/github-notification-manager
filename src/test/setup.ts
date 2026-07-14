@@ -7,6 +7,21 @@ afterEach(() => {
   cleanup()
 })
 
+// jsdom does not implement matchMedia (used by useTheme)
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+})
+
 // Mock Chrome APIs for testing
 global.chrome = {
   runtime: {
@@ -15,6 +30,7 @@ global.chrome = {
     },
     onMessage: {
       addListener: vi.fn(),
+      removeListener: vi.fn(),
     },
     sendMessage: vi.fn(),
     getManifest: vi.fn(() => ({
@@ -30,7 +46,15 @@ global.chrome = {
       addListener: vi.fn(),
     },
   },
+  tabs: {
+    create: vi.fn(),
+    update: vi.fn(),
+  },
   storage: {
+    onChanged: {
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+    },
     local: {
       get: vi.fn(() => Promise.resolve({})),
       set: vi.fn(() => Promise.resolve()),
