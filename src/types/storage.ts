@@ -41,6 +41,7 @@ export interface UserSettings {
   defaultFilter: FilterType
   openLinksInNewTab: boolean
   theme: ThemePreference // Pro feature: light, dark, or system
+  showParticipatingOnly: boolean // Only show notifications where user is directly involved
 }
 
 export type FilterType = 'all' | 'mentions' | 'reviews' | 'assigned'
@@ -54,4 +55,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
   defaultFilter: 'all',
   openLinksInNewTab: true,
   theme: 'system', // Default to system preference for Pro users
+  showParticipatingOnly: false, // Default: show all notifications, matching GitHub's notifications inbox
 }

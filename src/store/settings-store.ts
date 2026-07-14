@@ -10,6 +10,7 @@ interface SettingsState extends UserSettings {
   setDefaultFilter: (filter: FilterType) => void
   setOpenLinksInNewTab: (enabled: boolean) => void
   setTheme: (theme: ThemePreference) => void
+  setShowParticipatingOnly: (enabled: boolean) => void
   resetSettings: () => void
   
   // Derived state
@@ -96,6 +97,9 @@ export const useSettingsStore = create<SettingsState>()(
       setTheme: (theme) =>
         set({ theme }),
 
+      setShowParticipatingOnly: (enabled) =>
+        set({ showParticipatingOnly: enabled }),
+
       resetSettings: () =>
         set(DEFAULT_SETTINGS),
 
@@ -108,7 +112,8 @@ export const useSettingsStore = create<SettingsState>()(
           state.soundEnabled === DEFAULT_SETTINGS.soundEnabled &&
           state.defaultFilter === DEFAULT_SETTINGS.defaultFilter &&
           state.openLinksInNewTab === DEFAULT_SETTINGS.openLinksInNewTab &&
-          state.theme === DEFAULT_SETTINGS.theme
+          state.theme === DEFAULT_SETTINGS.theme &&
+          state.showParticipatingOnly === DEFAULT_SETTINGS.showParticipatingOnly
         )
       },
     }),

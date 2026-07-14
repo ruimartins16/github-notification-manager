@@ -16,7 +16,7 @@ console.log('[ExtPay] Background service initialized with extension ID:', EXTENS
 import { AuthService } from '../utils/auth-service'
 import { NotificationService } from '../utils/notification-service'
 import { BadgeService } from '../utils/badge-service'
-import { etagCache } from '../utils/etag-cache'
+import { getActiveNotifications } from '../utils/notification-filter'
 
 // Storage key for Zustand persisted state (single source of truth)
 const ZUSTAND_STORAGE_KEY = 'zustand-notifications'
@@ -61,26 +61,56 @@ const FETCH_ALARM_NAME = 'fetch-notifications'
 // Alarm name for periodic subscription status check
 const SUB_STATUS_ALARM_NAME = 'check-subscription-status'
 
-// Force fresh data periodically to prevent stale ETag cache issues.
-// Uses a persisted timestamp so it survives service worker restarts.
-const FORCE_REFRESH_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
-const LAST_FORCE_REFRESH_KEY = 'last_force_refresh_timestamp'
+// Storage key for settings (chrome.storage.sync, managed by Zustand persist)
+const SETTINGS_STORAGE_KEY = 'gnm-settings'
 
-// Initialize extension on install or update
-chrome.runtime.onInstalled.addListener((details) => {
+/**
+ * Read the user's refreshInterval setting from chrome.storage.sync.
+ * Returns the interval in minutes, clamped to Chrome's minimum (1 minute).
+ * Falls back to 1 minute if the setting is missing or unreadable.
+ */
+async function getRefreshIntervalMinutes(): Promise<number> {
+  try {
+    const result = await chrome.storage.sync.get(SETTINGS_STORAGE_KEY)
+    if (result[SETTINGS_STORAGE_KEY]) {
+      const parsed = JSON.parse(result[SETTINGS_STORAGE_KEY])
+      const intervalSeconds: number = parsed?.state?.refreshInterval
+      if (typeof intervalSeconds === 'number' && intervalSeconds > 0) {
+        // Chrome alarms minimum period is 1 minute in production
+        return Math.max(1, intervalSeconds / 60)
+      }
+    }
+  } catch (error) {
+    console.error('[Background] Failed to read refreshInterval setting:', error)
+  }
+  return 1 // Default: 1 minute
+}
+
+/**
+ * Create or recreate the notification fetch alarm with the user's configured interval.
+ */
+async function createFetchAlarm() {
+  const periodInMinutes = await getRefreshIntervalMinutes()
+  console.log(`[Background] Creating fetch alarm with interval: ${periodInMinutes} minute(s)`)
+  await chrome.alarms.clear(FETCH_ALARM_NAME)
+  chrome.alarms.create(FETCH_ALARM_NAME, {
+    delayInMinutes: periodInMinutes,
+    periodInMinutes,
+  })
+}
+
+chrome.runtime.onInstalled.addListener(async (details) => {
   console.log('Extension installed:', details.reason)
   
   if (details.reason === 'install' || details.reason === 'update') {
     // Set initial badge
     chrome.action.setBadgeBackgroundColor({ color: '#0969da' })
     chrome.action.setBadgeText({ text: '' })
-    
-    // Create/recreate alarm for periodic notification fetching (every 1 minute)
+
+    // Create/recreate alarm for periodic notification fetching
+    // Uses the user's configured refreshInterval (defaults to 1 minute)
     // Alarms are cleared on extension update, so we recreate them
-    chrome.alarms.create(FETCH_ALARM_NAME, {
-      delayInMinutes: 1,
-      periodInMinutes: 1,
-    })
+    createFetchAlarm()
     
     // Create alarm for periodic subscription status check (every 60 minutes)
     // This ensures we catch subscription changes like payment failures or cancellations
@@ -90,6 +120,13 @@ chrome.runtime.onInstalled.addListener((details) => {
     })
     
     console.log('GitHub Notification Manager initialized with background polling')
+    
+    // Trigger an immediate background fetch so the user doesn't have to wait
+    // for the first alarm to fire (up to refreshInterval minutes).
+    // Fire-and-forget: don't block the listener on the fetch result.
+    fetchNotificationsInBackground().catch((error) => {
+      console.error('[Background] Immediate fetch on', details.reason, 'failed:', error)
+    })
   }
 })
 
@@ -97,19 +134,12 @@ chrome.runtime.onInstalled.addListener((details) => {
 chrome.runtime.onStartup.addListener(async () => {
   // Preload license on startup
   validateLicense().catch(console.error)
-  
-  // Cleanup expired ETags on startup (removes entries older than 7 days)
-  console.log('[ETag] Cleaning up expired ETag cache entries...')
-  await etagCache.cleanup()
-  
-  // Recreate notification fetch alarm if missing
+
+  // Recreate notification fetch alarm if missing (uses user's configured interval)
   const alarm = await chrome.alarms.get(FETCH_ALARM_NAME)
   if (!alarm) {
     console.log('Recreating notification fetch alarm on startup')
-    chrome.alarms.create(FETCH_ALARM_NAME, {
-      delayInMinutes: 1,
-      periodInMinutes: 1,
-    })
+    await createFetchAlarm()
   }
   
   // Recreate subscription status alarm if missing
@@ -205,46 +235,28 @@ chrome.action.onClicked.addListener(() => {
   console.log('Extension icon clicked')
 })
 
-// Listen for storage changes to update badge
-// Debounced to prevent redundant updates when storage is written multiple times rapidly
-let lastBadgeUpdateTimestamp = 0
-const BADGE_UPDATE_DEBOUNCE_MS = 100
-
+// Listen for storage changes to update badge.
+// The badge always reflects the LAST write (no debounce dropping the trailing
+// update — a stale badge was one symptom of the old architecture).
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === 'local' && changes[ZUSTAND_STORAGE_KEY]) {
-    // Debounce rapid updates (e.g., when background fetch writes immediately after popup)
-    const now = Date.now()
-    if (now - lastBadgeUpdateTimestamp < BADGE_UPDATE_DEBOUNCE_MS) {
-      return
-    }
-    lastBadgeUpdateTimestamp = now
-
     // Parse Zustand's persisted format
     const newValue = changes[ZUSTAND_STORAGE_KEY].newValue
-    
+
     if (newValue && typeof newValue === 'string') {
       try {
         const parsed = JSON.parse(newValue)
         const notifications: GitHubNotification[] = parsed.state?.notifications || []
-        
-        // Apply smart dismiss filtering for accurate badge count
-        // The background worker stores RAW notifications; the store filters on popup open.
-        // For badge accuracy when popup is closed, we filter here too (read-only, no write-back).
-        const dismissedNotifications = parsed.state?.dismissedNotifications || []
-        interface BadgeDismissedEntry { id: string; lastSeenUpdatedAt: string }
-        const dismissedMap = new Map<string, BadgeDismissedEntry>(
-          dismissedNotifications.map((d: BadgeDismissedEntry) => [d.id, d])
-        )
-        const archivedSet = new Set((parsed.state?.archivedNotifications || []).map((n: any) => n.id))
-        
-        const badgeNotifications = notifications.filter((n: GitHubNotification) => {
-          if (archivedSet.has(n.id)) return false
-          const dismissed = dismissedMap.get(n.id)
-          if (!dismissed) return true
-          return new Date(n.updated_at) > new Date(dismissed.lastSeenUpdatedAt)
+
+        // The store persists the RAW GitHub list; apply the same read-time
+        // filtering the popup uses so badge count === Active tab count.
+        const badgeNotifications = getActiveNotifications(notifications, {
+          dismissedNotifications: parsed.state?.dismissedNotifications || [],
+          archivedNotifications: parsed.state?.archivedNotifications || [],
+          snoozedNotifications: parsed.state?.snoozedNotifications || [],
         })
-        
-        console.log('Badge update:', notifications.length, 'raw,', badgeNotifications.length, 'after dismiss filter')
+
+        console.log('Badge update:', notifications.length, 'raw,', badgeNotifications.length, 'active')
         BadgeService.updateBadge(badgeNotifications)
       } catch (error) {
         console.error('Failed to parse Zustand storage for badge update:', error)
@@ -253,6 +265,46 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
       // Notifications cleared
       BadgeService.clearBadge()
     }
+  }
+})
+
+// Listen for settings changes (chrome.storage.sync) to update the fetch alarm interval
+// and re-fetch when the participating filter changes
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'sync' && changes[SETTINGS_STORAGE_KEY]) {
+    // Handle async operations in a self-invoking function
+    const settingsChange = changes[SETTINGS_STORAGE_KEY]
+    ;(async () => {
+      try {
+        const newValue = settingsChange.newValue
+        const oldValue = settingsChange.oldValue
+        
+        if (newValue && typeof newValue === 'string') {
+          const newParsed = JSON.parse(newValue)
+          const oldParsed = oldValue ? JSON.parse(oldValue) : null
+          
+          const newInterval = newParsed?.state?.refreshInterval
+          const oldInterval = oldParsed?.state?.refreshInterval
+          
+          if (newInterval !== oldInterval && typeof newInterval === 'number') {
+            console.log(`[Background] refreshInterval changed: ${oldInterval}s -> ${newInterval}s, recreating alarm`)
+            await createFetchAlarm()
+          }
+
+          // When the participating filter changes, re-fetch immediately so the
+          // list reflects the new setting without waiting for the next alarm.
+          const newParticipating = newParsed?.state?.showParticipatingOnly
+          const oldParticipating = oldParsed?.state?.showParticipatingOnly
+
+          if (newParticipating !== oldParticipating && typeof newParticipating === 'boolean') {
+            console.log(`[Background] showParticipatingOnly changed: ${oldParticipating} -> ${newParticipating}, refetching`)
+            await fetchNotificationsInBackground()
+          }
+        }
+      } catch (error) {
+        console.error('[Background] Failed to process settings change:', error)
+      }
+    })()
   }
 })
 
@@ -276,65 +328,49 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
  * Fetch notifications in background (called by alarm)
  * Only fetches if user is authenticated
  * Applies auto-archive rules after fetching
- * 
- * ETag Strategy:
- * - Most fetches use ETag conditional requests (saves rate limits)
- * - Every 5th fetch clears ETag to force fresh data (prevents stale cache)
- * - Balances rate limit optimization with data freshness
+ *
+ * Every fetch is a plain, uncached request — the result always mirrors what
+ * GitHub's notifications page shows right now.
  */
 async function fetchNotificationsInBackground() {
   try {
     // Check if user is authenticated
     const token = await AuthService.getStoredToken()
-    
+
     if (!token) {
       console.log('No token found, skipping background fetch')
       return
     }
 
-    // Check if we should force a fresh fetch (bypass ETag cache)
-    // Persisted to chrome.storage so it survives service worker restarts
-    const forceRefreshResult = await chrome.storage.local.get(LAST_FORCE_REFRESH_KEY)
-    const lastForceRefresh: number = forceRefreshResult[LAST_FORCE_REFRESH_KEY] || 0
-    const timeSinceForceRefresh = Date.now() - lastForceRefresh
-    
-    if (timeSinceForceRefresh >= FORCE_REFRESH_INTERVAL_MS) {
-      console.log(`[Background] Forcing fresh fetch (${Math.round(timeSinceForceRefresh / 1000)}s since last force refresh)`)
-      await etagCache.delete('https://api.github.com/notifications')
-      await chrome.storage.local.set({ [LAST_FORCE_REFRESH_KEY]: Date.now() })
-    } else {
-      console.log(`[Background] Using ETag conditional request (${Math.round((FORCE_REFRESH_INTERVAL_MS - timeSinceForceRefresh) / 1000)}s until next force refresh)`)
-    }
-
     console.log('Fetching notifications in background...')
-    
-    // Fetch notifications (don't use fetchAndStore - we'll write to Zustand storage directly)
-    // Note: fetchNotifications includes zombie filter (last_read_at >= updated_at)
+
     const notifications = await NotificationService.fetchNotifications(token)
-    console.log('Background fetch complete:', notifications.length, 'notifications (after zombie filter)')
-    
-    // Write raw notifications directly to Zustand's storage key (single source of truth)
-    // NOTE: Smart dismiss filtering is NOT done here. It's handled by the Zustand store's
-    // setNotifications() method, which runs when:
-    //   - Popup is open: storage onChanged listener detects this write and calls setNotifications()
-    //   - Popup opens later: rehydrate + setNotifications() in App.tsx useEffect
-    // This avoids double-filtering bugs where the background worker and store both filter,
-    // causing notifications to disappear entirely.
+    console.log('Background fetch complete:', notifications.length, 'notifications')
+
+    // Write the raw list into Zustand's storage key (single source of truth).
+    // Local state (dismissed/archived/snoozed) is applied at READ time by the
+    // store and the badge listener — the raw list is never filtered on write.
+    //
+    // IMPORTANT: We re-read storage immediately before writing to prevent race conditions.
+    // If the popup wrote dismissedNotifications/archivedNotifications/snoozedNotifications
+    // between our fetch start and now, we must preserve those changes (not overwrite with stale data).
     const result = await chrome.storage.local.get(ZUSTAND_STORAGE_KEY)
     const existingData = result[ZUSTAND_STORAGE_KEY]
     const parsed = existingData ? JSON.parse(existingData) : { state: {}, version: 0 }
-    
-    // Update notifications in Zustand's persisted state (raw, unfiltered)
+
+    // Only overwrite notifications and lastFetched — preserve all other state fields
+    // (dismissedNotifications, archivedNotifications, snoozedNotifications, autoArchiveRules, etc.)
+    // that may have been modified by the popup between our fetch and this write.
     parsed.state = {
       ...parsed.state,
       notifications: notifications,
       lastFetched: Date.now(),
     }
-    
+
     await chrome.storage.local.set({
-      [ZUSTAND_STORAGE_KEY]: JSON.stringify(parsed)
+      [ZUSTAND_STORAGE_KEY]: JSON.stringify(parsed),
     })
-    
+
     console.log('Background fetch: updated Zustand storage with', notifications.length, 'notifications (raw)')
     
     // Try to notify UI to apply rules (if open)
@@ -454,8 +490,14 @@ async function applyAutoArchiveRulesInBackground(notifications: GitHubNotificati
 
     console.log('Applying', rules.length, 'auto-archive rules in background')
 
-    // Apply rules
-    const { toArchive, toKeep, ruleMatches } = applyRules(notifications, rules)
+    // Apply rules to the ACTIVE list only (raw minus dismissed/archived/snoozed)
+    // so already-handled notifications are never re-archived.
+    const activeNotifications = getActiveNotifications(notifications, {
+      dismissedNotifications: parsed.state?.dismissedNotifications || [],
+      archivedNotifications: parsed.state?.archivedNotifications || [],
+      snoozedNotifications: parsed.state?.snoozedNotifications || [],
+    })
+    const { toArchive, ruleMatches } = applyRules(activeNotifications, rules)
 
     if (toArchive.length === 0) {
       console.log('No notifications to archive')
@@ -476,21 +518,23 @@ async function applyAutoArchiveRulesInBackground(notifications: GitHubNotificati
       return rule
     })
 
-    // Get current archived notifications
-    const archivedNotifications: GitHubNotification[] = parsed.state?.archivedNotifications || []
-
     // IMPORTANT: Read storage again to ensure we have the latest state
     // This prevents overwriting changes made by the UI between reads
     const latestResult = await chrome.storage.local.get(ZUSTAND_STORAGE_KEY)
-    const latestParsed = latestResult[ZUSTAND_STORAGE_KEY] 
+    const latestParsed = latestResult[ZUSTAND_STORAGE_KEY]
       ? JSON.parse(latestResult[ZUSTAND_STORAGE_KEY])
       : parsed
 
-    // Update storage with filtered notifications and updated rules
+    // Append to the archive and update rule stats. The raw notifications list
+    // is left untouched — archived IDs are hidden at read time.
+    const latestArchived: GitHubNotification[] = latestParsed.state?.archivedNotifications || []
+    const alreadyArchived = new Set(latestArchived.map((n: GitHubNotification) => n.id))
     latestParsed.state = {
       ...latestParsed.state,
-      notifications: toKeep,
-      archivedNotifications: [...archivedNotifications, ...toArchive],
+      archivedNotifications: [
+        ...latestArchived,
+        ...toArchive.filter(n => !alreadyArchived.has(n.id)),
+      ],
       autoArchiveRules: updatedRules,
     }
 
@@ -499,7 +543,7 @@ async function applyAutoArchiveRulesInBackground(notifications: GitHubNotificati
       [ZUSTAND_STORAGE_KEY]: JSON.stringify(latestParsed),
     })
 
-    console.log('Auto-archive complete:', toArchive.length, 'archived,', toKeep.length, 'kept')
+    console.log('Auto-archive complete:', toArchive.length, 'archived')
   } catch (error) {
     console.error('Failed to apply auto-archive rules:', error)
   }

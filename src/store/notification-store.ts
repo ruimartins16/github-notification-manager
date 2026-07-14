@@ -3,6 +3,7 @@ import { persist, createJSONStorage, StateStorage } from 'zustand/middleware'
 import { GitHubNotification, NotificationReason, SnoozedNotification } from '../types/github'
 import { AutoArchiveRule } from '../types/rules'
 import { applyRules } from '../utils/rule-matcher'
+import { getActiveNotifications } from '../utils/notification-filter'
 import { useSettingsStore } from './settings-store'
 
 // Filter types based on notification reasons
@@ -93,6 +94,7 @@ interface NotificationState {
   bulkArchive: () => GitHubNotification[]
   
   // Selectors
+  getActiveNotifications: () => GitHubNotification[]
   getFilteredNotifications: () => GitHubNotification[]
   getFilterCounts: () => Record<NotificationFilter, number>
   getSnoozedCount: () => number
@@ -158,69 +160,21 @@ export const useNotificationStore = create<NotificationState>()(
       // Actions
       setNotifications: (notifications) => {
         const state = get()
-        
-        console.log('[NotificationStore] Received', notifications.length, 'notifications to store')
-        
+
+        console.log('[NotificationStore] Storing', notifications.length, 'raw notifications from GitHub')
+
         // CLEANUP: Remove old dismissed entries (older than 30 days)
         const cleanedDismissed = cleanupOldDismissals(state.dismissedNotifications)
-        
-        // SMART DISMISS FILTERING:
-        // Filter out notifications that user explicitly dismissed (marked as read)
-        // BUT if there's new activity (updated_at changed), show them again!
-        // This prevents dismissed notifications from permanently disappearing if someone replies.
-        
-        // Build lookup maps for efficient filtering
-        const dismissedMap = new Map(cleanedDismissed.map(d => [d.id, d]))
-        const archivedSet = new Set(state.archivedNotifications.map(n => n.id))
-        
-        const filteredNotifications = notifications.filter(n => {
-          // Always filter out archived notifications (they're in separate tab)
-          if (archivedSet.has(n.id)) return false
-          
-          // Check if notification was dismissed
-          const dismissed = dismissedMap.get(n.id)
-          if (!dismissed) return true  // Not dismissed, show it
-          
-          // It was dismissed - check if there's NEW ACTIVITY since dismissal
-          const lastSeenUpdate = new Date(dismissed.lastSeenUpdatedAt)
-          const currentUpdate = new Date(n.updated_at)
-          
-          // If GitHub's updated_at is AFTER what we saw when dismissing = new activity!
-          if (currentUpdate > lastSeenUpdate) {
-            console.log(
-              '[NotificationStore] 🔔 Dismissed notification has NEW ACTIVITY, showing again:',
-              n.subject.title,
-              '| Last seen:', lastSeenUpdate.toISOString(),
-              '| Current:', currentUpdate.toISOString()
-            )
-            return true  // Show it again!
-          }
-          
-          // No new activity since dismissal, keep it hidden
-          return false
-        })
-        
-        const dismissedCount = notifications.filter(n => {
-          const dismissed = dismissedMap.get(n.id)
-          if (!dismissed) return false
-          const currentUpdate = new Date(n.updated_at)
-          return currentUpdate <= new Date(dismissed.lastSeenUpdatedAt)
-        }).length
-        
-        const archivedCount = notifications.filter(n => archivedSet.has(n.id)).length
-        
-        if (dismissedCount > 0) {
-          console.log('[NotificationStore] Filtered out', dismissedCount, 'dismissed notifications (no new activity)')
-        }
-        if (archivedCount > 0) {
-          console.log('[NotificationStore] Filtered out', archivedCount, 'archived notifications')
-        }
-        console.log('[NotificationStore] Storing', filteredNotifications.length, 'notifications')
-        
-        set({ 
-          notifications: filteredNotifications,
+
+        // Store the RAW list exactly as GitHub returned it.
+        // Local state (dismissed, archived, snoozed) is applied at READ time by
+        // getActiveNotifications/getFilteredNotifications, never destructively here.
+        // This keeps the store idempotent: setNotifications can run any number of
+        // times (popup open, background sync, manual refresh) without data loss.
+        set({
+          notifications,
           dismissedNotifications: cleanedDismissed, // Store cleaned list
-          error: null 
+          error: null
         })
       },
 
@@ -233,6 +187,9 @@ export const useNotificationStore = create<NotificationState>()(
       clearNotifications: () =>
         set({ notifications: [], error: null, lastFetched: null }),
 
+      // Marking as read only records a smart-dismiss entry. The raw list is
+      // left untouched; read-time filtering hides the item immediately and the
+      // next GitHub fetch reconciles for real.
       markAsRead: (notificationId) =>
         set((state) => {
           const notification = state.notifications.find(n => n.id === notificationId)
@@ -240,9 +197,8 @@ export const useNotificationStore = create<NotificationState>()(
             console.warn('[markAsRead] Notification not found:', notificationId)
             return state
           }
-          
+
           return {
-            notifications: state.notifications.filter(n => n.id !== notificationId),
             dismissedNotifications: [
               ...state.dismissedNotifications,
               {
@@ -257,32 +213,22 @@ export const useNotificationStore = create<NotificationState>()(
       markAllAsRead: () => {
         const state = get()
         const filteredNotifications = state.getFilteredNotifications()
-        
-        // Create backup of all current notifications for undo
-        const backup = [...state.notifications]
-        
-        // Get IDs of filtered notifications to mark as read
-        const idsToMarkAsRead = filteredNotifications.map(n => n.id)
-        const idsToMarkAsReadSet = new Set(idsToMarkAsRead)
-        
+
+        // Backup the marked notifications for undo (undo removes their dismiss entries)
+        const backup = [...filteredNotifications]
+
         // Create dismissed entries with timestamps for all marked notifications
         const newDismissals: DismissedNotification[] = filteredNotifications.map(n => ({
           id: n.id,
           dismissedAt: Date.now(),
           lastSeenUpdatedAt: n.updated_at,
         }))
-        
-        // Remove marked notifications from the list (consistent with individual markAsRead)
-        const updatedNotifications = state.notifications.filter(n => 
-          !idsToMarkAsReadSet.has(n.id)
-        )
-        
-        set({ 
-          notifications: updatedNotifications,
+
+        set({
           markAllBackup: backup,
           dismissedNotifications: [...state.dismissedNotifications, ...newDismissals],
         })
-        
+
         return filteredNotifications
       },
 
@@ -292,13 +238,13 @@ export const useNotificationStore = create<NotificationState>()(
             console.warn('No backup available for undo')
             return state
           }
-          
-          // Remove restored notification IDs from dismissed list
+
+          // Remove restored notification IDs from dismissed list; they become
+          // visible again because the raw list still contains them.
           const restoredIds = new Set(state.markAllBackup.map(n => n.id))
           const updatedDismissed = state.dismissedNotifications.filter(d => !restoredIds.has(d.id))
-          
+
           return {
-            notifications: state.markAllBackup,
             markAllBackup: null,
             dismissedNotifications: updatedDismissed,
           }
@@ -311,6 +257,9 @@ export const useNotificationStore = create<NotificationState>()(
         set({ activeFilter: filter }),
 
       // Archive actions
+      // Archiving copies the notification into archivedNotifications (for the
+      // Archived tab) and leaves the raw list untouched; read-time filtering
+      // hides archived IDs from the Active view.
       archiveNotification: (notificationId) =>
         set((state) => {
           const notification = state.notifications.find(n => n.id === notificationId)
@@ -319,10 +268,13 @@ export const useNotificationStore = create<NotificationState>()(
             return state
           }
 
+          if (state.archivedNotifications.some(n => n.id === notificationId)) {
+            return state
+          }
+
           console.log('[Archive] Moving notification to archived:', notificationId)
 
           return {
-            notifications: state.notifications.filter(n => n.id !== notificationId),
             archivedNotifications: [...state.archivedNotifications, notification],
           }
         }),
@@ -337,11 +289,13 @@ export const useNotificationStore = create<NotificationState>()(
 
           console.log('[Unarchive] Moving notification back to active:', notificationId)
 
-          // Check if notification already exists in active list (defensive)
-          const notificationExists = state.notifications.some(n => n.id === notificationId)
+          // Removing it from archivedNotifications is enough: if GitHub still
+          // reports it unread it's in the raw list and reappears in Active.
+          // Re-add defensively in case it dropped off the raw list meanwhile.
+          const inRawList = state.notifications.some(n => n.id === notificationId)
 
           return {
-            notifications: notificationExists
+            notifications: inRawList
               ? state.notifications
               : [...state.notifications, archived],
             archivedNotifications: state.archivedNotifications.filter(
@@ -390,8 +344,10 @@ export const useNotificationStore = create<NotificationState>()(
               return state
             }
 
-            const { toArchive, toKeep, ruleMatches } = applyRules(
-              state.notifications,
+            // Apply rules to the ACTIVE list only, so already-archived,
+            // dismissed, or snoozed notifications are never re-archived.
+            const { toArchive, ruleMatches } = applyRules(
+              state.getActiveNotifications(),
               state.autoArchiveRules
             )
 
@@ -413,8 +369,8 @@ export const useNotificationStore = create<NotificationState>()(
               return rule
             })
 
+            // Raw list untouched — archived IDs are hidden at read time
             return {
-              notifications: toKeep,
               archivedNotifications: [...state.archivedNotifications, ...toArchive],
               autoArchiveRules: updatedRules,
             }
@@ -461,9 +417,14 @@ export const useNotificationStore = create<NotificationState>()(
             })
           }
 
+          // Raw list untouched — read-time filtering hides snoozed IDs.
+          // Re-snoozing replaces the existing entry (updates the wake time),
+          // mirroring chrome.alarms.create replacing the same-named alarm.
           return {
-            notifications: state.notifications.filter(n => n.id !== notificationId),
-            snoozedNotifications: [...state.snoozedNotifications, snoozed],
+            snoozedNotifications: [
+              ...state.snoozedNotifications.filter(s => s.notification.id !== notificationId),
+              snoozed,
+            ],
           }
         }),
 
@@ -486,11 +447,13 @@ export const useNotificationStore = create<NotificationState>()(
             })
           }
 
-          // Check if notification already exists (defensive)
-          const notificationExists = state.notifications.some(n => n.id === notificationId)
-          
+          // Removing the snooze entry is enough if GitHub still reports the
+          // notification unread (it's in the raw list). Re-add the snapshot
+          // defensively if it dropped off the raw list meanwhile.
+          const inRawList = state.notifications.some(n => n.id === notificationId)
+
           return {
-            notifications: notificationExists 
+            notifications: inRawList
               ? state.notifications
               : [...state.notifications, snoozed.notification],
             snoozedNotifications: state.snoozedNotifications.filter(
@@ -509,11 +472,10 @@ export const useNotificationStore = create<NotificationState>()(
 
           console.log('[Wake] Moving notification back to active:', notificationId)
 
-          // Check if notification already exists (defensive)
-          const notificationExists = state.notifications.some(n => n.id === notificationId)
+          const inRawList = state.notifications.some(n => n.id === notificationId)
 
           return {
-            notifications: notificationExists
+            notifications: inRawList
               ? state.notifications
               : [...state.notifications, snoozed.notification],
             snoozedNotifications: state.snoozedNotifications.filter(
@@ -551,23 +513,20 @@ export const useNotificationStore = create<NotificationState>()(
         const state = get()
         const selectedIds = Array.from(state.selectedNotificationIds)
         const selectedNotifications = state.notifications.filter(n => selectedIds.includes(n.id))
-        
-        // Create dismissed entries with timestamps for all selected notifications
+
+        // Create dismissed entries with timestamps for all selected notifications.
+        // Raw list untouched — read-time filtering hides them immediately.
         const newDismissals: DismissedNotification[] = selectedNotifications.map(n => ({
           id: n.id,
           dismissedAt: Date.now(),
           lastSeenUpdatedAt: n.updated_at,
         }))
-        
-        // Remove selected notifications from active list and add to dismissed
+
         set((state) => ({
-          notifications: state.notifications.filter(
-            n => !selectedIds.includes(n.id)
-          ),
           selectedNotificationIds: new Set<string>(),
           dismissedNotifications: [...state.dismissedNotifications, ...newDismissals],
         }))
-        
+
         // Return selected IDs for API calls
         return selectedIds
       },
@@ -575,52 +534,61 @@ export const useNotificationStore = create<NotificationState>()(
       bulkArchive: () => {
         const state = get()
         const selectedIds = Array.from(state.selectedNotificationIds)
+        const alreadyArchived = new Set(state.archivedNotifications.map(n => n.id))
         const notificationsToArchive = state.notifications.filter(
-          n => selectedIds.includes(n.id)
+          n => selectedIds.includes(n.id) && !alreadyArchived.has(n.id)
         )
-        
-        // Move selected notifications to archive
+
+        // Copy selected notifications into the archive; raw list untouched
         set((state) => ({
-          notifications: state.notifications.filter(
-            n => !selectedIds.includes(n.id)
-          ),
           archivedNotifications: [
             ...state.archivedNotifications,
             ...notificationsToArchive,
           ],
           selectedNotificationIds: new Set<string>(),
         }))
-        
+
         // Return archived notifications
         return notificationsToArchive
       },
 
       // Selectors
+      // The raw GitHub list minus archived, snoozed, and smart-dismissed items.
+      // This is what the Active tab and the badge are based on.
+      getActiveNotifications: () => {
+        const state = get()
+        return getActiveNotifications(state.notifications, {
+          dismissedNotifications: state.dismissedNotifications,
+          archivedNotifications: state.archivedNotifications,
+          snoozedNotifications: state.snoozedNotifications,
+        })
+      },
+
       getFilteredNotifications: () => {
         const state = get()
-        const { notifications, activeFilter } = state
+        const active = state.getActiveNotifications()
 
-        switch (activeFilter) {
+        switch (state.activeFilter) {
           case 'mentions':
-            return notifications.filter(n => MENTION_REASONS.includes(n.reason))
+            return active.filter(n => MENTION_REASONS.includes(n.reason))
           case 'reviews':
-            return notifications.filter(n => REVIEW_REASONS.includes(n.reason))
+            return active.filter(n => REVIEW_REASONS.includes(n.reason))
           case 'assigned':
-            return notifications.filter(n => ASSIGNED_REASONS.includes(n.reason))
+            return active.filter(n => ASSIGNED_REASONS.includes(n.reason))
           case 'all':
           default:
-            return notifications
+            return active
         }
       },
 
       getFilterCounts: () => {
-        const { notifications } = get()
+        const active = get().getActiveNotifications()
 
         return {
-          all: notifications.length,
-          mentions: notifications.filter(n => MENTION_REASONS.includes(n.reason)).length,
-          reviews: notifications.filter(n => REVIEW_REASONS.includes(n.reason)).length,
-          assigned: notifications.filter(n => ASSIGNED_REASONS.includes(n.reason)).length,
+          all: active.length,
+          mentions: active.filter(n => MENTION_REASONS.includes(n.reason)).length,
+          reviews: active.filter(n => REVIEW_REASONS.includes(n.reason)).length,
+          assigned: active.filter(n => ASSIGNED_REASONS.includes(n.reason)).length,
         }
       },
 
@@ -641,8 +609,7 @@ export const useNotificationStore = create<NotificationState>()(
 
       getSelectedNotifications: () => {
         const state = get()
-        const { notifications, selectedNotificationIds } = state
-        return notifications.filter(n => selectedNotificationIds.has(n.id))
+        return state.getActiveNotifications().filter(n => state.selectedNotificationIds.has(n.id))
       },
     }),
     {

@@ -10,6 +10,8 @@ describe('Storage Types', () => {
         soundEnabled: false,
         defaultFilter: 'all',
         openLinksInNewTab: true,
+        theme: 'system',
+        showParticipatingOnly: false, // matches GitHub's inbox (all notifications)
       })
     })
 

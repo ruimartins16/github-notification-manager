@@ -14,27 +14,24 @@ const FILTER_TABS: FilterTab[] = [
   { id: 'assigned', label: 'Assigned', shortcut: '4' },
 ]
 
-// Reason mappings for filters (must match notification-store.ts)
-const MENTION_REASONS = ['mention', 'team_mention', 'author']
-const REVIEW_REASONS = ['review_requested']
-const ASSIGNED_REASONS = ['assign']
-
 export const FilterBar = memo(() => {
   const activeFilter = useNotificationStore(state => state.activeFilter)
   const setFilter = useNotificationStore(state => state.setFilter)
-  
-  // Subscribe to notifications array directly so component re-renders on changes
+
+  // Counts come from the store's active list (raw GitHub list minus dismissed/
+  // archived/snoozed). Subscribe to every state slice that feeds it so the
+  // counters re-render on any change — e.g. marking as read only mutates
+  // dismissedNotifications, not the raw notifications array.
   const notifications = useNotificationStore(state => state.notifications)
-  
-  // Compute filter counts from notifications array
-  const filterCounts = useMemo(() => {
-    return {
-      all: notifications.length,
-      mentions: notifications.filter(n => MENTION_REASONS.includes(n.reason)).length,
-      reviews: notifications.filter(n => REVIEW_REASONS.includes(n.reason)).length,
-      assigned: notifications.filter(n => ASSIGNED_REASONS.includes(n.reason)).length,
-    }
-  }, [notifications])
+  const dismissedNotifications = useNotificationStore(state => state.dismissedNotifications)
+  const archivedNotifications = useNotificationStore(state => state.archivedNotifications)
+  const snoozedNotifications = useNotificationStore(state => state.snoozedNotifications)
+  const getFilterCounts = useNotificationStore(state => state.getFilterCounts)
+
+  const filterCounts = useMemo(
+    () => getFilterCounts(),
+    [getFilterCounts, notifications, dismissedNotifications, archivedNotifications, snoozedNotifications]
+  )
 
   const handleFilterClick = useCallback((filter: NotificationFilter) => {
     setFilter(filter)

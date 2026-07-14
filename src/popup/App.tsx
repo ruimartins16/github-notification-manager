@@ -89,32 +89,21 @@ function App() {
   const isLoading = authLoading
   const error = authError
 
-  // Force fresh data when popup opens
-  // Zustand persist only hydrates once (on module load), so if the popup JS was cached
-  // from a previous open, the store may have stale in-memory data. This forces:
-  // 1. Zustand to re-read from chrome.storage (picks up background worker writes)
-  // 2. Re-apply smart dismiss filtering to show correct notification count immediately
-  // 3. Trigger fresh GitHub API fetch if data is stale or missing
+  // Sync with the background worker's data when the popup opens.
+  // Zustand persist only hydrates once (on module load), so if the popup JS was
+  // cached from a previous open, the store may have stale in-memory data.
+  // The persisted list is the RAW GitHub list; local filtering (dismissed/
+  // archived/snoozed) happens at read time, so rehydrating is all we need.
   useEffect(() => {
     const init = async () => {
-      console.log('[App] Popup opened - rehydrating and applying smart dismiss filtering')
-      
+      console.log('[App] Popup opened - rehydrating from chrome.storage')
+
       // Force Zustand to re-read from chrome.storage.local
       // This picks up any notifications the background worker wrote since last open
       // IMPORTANT: rehydrate() is async - we must await it before reading state
       await useNotificationStore.persist.rehydrate()
-      
+
       const state = useNotificationStore.getState()
-      const rehydratedNotifications = state.notifications
-      
-      console.log('[App] Re-applying smart dismiss filtering to', rehydratedNotifications.length, 'rehydrated notifications')
-      
-      // This will:
-      // 1. Filter out archived notifications
-      // 2. Apply smart dismiss (check updated_at vs lastSeenUpdatedAt)
-      // 3. Show notifications with new activity even if previously dismissed
-      state.setNotifications(rehydratedNotifications)
-      
       const lastFetched = state.lastFetched
       const cacheAge = lastFetched ? Date.now() - lastFetched : Infinity
       
@@ -454,7 +443,7 @@ function App() {
   // Supports force refresh (bypasses ETag cache) when called with forceRefresh=true
   const handleManualRefresh = useCallback(async (forceRefresh = false) => {
     if (forceRefresh) {
-      console.log('[App] Force refresh triggered (bypassing ETag cache)')
+      console.log('[App] Force refresh triggered')
       addToast('Force refreshing from GitHub...', { variant: 'info', duration: 2000 })
     } else {
       console.log('[App] Manual refresh triggered')
@@ -898,7 +887,7 @@ function App() {
                       All caught up!
                     </h3>
                     <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted">
-                      {notifications.length === 0 
+                      {unreadCount === 0
                         ? 'You have no unread notifications'
                         : 'No notifications in this filter'}
                     </p>

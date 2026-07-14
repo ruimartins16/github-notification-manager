@@ -7,9 +7,20 @@ const mockMarkThreadAsRead = vi.fn()
 const mockMarkNotificationsAsRead = vi.fn()
 const mockGetAuthenticated = vi.fn()
 
+// Minimal octokit.paginate mock: fetches a single page from the route mock,
+// applies the map callback (with a no-op done()), and returns the mapped data.
+const mockPaginate = vi.fn(
+  async (route: any, params: any, mapFn?: (response: any, done: () => void) => any[]) => {
+    const response = await route(params)
+    if (!mapFn) return response.data
+    return mapFn(response, () => {})
+  }
+)
+
 // Mock Octokit to return the same mock instance
 vi.mock('@octokit/rest', () => ({
   Octokit: vi.fn().mockImplementation(() => ({
+    paginate: mockPaginate,
     rest: {
       activity: {
         listNotificationsForAuthenticatedUser: mockListNotifications,
@@ -77,8 +88,8 @@ describe('GitHubAPI', () => {
       expect(result).toEqual(mockNotifications)
       expect(mockListNotifications).toHaveBeenCalledWith({
         all: false,
-        participating: true,
-        per_page: 50,
+        participating: false, // default matches GitHub's inbox (all notifications)
+        per_page: 100,
       })
     })
 
@@ -89,7 +100,6 @@ describe('GitHubAPI', () => {
       await api.fetchNotifications({
         all: true,
         participating: true,
-        perPage: 100,
       })
 
       expect(mockListNotifications).toHaveBeenCalledWith({

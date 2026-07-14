@@ -18,8 +18,14 @@
  */
 
 import { Octokit } from '@octokit/rest'
-import { conditionalRequestPlugin } from './conditional-request-plugin'
 import type { GitHubUser } from '../types/github'
+
+/**
+ * Safety cap on how many notifications we paginate through per fetch.
+ * GitHub's inbox rarely exceeds this; the cap bounds API usage for
+ * accounts with enormous backlogs.
+ */
+const MAX_NOTIFICATIONS = 500
 
 export class GitHubAPI {
   private static instance: GitHubAPI | null = null
@@ -62,46 +68,55 @@ export class GitHubAPI {
       userAgent: 'GitHush v1.0.0',
       request: {
         fetch: (url: string | Request, opts?: RequestInit) => {
-          // Add cache: 'no-cache' to force validation with server
-          // This ensures conditional requests are sent every time
-          return fetch(url, { 
-            ...opts, 
-            cache: 'no-cache' 
+          // Use 'no-store' to completely bypass the browser's HTTP cache.
+          // Anything weaker lets the browser attach its own If-None-Match header
+          // and serve 304s from a cache we cannot invalidate, which makes the
+          // extension drift out of sync with GitHub's notifications page.
+          return fetch(url, {
+            ...opts,
+            cache: 'no-store'
           })
         }
       }
     })
-    
-    // Register conditional request plugin for ETag support
-    conditionalRequestPlugin(this.octokit)
   }
 
   /**
    * Fetch notifications for the authenticated user
-   * 
+   *
+   * Paginates through all pages (up to MAX_NOTIFICATIONS) so the result
+   * mirrors GitHub's notifications inbox, not just the first page.
+   *
    * @param options - Fetch options
    * @param options.all - If true, show notifications marked as read (default: false)
-   * @param options.participating - If true, only show notifications user is participating in (default: true)
-   * @param options.perPage - Number of results per page (default: 50, max: 100)
+   * @param options.participating - If true, only show notifications user is participating in (default: false, matching GitHub's inbox)
    * @returns Promise<Array> - Array of notification objects
    * @throws Error if not initialized or request fails
    */
   async fetchNotifications(options?: {
     all?: boolean
     participating?: boolean
-    perPage?: number
   }) {
     if (!this.octokit) {
       throw new Error('GitHubAPI not initialized. Call initialize() first.')
     }
 
-    const { data } = await this.octokit.rest.activity.listNotificationsForAuthenticatedUser({
-      all: options?.all ?? false, // Only unread by default
-      participating: options?.participating ?? true, // Only show participating notifications by default (actionable items)
-      per_page: options?.perPage ?? 50,
-    })
-
-    return data
+    let fetched = 0
+    return this.octokit.paginate(
+      this.octokit.rest.activity.listNotificationsForAuthenticatedUser,
+      {
+        all: options?.all ?? false, // Only unread by default
+        participating: options?.participating ?? false, // All notifications by default, matching GitHub's inbox
+        per_page: 100,
+      },
+      (response, done) => {
+        fetched += response.data.length
+        if (fetched >= MAX_NOTIFICATIONS) {
+          done()
+        }
+        return response.data
+      }
+    )
   }
 
   /**

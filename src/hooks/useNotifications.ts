@@ -101,7 +101,7 @@ export function useNotifications(_options?: UseNotificationsOptions): UseNotific
     }
   }, [token, setNotifications, setLoading, setError, updateLastFetched])
 
-  // Force refresh function - bypasses ETag cache to guarantee fresh data
+  // Force refresh function - kept for UI compatibility; every fetch is uncached now
   const forceRefresh = useCallback(async () => {
     if (!token) {
       console.warn('[useNotifications] Cannot force refresh: no token')
@@ -112,9 +112,8 @@ export function useNotifications(_options?: UseNotificationsOptions): UseNotific
     setLoading(true)
 
     try {
-      console.log('[useNotifications] Force refresh triggered (bypassing ETag cache)')
-      
-      // Force fetch bypasses ETag cache - always gets fresh 200 OK from GitHub
+      console.log('[useNotifications] Force refresh triggered')
+
       const fetchedNotifications = await NotificationService.forceRefreshNotifications(token)
       
       // Update Zustand store (which persists to chrome.storage)
@@ -151,9 +150,7 @@ export function useNotifications(_options?: UseNotificationsOptions): UseNotific
  * ```
  */
 export function useUnreadCount(): number {
-  const notifications = useNotificationStore(state => state.notifications)
-  
-  if (!notifications) return 0
-  
-  return notifications.filter((n: GitHubNotification) => n.unread).length
+  // Count the ACTIVE notifications (raw GitHub list minus dismissed/archived/
+  // snoozed) so the header count always matches the Active tab and the badge.
+  return useNotificationStore(state => state.getActiveNotifications().length)
 }

@@ -57,7 +57,7 @@ describe('NotificationService', () => {
       expect(mockApi.initialize).toHaveBeenCalledWith(mockToken)
       expect(mockApi.fetchNotifications).toHaveBeenCalledWith({
         all: false,
-        participating: true,
+        participating: false, // default matches GitHub's inbox (all notifications)
       })
       expect(result).toEqual(mockNotifications)
     })

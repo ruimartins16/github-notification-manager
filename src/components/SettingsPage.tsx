@@ -59,11 +59,13 @@ export function SettingsPage() {
   const soundEnabled = useSettingsStore(state => state.soundEnabled)
   const defaultFilter = useSettingsStore(state => state.defaultFilter)
   const openLinksInNewTab = useSettingsStore(state => state.openLinksInNewTab)
+  const showParticipatingOnly = useSettingsStore(state => state.showParticipatingOnly)
   const setRefreshInterval = useSettingsStore(state => state.setRefreshInterval)
   const setBadgeEnabled = useSettingsStore(state => state.setBadgeEnabled)
   const setSoundEnabled = useSettingsStore(state => state.setSoundEnabled)
   const setDefaultFilter = useSettingsStore(state => state.setDefaultFilter)
   const setOpenLinksInNewTab = useSettingsStore(state => state.setOpenLinksInNewTab)
+  const setShowParticipatingOnly = useSettingsStore(state => state.setShowParticipatingOnly)
   const resetSettings = useSettingsStore(state => state.resetSettings)
   const isDefaultSettings = useSettingsStore(state => state.isDefaultSettings())
   
@@ -153,6 +155,7 @@ export function SettingsPage() {
       soundEnabled,
       defaultFilter,
       openLinksInNewTab,
+      showParticipatingOnly,
     }
     const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -219,6 +222,10 @@ export function SettingsPage() {
         }
         if (typeof settings.openLinksInNewTab === 'boolean') {
           setOpenLinksInNewTab(settings.openLinksInNewTab)
+          appliedCount++
+        }
+        if (typeof settings.showParticipatingOnly === 'boolean') {
+          setShowParticipatingOnly(settings.showParticipatingOnly)
           appliedCount++
         }
         
@@ -588,6 +595,35 @@ export function SettingsPage() {
                         type="checkbox"
                         checked={soundEnabled}
                         onChange={(e) => setSoundEnabled(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle peer-focus:outline-none peer-focus:ring-2 
+                                    peer-focus:ring-github-accent-emphasis dark:peer-focus:ring-github-accent-dark-emphasis rounded-full peer 
+                                    peer-checked:after:translate-x-full peer-checked:after:border-white 
+                                    after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
+                                    after:bg-white after:border-gray-300 after:border after:rounded-full 
+                                    after:h-5 after:w-5 after:transition-all border border-github-border-default dark:border-github-border-dark-default
+                                    peer-checked:bg-github-accent-emphasis dark:peer-checked:bg-github-accent-dark-emphasis"></div>
+                    </label>
+                  </div>
+
+                  {/* Participating Only Toggle */}
+                  <div className="flex items-center justify-between py-3 border-t border-github-border-default dark:border-github-border-dark-default">
+                    <div>
+                      <label className="text-sm font-medium text-github-fg-default dark:text-github-fg-dark-default">
+                        Participating Only
+                      </label>
+                      <p className="text-xs text-github-fg-muted dark:text-github-fg-dark-muted mt-1">
+                        {showParticipatingOnly
+                          ? 'Only show notifications where you are directly involved (mentions, assignments, review requests)'
+                          : 'Show all notifications including watched repositories'}
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={showParticipatingOnly}
+                        onChange={(e) => setShowParticipatingOnly(e.target.checked)}
                         className="sr-only peer"
                       />
                       <div className="w-11 h-6 bg-github-canvas-subtle dark:bg-github-canvas-dark-subtle peer-focus:outline-none peer-focus:ring-2 

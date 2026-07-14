@@ -220,8 +220,8 @@ export function useKeyboardShortcuts({
       }
 
       // Manual refresh - FREE (always available)
-      // R: Normal refresh (uses ETag cache)
-      // Shift+R: Force refresh (bypasses ETag cache for fresh data)
+      // R: Normal refresh
+      // Shift+R: Force refresh
       if (e.key === 'r' || e.key === 'R') {
         e.preventDefault()
         const forceRefresh = e.shiftKey

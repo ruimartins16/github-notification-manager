@@ -60,10 +60,11 @@ describe('useNotificationStore', () => {
       lastFetched: null,
       activeFilter: 'all',
       snoozedNotifications: [],
-      dismissedNotificationIds: [],
+      dismissedNotifications: [],
       archivedNotifications: [],
       selectedNotificationIds: new Set<string>(),
       autoArchiveRules: [],
+      markAllBackup: null,
     })
 
     // Reset mocks
@@ -190,7 +191,7 @@ describe('useNotificationStore', () => {
   })
 
   describe('markAsRead', () => {
-    it('should remove notification by id', () => {
+    it('should hide notification from active list by id', () => {
       const { result } = renderHook(() => useNotificationStore())
 
       const notification2: GitHubNotification = {
@@ -208,8 +209,11 @@ describe('useNotificationStore', () => {
         result.current.markAsRead('1')
       })
 
-      expect(result.current.notifications.length).toBe(1)
-      expect(result.current.notifications[0].id).toBe('2')
+      // Raw list is never shrunk; the item is hidden at read time
+      expect(result.current.notifications.length).toBe(2)
+      const active = result.current.getActiveNotifications()
+      expect(active.length).toBe(1)
+      expect(active[0].id).toBe('2')
     })
 
     it('should handle marking non-existent notification', () => {
@@ -661,7 +665,7 @@ describe('useNotificationStore', () => {
 
   describe('Snooze Functionality', () => {
     describe('snoozeNotification', () => {
-      it('should move notification from active to snoozed list', () => {
+      it('should hide notification from active list and add to snoozed list', () => {
         const { result } = renderHook(() => useNotificationStore())
 
         act(() => {
@@ -677,7 +681,9 @@ describe('useNotificationStore', () => {
           result.current.snoozeNotification('1', wakeTime)
         })
 
-        expect(result.current.notifications).toHaveLength(0)
+        // Raw list untouched; snoozed IDs are hidden at read time
+        expect(result.current.notifications).toHaveLength(1)
+        expect(result.current.getActiveNotifications()).toHaveLength(0)
         expect(result.current.snoozedNotifications).toHaveLength(1)
         expect(result.current.snoozedNotifications[0]).toEqual({
           notification: mockNotification,
@@ -748,7 +754,7 @@ describe('useNotificationStore', () => {
     })
 
     describe('unsnoozeNotification', () => {
-      it('should move notification from snoozed to active list', () => {
+      it('should move notification from snoozed back to active list', () => {
         const { result } = renderHook(() => useNotificationStore())
         const wakeTime = Date.now() + 3600000
 
@@ -758,7 +764,7 @@ describe('useNotificationStore', () => {
           result.current.snoozeNotification('1', wakeTime)
         })
 
-        expect(result.current.notifications).toHaveLength(0)
+        expect(result.current.getActiveNotifications()).toHaveLength(0)
         expect(result.current.snoozedNotifications).toHaveLength(1)
 
         // Then unsnooze
@@ -766,9 +772,12 @@ describe('useNotificationStore', () => {
           result.current.unsnoozeNotification('1')
         })
 
+        // Raw list still had it, so no duplicate is added
         expect(result.current.notifications).toHaveLength(1)
         expect(result.current.snoozedNotifications).toHaveLength(0)
-        expect(result.current.notifications[0]).toEqual(mockNotification)
+        const active = result.current.getActiveNotifications()
+        expect(active).toHaveLength(1)
+        expect(active[0]).toEqual(mockNotification)
       })
 
       it('should clear chrome alarm when unsnoozing', () => {
@@ -809,8 +818,8 @@ describe('useNotificationStore', () => {
 
         // Should not affect snoozed list
         expect(result.current.snoozedNotifications).toHaveLength(1)
-        // Should not affect active list
-        expect(result.current.notifications).toHaveLength(0)
+        // Should not affect active list (still hidden by snooze)
+        expect(result.current.getActiveNotifications()).toHaveLength(0)
       })
     })
 
@@ -830,7 +839,9 @@ describe('useNotificationStore', () => {
           result.current.wakeNotification('1')
         })
 
+        // Raw list still had it, so no duplicate is added
         expect(result.current.notifications).toHaveLength(1)
+        expect(result.current.getActiveNotifications()).toHaveLength(1)
         expect(result.current.snoozedNotifications).toHaveLength(0)
         // Should NOT clear alarm (alarm already fired)
         expect(mockChromeAlarms.clear).not.toHaveBeenCalled()
@@ -1028,7 +1039,9 @@ describe('useNotificationStore', () => {
           result.current.snoozeNotification('3', wakeTime + 14400000)
         })
 
-        expect(result.current.notifications).toHaveLength(0)
+        // Raw list untouched; all three hidden from the active list
+        expect(result.current.notifications).toHaveLength(3)
+        expect(result.current.getActiveNotifications()).toHaveLength(0)
         expect(result.current.snoozedNotifications).toHaveLength(3)
         expect(mockChromeAlarms.create).toHaveBeenCalledTimes(3)
       })
@@ -1057,8 +1070,11 @@ describe('useNotificationStore', () => {
 
         expect(result.current.snoozedNotifications).toHaveLength(1)
         expect(result.current.snoozedNotifications[0].notification.id).toBe('2')
-        expect(result.current.notifications).toHaveLength(1)
-        expect(result.current.notifications[0].id).toBe('1')
+        // Raw list still has both; only '1' is visible ('2' is still snoozed)
+        expect(result.current.notifications).toHaveLength(2)
+        const active = result.current.getActiveNotifications()
+        expect(active).toHaveLength(1)
+        expect(active[0].id).toBe('1')
       })
     })
 
@@ -1074,7 +1090,7 @@ describe('useNotificationStore', () => {
 
         expect(result.current.snoozedNotifications).toHaveLength(1)
 
-        // Try to snooze again - should not find it in active list
+        // Try to snooze again - must not create a duplicate snoozed entry
         const wakeTime2 = Date.now() + 7200000
 
         act(() => {
@@ -1122,7 +1138,7 @@ describe('useNotificationStore', () => {
           result.current.setNotifications([mockNotification, notification2])
         })
 
-        expect(result.current.notifications.filter((n) => n.unread)).toHaveLength(2)
+        expect(result.current.getActiveNotifications()).toHaveLength(2)
 
         let markedNotifications: GitHubNotification[] = []
         act(() => {
@@ -1130,7 +1146,9 @@ describe('useNotificationStore', () => {
         })
 
         expect(markedNotifications).toHaveLength(2)
-        expect(result.current.notifications.filter((n) => n.unread)).toHaveLength(0)
+        // Raw list untouched; all items hidden from the active list via dismiss entries
+        expect(result.current.notifications).toHaveLength(2)
+        expect(result.current.getActiveNotifications()).toHaveLength(0)
         expect(result.current.markAllBackup).toEqual([mockNotification, notification2])
       })
 
@@ -1163,11 +1181,11 @@ describe('useNotificationStore', () => {
         expect(markedNotifications).toHaveLength(1)
         expect(markedNotifications[0].id).toBe('1')
 
-        // Check that only mention notification was removed (marked as read)
-        const mention = result.current.notifications.find((n) => n.id === '1')
-        const review = result.current.notifications.find((n) => n.id === '2')!
-        expect(mention).toBeUndefined() // Mention was removed
-        expect(review.unread).toBe(true) // Review remains unread
+        // Raw list still contains both; only the mention is hidden from active
+        expect(result.current.notifications.find((n) => n.id === '1')).toBeDefined()
+        const activeIds = result.current.getActiveNotifications().map((n) => n.id)
+        expect(activeIds).not.toContain('1') // Mention was dismissed (hidden)
+        expect(activeIds).toContain('2') // Review remains visible
       })
 
       it('should create backup for undo', () => {
@@ -1219,13 +1237,14 @@ describe('useNotificationStore', () => {
 
         // Should still return the notification in marked list
         expect(markedNotifications).toHaveLength(1)
-        // Notification should be removed from the array (even though already read)
-        expect(result.current.notifications).toHaveLength(0)
+        // Raw list untouched; the notification is hidden from the active list
+        expect(result.current.notifications).toHaveLength(1)
+        expect(result.current.getActiveNotifications()).toHaveLength(0)
       })
     })
 
     describe('undoMarkAllAsRead', () => {
-      it('should restore notifications from backup', () => {
+      it('should make notifications visible again by removing dismiss entries', () => {
         const { result } = renderHook(() => useNotificationStore())
 
         const notification2: GitHubNotification = {
@@ -1238,13 +1257,15 @@ describe('useNotificationStore', () => {
           result.current.markAllAsRead()
         })
 
-        expect(result.current.notifications.filter((n) => n.unread)).toHaveLength(0)
+        expect(result.current.getActiveNotifications()).toHaveLength(0)
 
         act(() => {
           result.current.undoMarkAllAsRead()
         })
 
-        expect(result.current.notifications.filter((n) => n.unread)).toHaveLength(2)
+        // Raw list was never changed; removing the dismiss entries makes them reappear
+        expect(result.current.notifications).toHaveLength(2)
+        expect(result.current.getActiveNotifications()).toHaveLength(2)
         expect(result.current.markAllBackup).toBeNull()
       })
 
@@ -1351,8 +1372,8 @@ describe('useNotificationStore', () => {
         })
 
         counts = result.current.getFilterCounts()
-        // Notifications should be removed from the array after marking as read
-        expect(result.current.notifications).toHaveLength(0) // All notifications removed
+        // Raw list untouched; counts are based on the active list which is now empty
+        expect(result.current.notifications).toHaveLength(2) // Raw list keeps them
         expect(counts.all).toBe(0) // Count should be 0
         expect(counts.mentions).toBe(0) // Mention count should be 0
       })
@@ -1373,7 +1394,7 @@ describe('useNotificationStore', () => {
     })
 
     describe('archiveNotification', () => {
-      it('should move notification from active to archived list', () => {
+      it('should hide notification from active list and add to archived list', () => {
         const { result } = renderHook(() => useNotificationStore())
 
         act(() => {
@@ -1387,7 +1408,9 @@ describe('useNotificationStore', () => {
           result.current.archiveNotification('1')
         })
 
-        expect(result.current.notifications).toHaveLength(0)
+        // Raw list untouched; archived IDs are hidden at read time
+        expect(result.current.notifications).toHaveLength(1)
+        expect(result.current.getActiveNotifications()).toHaveLength(0)
         expect(result.current.archivedNotifications).toHaveLength(1)
         expect(result.current.archivedNotifications[0]).toEqual(mockNotification)
       })
@@ -1442,14 +1465,18 @@ describe('useNotificationStore', () => {
           result.current.archiveNotification('2')
         })
 
-        expect(result.current.notifications).toHaveLength(1)
+        // Raw list untouched; only '3' remains visible
+        expect(result.current.notifications).toHaveLength(3)
+        const active = result.current.getActiveNotifications()
+        expect(active).toHaveLength(1)
+        expect(active[0].id).toBe('3')
         expect(result.current.archivedNotifications).toHaveLength(2)
         expect(result.current.archivedNotifications.map(n => n.id)).toEqual(['1', '2'])
       })
     })
 
     describe('unarchiveNotification', () => {
-      it('should move notification from archived to active list', () => {
+      it('should move notification from archived back to active list', () => {
         const { result } = renderHook(() => useNotificationStore())
 
         // First archive it
@@ -1458,7 +1485,7 @@ describe('useNotificationStore', () => {
           result.current.archiveNotification('1')
         })
 
-        expect(result.current.notifications).toHaveLength(0)
+        expect(result.current.getActiveNotifications()).toHaveLength(0)
         expect(result.current.archivedNotifications).toHaveLength(1)
 
         // Then unarchive
@@ -1466,9 +1493,12 @@ describe('useNotificationStore', () => {
           result.current.unarchiveNotification('1')
         })
 
+        // Raw list still had it, so no duplicate is added
         expect(result.current.notifications).toHaveLength(1)
         expect(result.current.archivedNotifications).toHaveLength(0)
-        expect(result.current.notifications[0]).toEqual(mockNotification)
+        const active = result.current.getActiveNotifications()
+        expect(active).toHaveLength(1)
+        expect(active[0]).toEqual(mockNotification)
       })
 
       it('should handle unarchiving non-existent notification gracefully', () => {
@@ -1485,8 +1515,8 @@ describe('useNotificationStore', () => {
 
         // Should not affect archived list
         expect(result.current.archivedNotifications).toHaveLength(1)
-        // Should not affect active list
-        expect(result.current.notifications).toHaveLength(0)
+        // Should not affect active list (still hidden by archive)
+        expect(result.current.getActiveNotifications()).toHaveLength(0)
       })
 
       it('should handle unarchiving specific notification from multiple archived', () => {
@@ -1511,8 +1541,11 @@ describe('useNotificationStore', () => {
 
         expect(result.current.archivedNotifications).toHaveLength(1)
         expect(result.current.archivedNotifications[0].id).toBe('2')
-        expect(result.current.notifications).toHaveLength(1)
-        expect(result.current.notifications[0].id).toBe('1')
+        // Raw list still has both; only '1' is visible ('2' is still archived)
+        expect(result.current.notifications).toHaveLength(2)
+        const active = result.current.getActiveNotifications()
+        expect(active).toHaveLength(1)
+        expect(active[0].id).toBe('1')
       })
     })
 
@@ -1676,7 +1709,7 @@ describe('useNotificationStore', () => {
         })
 
         expect(result.current.archivedNotifications).toHaveLength(1)
-        expect(result.current.notifications).toHaveLength(1)
+        expect(result.current.getActiveNotifications()).toHaveLength(1)
 
         act(() => {
           result.current.clearNotifications()
@@ -1699,14 +1732,14 @@ describe('useNotificationStore', () => {
         })
 
         expect(result.current.snoozedNotifications).toHaveLength(1)
-        expect(result.current.notifications).toHaveLength(0)
+        expect(result.current.getActiveNotifications()).toHaveLength(0)
 
         // Wake the notification
         act(() => {
           result.current.wakeNotification('1')
         })
 
-        expect(result.current.notifications).toHaveLength(1)
+        expect(result.current.getActiveNotifications()).toHaveLength(1)
         expect(result.current.snoozedNotifications).toHaveLength(0)
 
         // Now archive it
@@ -1715,10 +1748,12 @@ describe('useNotificationStore', () => {
         })
 
         expect(result.current.archivedNotifications).toHaveLength(1)
-        expect(result.current.notifications).toHaveLength(0)
+        expect(result.current.getActiveNotifications()).toHaveLength(0)
+        // Raw list untouched throughout
+        expect(result.current.notifications).toHaveLength(1)
       })
 
-      it('should not archive notification that is currently snoozed', () => {
+      it('should archive a snoozed notification (raw list still contains it)', () => {
         const { result } = renderHook(() => useNotificationStore())
         const wakeTime = Date.now() + 3600000
 
@@ -1727,14 +1762,15 @@ describe('useNotificationStore', () => {
           result.current.snoozeNotification('1', wakeTime)
         })
 
-        // Try to archive while snoozed (notification is not in active list)
+        // Archive while snoozed: the raw list still contains the notification,
+        // so an explicit archive request succeeds even while it is snoozed
         act(() => {
           result.current.archiveNotification('1')
         })
 
-        // Should not be archived (not found in active list)
-        expect(result.current.archivedNotifications).toHaveLength(0)
+        expect(result.current.archivedNotifications).toHaveLength(1)
         expect(result.current.snoozedNotifications).toHaveLength(1)
+        expect(result.current.getActiveNotifications()).toHaveLength(0)
       })
     })
   })
@@ -1875,7 +1911,9 @@ describe('useNotificationStore', () => {
         })
 
         expect(markedIds).toEqual(['1', '2'])
-        expect(result.current.notifications.length).toBe(0)
+        // Raw list untouched; both hidden from the active list
+        expect(result.current.notifications.length).toBe(2)
+        expect(result.current.getActiveNotifications().length).toBe(0)
         expect(result.current.getSelectedCount()).toBe(0)
       })
 
@@ -1904,8 +1942,11 @@ describe('useNotificationStore', () => {
         })
 
         expect(markedIds).toEqual(['1', '2'])
-        expect(result.current.notifications.length).toBe(1)
-        expect(result.current.notifications[0].id).toBe('3')
+        // Raw list untouched; only '3' remains visible
+        expect(result.current.notifications.length).toBe(3)
+        const active = result.current.getActiveNotifications()
+        expect(active.length).toBe(1)
+        expect(active[0].id).toBe('3')
       })
     })
 
@@ -1930,7 +1971,9 @@ describe('useNotificationStore', () => {
         })
 
         expect(archivedNotifications.length).toBe(2)
-        expect(result.current.notifications.length).toBe(0)
+        // Raw list untouched; both hidden from the active list
+        expect(result.current.notifications.length).toBe(2)
+        expect(result.current.getActiveNotifications().length).toBe(0)
         expect(result.current.archivedNotifications.length).toBe(2)
         expect(result.current.getSelectedCount()).toBe(0)
       })
@@ -1957,7 +2000,9 @@ describe('useNotificationStore', () => {
           result.current.bulkArchive()
         })
 
-        expect(result.current.notifications.length).toBe(2)
+        // Raw list untouched; '2' and '3' remain visible
+        expect(result.current.notifications.length).toBe(3)
+        expect(result.current.getActiveNotifications().map(n => n.id)).toEqual(['2', '3'])
         expect(result.current.archivedNotifications.length).toBe(1)
         expect(result.current.archivedNotifications[0].id).toBe('1')
       })
