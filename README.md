@@ -4,8 +4,11 @@
 
 A Chrome extension that helps developers take back control of their GitHub notifications. Stop drowning in notification overwhelm and focus on what matters most.
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-blue?logo=google-chrome)](https://chrome.google.com/webstore)
+[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/adfddlpecaeahdfjaelpagfmeaddcpcd?logo=googlechrome&logoColor=white&label=Chrome%20Web%20Store&color=blue)](https://chromewebstore.google.com/detail/githush/adfddlpecaeahdfjaelpagfmeaddcpcd)
+[![Chrome Web Store Users](https://img.shields.io/chrome-web-store/users/adfddlpecaeahdfjaelpagfmeaddcpcd?color=green&label=users)](https://chromewebstore.google.com/detail/githush/adfddlpecaeahdfjaelpagfmeaddcpcd)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+**➡️ [Install GitHush from the Chrome Web Store](https://chromewebstore.google.com/detail/githush/adfddlpecaeahdfjaelpagfmeaddcpcd)**
 
 ---
 
@@ -60,11 +63,13 @@ A Chrome extension that helps developers take back control of their GitHub notif
 ## 🚀 Installation
 
 ### From Chrome Web Store (Recommended)
-1. Visit the [Chrome Web Store](https://chrome.google.com/webstore) (link coming soon)
+1. Visit [GitHush on the Chrome Web Store](https://chromewebstore.google.com/detail/githush/adfddlpecaeahdfjaelpagfmeaddcpcd)
 2. Click "Add to Chrome"
 3. Click the GitHush icon in your extensions bar
 4. Sign in with GitHub
 5. Start managing notifications your way!
+
+> **Using GitHub in a company/organization?** If your org restricts OAuth apps, notifications from that org's private repositories won't appear until an organization owner approves GitHush. Go to [github.com/settings/applications](https://github.com/settings/applications) → GitHush → "Organization access" and click **Request** (or **Grant** if you're an owner). One approval covers every member of the org. This is a GitHub security policy that applies to all third-party notification tools.
 
 ### For Development
 ```bash
