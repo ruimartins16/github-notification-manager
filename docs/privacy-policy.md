@@ -242,7 +242,7 @@ We take security seriously:
 ### In Case of Security Issues
 
 If you discover a security vulnerability, please report it to:
-- **Email:** r.martins@ua.pt
+- **Email:** githush.support@gmail.com
 - **GitHub Issues:** https://github.com/ruimartins16/github-notification-manager/security
 
 ## Children's Privacy
@@ -268,7 +268,7 @@ GitHush is open source:
 Questions about privacy or data handling?
 
 - **GitHub Issues:** https://github.com/ruimartins16/github-notification-manager/issues
-- **Email:** r.martins@ua.pt
+- **Email:** githush.support@gmail.com
 - **Repository:** https://github.com/ruimartins16/github-notification-manager
 
 ## Compliance
@@ -304,4 +304,4 @@ This extension complies with:
 
 ---
 
-**Questions?** Open an issue at https://github.com/ruimartins16/github-notification-manager or email r.martins@ua.pt.
+**Questions?** Open an issue at https://github.com/ruimartins16/github-notification-manager or email githush.support@gmail.com.

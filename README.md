@@ -204,7 +204,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## 📧 Contact & Support
 
 - **Issues & Feature Requests:** [GitHub Issues](https://github.com/ruimartins16/github-notification-manager/issues)
-- **Email:** r.martins@ua.pt
+- **Email:** githush.support@gmail.com
 - **Repository:** [github.com/ruimartins16/github-notification-manager](https://github.com/ruimartins16/github-notification-manager)
 
 ---
